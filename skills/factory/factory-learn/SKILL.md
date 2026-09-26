@@ -49,9 +49,9 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 
 ### Workflow Retrospective Route
 Runs periodically or on-demand to analyze past runs of other factory skills (e.g. `factory-mission`, `factory-product`) and generate workflow memories:
-1. **`analyze`** (`analyze` phase) -> Scan completed/failed runs' state files (`.factory-<orchestrator>-state.json`) and evidence files. Identify patterns, recurring errors, or successful corrections.
+1. **`analyze`** (`analyze` phase) -> Scan completed/failed runs' shared state (`.adlc/workflows/runs/<run_id>/state.json` via `adlc-cli workflow status`) and evidence files. Identify patterns, recurring errors, or successful corrections.
 2. **`clarify`⭐** -> Present proposed memories (active vs tentative) to the user (in gated/hybrid modes) or auto-approve (in autonomous mode).
-3. **`publish`** (`build` phase) -> Write approved memories to `.adlc/workflow/memory.jsonl`. Memories carry weights and use counts; stale or counter-productive memories are automatically archived.
+3. **`publish`** (`build` phase) -> Write approved memories to `.adlc/workflows/memory.jsonl` (workspace-global). Memories carry weights and use counts; stale or counter-productive memories are automatically archived.
 
 ---
 
