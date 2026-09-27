@@ -8,6 +8,9 @@ contract across the skill files, the boot scripts, and the helper templates.
 """
 
 from pathlib import Path
+import json
+import os
+import subprocess
 
 ROOT = Path(__file__).parent.parent.parent
 
@@ -184,3 +187,81 @@ def test_helper_borrowers_reference_canonical():
         content = path.read_text(encoding="utf-8")
         assert "../team-setup/team-helpers.sh" in content, f"{name}: no canonical sh reference"
         assert "../team-setup/team-helpers.ps1" in content, f"{name}: no canonical ps1 reference"
+
+
+# ── team-boot file_edited payload mode ──────────────────────────────────────
+# The dispatcher sets ADLC_EVENT=file_edited and forwards the event payload on
+# stdin. A draft landing in .adlc/drafts/{type}/ must nudge the matching
+# EXISTING clarify skill; everything else stays silent. Default (session-start)
+# mode is untouched.
+
+DRAFT_NUDGES = {
+    "adr": "/architect-clarify",
+    "pdr": "/product-clarify",
+    "chdr": "/change-clarify",
+    "cdr": "/team-learn",
+    "evals": "/evals-clarify",
+}
+
+BOOT_SH_PATH = ROOT / "skills/team/team-boot/scripts/boot.sh"
+
+
+def _run_boot_sh(env_event, payload):
+    env = {**os.environ}
+    if env_event is None:
+        env.pop("ADLC_EVENT", None)
+    else:
+        env["ADLC_EVENT"] = env_event
+    return subprocess.run(
+        ["bash", str(BOOT_SH_PATH)],
+        input=payload, capture_output=True, text=True, env=env, timeout=30,
+    )
+
+
+def test_boot_file_edited_nudges_matching_clarify_skill():
+    """Each draft type nudges its matching existing clarify skill."""
+    for draft_type, skill in DRAFT_NUDGES.items():
+        payload = json.dumps({"type": "file.edited", "file": f".adlc/drafts/{draft_type}/x.md"})
+        result = _run_boot_sh("file_edited", payload)
+        assert result.returncode == 0
+        assert "[pending-drafts]" in result.stdout, f"{draft_type}: no nudge emitted"
+        assert skill in result.stdout, f"{draft_type} draft must nudge {skill}"
+
+
+def test_boot_file_edited_silent_for_non_drafts():
+    """Code-file edits produce no output (no counter, no noise)."""
+    result = _run_boot_sh("file_edited", json.dumps({"type": "file.edited", "file": "src/main.py"}))
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_boot_file_edited_handles_agent_payload_shapes():
+    """opencode flat, nested properties, and claude-code tool_input shapes all resolve."""
+    flat = _run_boot_sh("file_edited", json.dumps({"type": "file.edited", "file": ".adlc/drafts/adr/a.md"}))
+    nested = _run_boot_sh("file_edited", json.dumps({"type": "file.edited", "properties": {"file": "/abs/repo/.adlc/drafts/pdr/b.md"}}))
+    tool_input = _run_boot_sh("file_edited", json.dumps({"tool_input": {"file_path": ".adlc/drafts/evals/c.yml"}}))
+    assert "[pending-drafts]" in flat.stdout and "/architect-clarify" in flat.stdout
+    assert "[pending-drafts]" in nested.stdout and "/product-clarify" in nested.stdout
+    assert "[pending-drafts]" in tool_input.stdout and "/evals-clarify" in tool_input.stdout
+
+
+def test_boot_file_edited_silent_on_garbage_payload():
+    """Malformed payload: fail-open silence, exit 0."""
+    result = _run_boot_sh("file_edited", "not-json")
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_boot_default_mode_untouched():
+    """Without ADLC_EVENT the script keeps its session-start contract."""
+    result = _run_boot_sh(None, "{}")
+    assert result.returncode == 0
+    assert "<EXTREMELY_IMPORTANT>" in result.stdout
+
+
+def test_boot_ps1_file_edited_mode_parity():
+    """boot.ps1 carries the same mode: env guard, marker, and all five nudges."""
+    for marker in ("ADLC_EVENT", "file_edited", "pending-drafts"):
+        assert marker in BOOT_PS1, f"boot.ps1 missing {marker}"
+    for skill in DRAFT_NUDGES.values():
+        assert skill in BOOT_PS1, f"boot.ps1 missing nudge for {skill}"

@@ -3,6 +3,25 @@
 # Pure shell (grep/sed), no runtime dependencies.
 set -euo pipefail
 
+# file_edited payload mode (event-driven, not session-start).
+# The dispatcher sets ADLC_EVENT and forwards the event payload on stdin.
+# When a decision draft lands in .adlc/drafts/{type}/, suggest the matching
+# existing clarify skill on stdout (the agent hook injects it). Silence for
+# anything else — boot skills already did the capture; this is only the nudge.
+if [ "${ADLC_EVENT:-}" = "file_edited" ]; then
+  _payload="$(cat)"
+  _file="$(printf '%s' "$_payload" | jq -r '.file // .properties.file // .tool_input.file_path // .tool_input.filePath // .tool_input.path // .path // .filePath // empty' 2>/dev/null || true)"
+  case "$_file" in
+    *.adlc/drafts/adr/*)   echo "[pending-drafts] ADR draft written — run /architect-clarify to review and accept it." ;;
+    *.adlc/drafts/pdr/*)   echo "[pending-drafts] PDR draft written — run /product-clarify to review and accept it." ;;
+    *.adlc/drafts/chdr/*)  echo "[pending-drafts] ChDR draft written — run /change-clarify to review and accept it." ;;
+    *.adlc/drafts/cdr/*)   echo "[pending-drafts] CDR draft written — run /team-learn to review and accept it." ;;
+    *.adlc/drafts/evals/*) echo "[pending-drafts] eval draft written — run /evals-clarify to review and accept it." ;;
+    *) ;; # not a decision draft — stay silent
+  esac
+  exit 0
+fi
+
 INIT_FILE=".adlc/init-options.json"
 
 if [ ! -f "$INIT_FILE" ]; then

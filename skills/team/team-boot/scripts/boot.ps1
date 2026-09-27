@@ -2,6 +2,31 @@
 # PowerShell native (ConvertFrom-Json).
 $ErrorActionPreference = "Stop"
 
+# file_edited payload mode (event-driven, not session-start).
+# The dispatcher sets ADLC_EVENT and forwards the event payload on stdin.
+# When a decision draft lands in .adlc/drafts/{type}/, suggest the matching
+# existing clarify skill on stdout (the agent hook injects it). Silence for
+# anything else — boot skills already did the capture; this is only the nudge.
+if ($env:ADLC_EVENT -eq "file_edited") {
+    $payload = [Console]::In.ReadToEnd()
+    $file = $null
+    try {
+        $json = $payload | ConvertFrom-Json
+        $file = @($json.file, $json.properties.file, $json.tool_input.file_path,
+                  $json.tool_input.filePath, $json.tool_input.path, $json.path, $json.filePath) |
+            Where-Object { $_ } | Select-Object -First 1
+    } catch { $file = $null }
+    if ($null -ne $file) {
+        $f = $file.ToString().Replace("\", "/")
+        if     ($f -like "*.adlc/drafts/adr/*")   { Write-Output "[pending-drafts] ADR draft written — run /architect-clarify to review and accept it." }
+        elseif ($f -like "*.adlc/drafts/pdr/*")   { Write-Output "[pending-drafts] PDR draft written — run /product-clarify to review and accept it." }
+        elseif ($f -like "*.adlc/drafts/chdr/*")  { Write-Output "[pending-drafts] ChDR draft written — run /change-clarify to review and accept it." }
+        elseif ($f -like "*.adlc/drafts/cdr/*")   { Write-Output "[pending-drafts] CDR draft written — run /team-learn to review and accept it." }
+        elseif ($f -like "*.adlc/drafts/evals/*") { Write-Output "[pending-drafts] eval draft written — run /evals-clarify to review and accept it." }
+    }
+    exit 0
+}
+
 $INIT_FILE = ".adlc/init-options.json"
 
 if (-not (Test-Path $INIT_FILE)) {
