@@ -208,7 +208,8 @@ def test_delegation_prompt_empty_fallback(sandbox_project):
 
 
 def test_mission_state_json_includes_local_skills(sandbox_project):
-    """Phase 4a.1: .mission-state.json.discovered includes local_skills field."""
+    """Run discovery output lands in the run dir (namespace v3, ADR-395) —
+    the old `.adlc/workflow/.mission-state.json` single file is gone."""
     skills_dir = sandbox_project / ".claude" / "skills"
     skills_dir.mkdir(parents=True)
     (skills_dir / "tdd").mkdir()
@@ -218,19 +219,16 @@ def test_mission_state_json_includes_local_skills(sandbox_project):
 
     inventory = _build_local_skills_inventory([str(skills_dir)])
 
-    state = {
-        "discovered": {
-            "skills_dirs": [str(skills_dir)],
-            "commands_dirs": [],
-            "local_skills": inventory,
-        }
+    run_dir = sandbox_project / ".adlc" / "workflows" / "runs" / "run-discover-1"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    discovery = {
+        "skills_dirs": [str(skills_dir)],
+        "commands_dirs": [],
+        "local_skills": inventory,
     }
+    (run_dir / "discovery.json").write_text(json.dumps(discovery, indent=2))
 
-    state_file = sandbox_project / ".adlc" / "workflow" / ".mission-state.json"
-    state_file.parent.mkdir(parents=True, exist_ok=True)
-    state_file.write_text(json.dumps(state, indent=2))
-
-    loaded = json.loads(state_file.read_text())
-    assert "local_skills" in loaded["discovered"]
-    assert len(loaded["discovered"]["local_skills"]) == 1
-    assert loaded["discovered"]["local_skills"][0]["name"] == "tdd"
+    loaded = json.loads((run_dir / "discovery.json").read_text())
+    assert "local_skills" in loaded
+    assert len(loaded["local_skills"]) == 1
+    assert loaded["local_skills"][0]["name"] == "tdd"

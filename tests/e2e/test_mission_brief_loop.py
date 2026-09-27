@@ -4,21 +4,22 @@ import pytest
 from pathlib import Path
 
 def test_mission_brief_state_initialization(sandbox_project):
-    """Verify that a mission-brief run creates the workflow config and runs directories."""
-    # Since we are simulating, we will mock-execute Phase 0 and Phase 2 of the SKILL.md
-    workflow_dir = sandbox_project / ".adlc" / "workflow"
-    config_file = workflow_dir / "workflow-config.yml"
-    state_file = workflow_dir / ".mission-state.json"
-    
-    # Simulate first-run config copying
+    """Verify the post-mission-brief world: brief construction (factory-mission
+    Phase 2) copies the mission policy template into the per-run directory
+    (ADR-389-amendment: the mission-brief skill is removed; namespace v3)."""
+    run_id = "run-def456"
+    run_dir = sandbox_project / ".adlc" / "workflows" / "runs" / run_id
+    config_file = run_dir / "mission.yml"
+
+    # Simulate Phase 2 policy bootstrap
     config_file.parent.mkdir(parents=True, exist_ok=True)
-    template_config = Path(__file__).parent.parent.parent / "skills" / "mission" / "mission-brief" / "config-template.yml"
+    template_config = Path(__file__).parent.parent.parent / "skills" / "factory" / "factory-mission" / "mission-template.yml"
     assert template_config.exists()
-    
+
     import shutil
     shutil.copy(template_config, config_file)
     assert config_file.exists()
-    
+
     # Verify defaults are present
     content = config_file.read_text()
     assert "quality_threshold: null" in content
