@@ -35,8 +35,8 @@ CLAUDE.md files that live on one machine, drift out of date, and don't
 transfer between teammates or tools.
 
 When you ask the agent to build something, it doesn't jump to code.
-`mission-brief` forces a contract first — goal, constraints, non-goals,
-success criteria — then walks `specify → plan → implement ↔ converge`, with
+`factory-mission` forces a contract first — goal, constraints, non-goals,
+success criteria (the mission-brief format) — then walks `specify → plan → implement ↔ converge`, with
 gates, a circuit breaker, resume, and an audit trail. When a session
 surfaces a hard-won fix, `team-learn` extracts it as a Context
 Directive Record (CDR), scores it by confidence, and publishes accepted
@@ -70,7 +70,7 @@ team's context.
 | # | Problem | Fixed by |
 |--|--|--|
 | 1 | The agent doesn't know how your team works | **`team-*`** — session-start index + on-demand rules |
-| 2 | The agent guesses instead of asking | **`mission-brief`** — spec contract before code |
+| 2 | The agent guesses instead of asking | **`factory-mission`** — spec contract before code |
 | 3 | The maker grades its own work | **`evals-*`** — binary graders, holdout splits, nothing auto-merges |
 | 4 | Session learnings evaporate | **`team-learn`** — extract fixes as CDRs, publish to the team repo |
 | 5 | Product and architecture decisions are invisible | **`product-*`** / **`architect-*`** — PDR→PRD, ADR→AD traceability |
@@ -122,7 +122,7 @@ conflict-free install flow.
 
 1. **team-boot** — auto-runs at session start; injects the directives
    index. Full rules pulled on demand when the task matches.
-2. **mission-brief** — before code, forces a spec contract, then walks
+2. **factory-mission** — before code, forces a spec contract (mission-brief format), then walks
    `specify → plan → implement ↔ converge` with gates, circuit breaker,
    resume, audit trail.
 3. **team-learn** — at session end, extracts hard-won fixes as CDRs +
@@ -262,7 +262,7 @@ flowchart LR
 
 ## Universal orchestration
 
-`mission-brief` doesn't force a proprietary ecosystem. At mission start it
+`factory-mission` doesn't force a proprietary ecosystem. At mission start it
 scans installed skills directories, reads each `SKILL.md` frontmatter, and
 hands the inventory to the subagent — the model picks the skill that fits
 each step. Works alongside:
@@ -301,7 +301,7 @@ each step. Works alongside:
 
 ### Mission-driven development
 
-- **`mission-brief`** — spec-contract pipeline with converge loop, circuit breaker, resume (`mission-brief "feature"`, `--resume`).
+- **`factory-mission`** — spec-contract pipeline with converge loop, circuit breaker, resume (`factory-mission "feature"`, `--resume`).
 
 ### Learning loop (CDR lifecycle)
 
@@ -427,7 +427,6 @@ by the pull each family has on a typical session (team first):
 ```
 skills/
 ├── team/                  # team-* (8) + workspace (team-helpers live per-skill)
-├── mission/               # mission-brief (1 skill) — core SDD orchestrator
 ├── evals/                 # evals-* (6 skills) + evals-templates/
 ├── product/               # product-* (7 skills) + product-templates/
 ├── architect/             # architect-* (6 skills) + architect-templates/
@@ -575,7 +574,7 @@ Confidence:   team-repair --update-confidence → team-boot (ranks CDRs by confi
 
 **Mission:**
 ```
-mission-brief "feature" → review brief → execute steps → converge → mission-log.json
+factory-mission "feature" → review brief → execute steps → converge → mission-log.json
 ```
 
 **Multi-repo workspace:**
