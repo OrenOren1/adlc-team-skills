@@ -391,6 +391,8 @@ Each class boot emits its class context section and its own searched line (_Sear
 
 Plus: \`_Searched N CDRs, M skills, J matched._\` — **J MUST equal the number of rows in your table; if no CDRs/skills genuinely match, show an empty table with 0 matched (do not copy a hard-coded CDR or inflate the count).**
 
+Render the section as markdown blocks — heading, table, and counts line each on their own lines; never collapse the table into a single line.
+
 ## Decision Capture
 
 Detect decisions as they emerge; full detection and capture guidance lives in the matching class boot:
