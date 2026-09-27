@@ -68,375 +68,32 @@ If any value fails validation, report which value and why, and re-ask. Never
 interpolate a user value into a Python/eval source string — pass it through the
 environment (see Mode 2).
 
+**Fast path:** if `.adlc/init-options.json` already contains a valid `team_ai_directives` path, skip to Mode 4 (Already Configured) — do not re-clone, re-point, or re-scaffold.
+
+### Modes at a Glance
+
+| # | Mode | When | Details in |
+|---|------|------|-----------|
+| 1 | Clone from GitHub | team already has a directives repo | `references/mode-clone.md` |
+| 2 | Point to existing local path | directives dir already exists locally | `references/mode-local.md` |
+| 3 | Scaffold new empty directives | starting a team from scratch | `references/mode-scaffold.md` |
+| 4 | Already configured | check / verify existing wiring | `references/mode-configured.md` |
+
 ### Mode 1: Clone from GitHub
 
-Clone an existing team-ai-directives repository from GitHub.
-
-**Explore**:
-1. Ask the user for the GitHub repository URL (default: `https://github.com/tikalk/agentic-sdlc-team-ai-directives`)
-2. Validate the URL starts with `https://` (reject `file://`, `ssh://`, and other schemes — see Input Validation). Only clone repositories you trust; the cloned content is read by agents later.
-3. Ask where to clone it (default: `./team-ai-directives`)
-4. Check that the destination does not already exist
-
-**Present**:
-Show the user:
-- Source URL
-- Destination path
-- Estimated size (from remote repo info if available)
-
-**Confirm**:
-```
-Clone team-ai-directives from {URL} to {DEST}?
-[Y/n]
-```
-
-**Write/Execute**:
-```bash
-git clone "{URL}" "{DEST}"
-```
-
-After clone, verify the team AI directives structure exists:
-- `{DEST}/context_modules/constitution.md`
-- `{DEST}/context_modules/rules/`
-- `{DEST}/context_modules/personas/`
-- `{DEST}/context_modules/examples/`
-- `{DEST}/CDR.md`
-- `{DEST}/.skills.json`
-
-Verify the `adlc` orphan branch exists (for CDR drafts and usage reports), create if missing:
-```bash
-git -C "{DEST}" show-ref --verify --quiet refs/heads/adlc || {
-  cd "{DEST}"
-  git checkout --orphan adlc
-  mkdir -p drafts/cdr reports/sessions reports/projects
-  echo '{}' > reports/confidence-scores.json
-  touch drafts/cdr/.gitkeep reports/sessions/.gitkeep reports/projects/.gitkeep
-  git add -A && git commit -m "Initialize adlc orphan branch (drafts + reports)"
-  git checkout main
-}
-```
+Full walkthrough in `references/mode-clone.md`.
 
 ### Mode 2: Point to Existing Local Path
 
-Wire an existing local team-ai-directives directory into the project.
-
-**Explore**:
-1. Ask the user for the path to their existing team AI directives directory
-2. Validate the path exists
-3. Validate the team AI directives structure (same checks as Mode 1 post-clone)
-4. If validation fails, explain what's missing and ask the user to fix it or choose a different mode
-
-**Present**:
-Show the user:
-- Resolved absolute path
-- Validation results (which required files/dirs exist and which are missing)
-
-**Confirm**:
-```
-Use existing team-ai-directives at {ABSOLUTE_PATH}?
-[Y/n]
-```
-
-**Write/Execute**:
-Update the project's `.adlc/init-options.json` to set the `team_ai_directives` field to the resolved path. Uses `jq` for safe JSON manipulation — never interpolate user input into shell source.
-
-```bash
-# Resolve to an absolute path and validate (see Input Validation)
-ABSOLUTE_PATH="$(realpath "$USER_PATH")"
-
-# Write config using jq (merge into existing or create new)
-if [ -f ".adlc/init-options.json" ]; then
-  jq --arg p "$ABSOLUTE_PATH" '. + {team_ai_directives: $p}' ".adlc/init-options.json" > ".adlc/init-options.json.tmp" && mv ".adlc/init-options.json.tmp" ".adlc/init-options.json"
-else
-  jq -n --arg p "$ABSOLUTE_PATH" '{team_ai_directives: $p}' > ".adlc/init-options.json"
-fi
-```
-
-Ensure the `adlc` orphan branch exists (create if missing):
-```bash
-git -C "$ABSOLUTE_PATH" show-ref --verify --quiet refs/heads/adlc || {
-  cd "$ABSOLUTE_PATH"
-  git checkout --orphan adlc
-  mkdir -p drafts/cdr reports/sessions reports/projects
-  echo '{}' > reports/confidence-scores.json
-  touch drafts/cdr/.gitkeep reports/sessions/.gitkeep reports/projects/.gitkeep
-  git add -A && git commit -m "Initialize adlc orphan branch (drafts + reports)"
-  git checkout main
-}
-```
+Full walkthrough in `references/mode-local.md`.
 
 ### Mode 3: Scaffold New Empty team AI directives
 
-Create a fresh, neutral team AI directives at a specified path.
-
-**Explore**:
-1. Ask the user where to create the team AI directives (default: `./team-ai-directives`)
-2. Ask for the team name
-3. Check the destination does not already exist or is empty
-
-**Present**:
-Show the user the 10 files that will be created:
-
-| # | File | Purpose |
-|---|------|---------|
-| 1 | `README.md` | Getting started documentation |
-| 2 | `AGENTS.md` | Agent instructions (loading order, rules, skills) |
-| 3 | `CDR.md` | Derived CDR index stub (auto-generated by `/team-repair`) |
-| 4 | `.skills.json` | Empty skills manifest (schema v2.0.0: `default`/`external`/`blocked`/`policy`) |
-| 5 | `.mcp.json.example` | Empty MCP servers config example |
-| 6 | `context_modules/constitution.md` | Placeholder constitution (OKF v0.2 frontmatter) — fill via `/team-constitution` |
-| 7 | `context_modules/index.md` | OKF v0.2 root index (`okf_version: "0.2"`) linking sub-directories |
-| 8 | `context_modules/log.md` | OKF §9 aggregate update log |
-| 9 | `context_modules/rules/index.md` | OKF §8 progressive disclosure (rules) |
-| 10 | `context_modules/rules/log.md` | OKF §9 rules audit trail |
-| 11 | `context_modules/rules/.gitkeep` | Rules directory placeholder |
-| 12 | `context_modules/personas/index.md` | OKF §8 progressive disclosure (personas) |
-| 13 | `context_modules/personas/log.md` | OKF §9 personas audit trail |
-| 14 | `context_modules/personas/.gitkeep` | Personas directory placeholder |
-| 15 | `context_modules/examples/index.md` | OKF §8 progressive disclosure (examples) |
-| 16 | `context_modules/examples/log.md` | OKF §9 examples audit trail |
-| 17 | `context_modules/examples/.gitkeep` | Examples directory placeholder |
-| 18 | `skills/.gitkeep` | Skills directory placeholder |
-
-**Confirm**:
-```
-Scaffold empty team-ai-directives at {DEST} with team name "{TEAM_NAME}"?
-[Y/n]
-```
-
-**Write/Execute**:
-
-Create directory structure:
-```bash
-mkdir -p "{DEST}/context_modules/rules"
-mkdir -p "{DEST}/context_modules/personas"
-mkdir -p "{DEST}/context_modules/examples"
-mkdir -p "{DEST}/skills"
-```
-
-Create `{DEST}/README.md`:
-```markdown
-# {TEAM_NAME} Team AI Directives
-
-Team AI directives repository for {TEAM_NAME}.
-
-## Getting Started
-
-1. Wire this directives repository into a project:
-   ```
-   /team-setup
-   ```
-   Choose "Point to existing local path" and select this directory.
-
-2. Add context modules to `context_modules/` (rules, personas, examples).
-
-3. Add skills to `skills/` and register them in `.skills.json`.
-
-4. Update `CDR.md` as context modules are approved.
-
-See [ADLC Team Skills](https://github.com/tikalk/adlc-team-skills) for full documentation.
-```
-
-Create `{DEST}/AGENTS.md`:
-```markdown
-# Agent Instructions
-
-## Structure
-
-- `context_modules/constitution.md` — Team constitution
-- `context_modules/rules/` — Team rules and workflows
-- `context_modules/personas/` — Team personas
-- `context_modules/examples/` — Team examples
-- `skills/` — Team skills
-- `CDR.md` — Context Directive Records
-
-## Loading Order
-
-1. Load constitution.md first
-2. Load relevant rules for the current task
-3. Load relevant personas for the current task
-4. Load relevant examples for the current task
-
-## Using Skills
-
-Skills are located in the `skills/` directory. Browse available skills using `team-skills` and install them as needed.
-
-## CDR.md
-
-CDR.md is a derived flat table, auto-generated by `/team-repair` from per-directory `index.md` files. It is used by `team-boot` for system prompt injection. Do not edit manually — run `/team-repair` to regenerate.
-```
-
-Create `{DEST}/CDR.md`:
-```markdown
-# Context Directive Records (Derived Index)
-
-> ⚠️ Auto-generated by `/team-repair`. Do not edit manually.
-> Source of truth: `context_modules/*/index.md` + module frontmatter.
-> Decision lifecycle (Accepted/Rejected) lives in the `adlc` orphan branch `drafts/cdr/`.
-
-## CDR Index
-
-| ID | Path | Type | Description | Generated | Verified | Age | Status |
-|----|------|------|-------------|-----------|----------|-----|--------|
-
-**Stats**: 0 entries | Last Updated: {TODAY}
-```
-
-Create `{DEST}/.skills.json`:
-```json
-{
-  "version": "2.0.0",
-  "source": "team-ai-directives",
-  "description": "Team skills manifest. The `default` list contains skill names that are auto-installed during project setup. The `external` map contains on-demand skills fetched by URL. The `blocked` list contains skills that must never be installed.",
-  "default": [],
-  "external": {},
-  "blocked": [],
-  "policy": {
-    "auto_install_default": true,
-    "enforce_blocked": true,
-    "allow_project_override": true
-  }
-}
-```
-
-Create `{DEST}/.mcp.json.example`:
-```json
-{
-  "mcpServers": {}
-}
-```
-
-Create `{DEST}/context_modules/constitution.md`:
-```markdown
----
-type: Constitution
-title: "{TEAM_NAME} Constitution"
-description: "Team-wide principles and governance"
-resource: ./context_modules/constitution.md
-tags: [constitution]
-generated: { by: agent:team-setup, at: {TODAY}T00:00:00Z }
-id: constitution
-cdr_ref: null
-created: {TODAY}
-verified:
-  - { by: agent:team-setup, at: {TODAY}T00:00:00Z }
-status: stable
-stale_after: 180d
----
-
-# {TEAM_NAME} Constitution
-
-No team-wide principles defined yet. Add principles as they are established.
-```
-
-Create OKF v0.2-compliant `index.md` and `log.md` files for progressive disclosure:
-
-Create `{DEST}/context_modules/index.md`:
-```markdown
----
-okf_version: "0.2"
----
-
-# Context Modules
-
-* [Rules](rules/index.md) - Team rules and workflows
-* [Personas](personas/index.md) - Team personas
-* [Examples](examples/index.md) - Team examples
-```
-
-Create `{DEST}/context_modules/log.md`:
-```markdown
-# Context Modules Update Log
-```
-
-Create `{DEST}/context_modules/rules/index.md`:
-```markdown
-# Rules
-
-No rules defined yet. Use `/team-learn` to create rules via CDRs.
-```
-
-Create `{DEST}/context_modules/rules/log.md`:
-```markdown
-# Rules Update Log
-```
-
-Create `{DEST}/context_modules/personas/index.md`:
-```markdown
-# Personas
-
-No personas defined yet. Use `/team-learn` to create personas via CDRs.
-```
-
-Create `{DEST}/context_modules/personas/log.md`:
-```markdown
-# Personas Update Log
-```
-
-Create `{DEST}/context_modules/examples/index.md`:
-```markdown
-# Examples
-
-No examples defined yet. Use `/team-learn` to create examples via CDRs.
-```
-
-Create `{DEST}/context_modules/examples/log.md`:
-```markdown
-# Examples Update Log
-```
-
-Create gitkeep files:
-```bash
-touch "{DEST}/context_modules/rules/.gitkeep"
-touch "{DEST}/context_modules/personas/.gitkeep"
-touch "{DEST}/context_modules/examples/.gitkeep"
-touch "{DEST}/skills/.gitkeep"
-```
-
-Initialize git (required for `/team-learn` branch/commit/PR flow):
-```bash
-cd "{DEST}" && git init && git add -A && git commit -m "Initial team-ai-directives scaffold"
-```
-
-Create the `adlc` orphan branch for CDR drafts and usage reports:
-```bash
-cd "{DEST}"
-git checkout --orphan adlc
-mkdir -p drafts/cdr reports/sessions reports/projects
-echo '{}' > reports/confidence-scores.json
-touch drafts/cdr/.gitkeep reports/sessions/.gitkeep reports/projects/.gitkeep
-git add -A
-git commit -m "Initialize adlc orphan branch (drafts + reports)"
-git checkout main  # back to main branch
-```
-
-**Follow-up**: The scaffolded `context_modules/constitution.md` is a placeholder ("No team-wide principles defined yet"). Tell the user:
-
-```text
-Scaffold complete. Run /team-constitution next to establish your team's
-principles interactively — it detects the placeholder and walks you through
-creating the real constitution.
-```
-
-After scaffold, run the post-setup configuration (same as Mode 4 below).
+Full walkthrough in `references/mode-scaffold.md`.
 
 ### Mode 4: Already Configured
 
-The team AI directives is already configured. Verify and report status.
-
-**Explore**:
-1. Check `.adlc/init-options.json` for `team_ai_directives` field
-2. If found, resolve the path and validate the team AI directives structure
-3. Check `TEAM_AI_DIRECTIVES` env var as fallback
-4. Check default path `team-ai-directives` as final fallback
-
-**Present**:
-Show the user the resolved team AI directives path and validation results.
-
-**Write/Execute**:
-No writes needed — the team AI directives is already configured. Then run the
-**MCP config install** (see Post-Setup Configuration step 4): merge
-`.mcp.json` servers into the project's config if not already present.
+Full walkthrough in `references/mode-configured.md`.
 
 ### Mode Selection Flow
 
@@ -455,7 +112,6 @@ No writes needed — the team AI directives is already configured. Then run the
 3. **Confirm**: Ask the user to confirm before executing.
 
 4. **Write/Execute**: Perform the setup for the chosen mode.
-
 ### Post-Setup Configuration
 
 After any mode completes successfully, update the project configuration:
@@ -464,26 +120,8 @@ After any mode completes successfully, update the project configuration:
 2. Verify the team AI directives is accessible by running a quick health check:
    - `{TEAM_AI_DIRECTIVES}/context_modules/constitution.md` exists
    - `{TEAM_AI_DIRECTIVES}/.skills.json` exists and is valid JSON
-3. Inject the project-level `AGENTS.md` directive so agents auto-invoke `team-boot` at session start:
-
-```bash
-# Bash
-bash "$(dirname "$0")/team-helpers.sh" --inject-agents "{PROJECT_ROOT}"
-
-# PowerShell
-pwsh "$(Split-Path $PSCommandPath -Parent)/team-helpers.ps1" -InjectAgents "{PROJECT_ROOT}"
-```
-
-This creates or updates the project's `AGENTS.md` with a managed section (between `<!-- TEAM_AI_DIRECTIVES START -->` and `<!-- TEAM_AI_DIRECTIVES END -->` markers) containing:
-
-- **Event-hook awareness**: notes that `team-boot` runs automatically at session start via the event hook (for agents with event support), injecting a lean orientation into the first user message.
-- **Fallback invocation**: "If the team AI directives context is NOT in your system prompt or first user message (agent without event support), invoke the `team-boot` skill before responding to any task or question."
-- **Unconfigured handling**: "If team AI directives are unconfigured, invoke the `team-setup` skill."
-- **Team Context in Use contract**: "Every response MUST include a Team Context in Use section before the task answer" — a 4-column table (`ID | Name | Type | Rel`) listing genuinely matched CDRs/skills, followed by `_Searched N CDRs, M skills, J matched._`
-
-Without this section, an agent without event support has no session-start instruction to load team context, and the team AI directives repository remains invisible until manually loaded. The section is idempotent: re-running `team-setup` or `team-repair` updates the section in place without duplicating content.
-
-4. **Install MCP config**: Read `{TEAM_AI_DIRECTIVES}/.mcp.json` if it exists, and merge its `mcpServers` configuration into the project's own `.mcp.json` or `.opencode/mcp.json` config. Report which servers were merged, and highlight any unresolved environment variables needed by the servers.
+3. Inject the project-level `AGENTS.md` directive — full command and managed-section contract in `references/post-setup-agents.md`.
+4. Install MCP config — merge details in `references/post-setup-mcp.md`.
 
 ## Common Rationalizations
 

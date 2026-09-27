@@ -134,7 +134,8 @@ missing.
 
 **Old `/levelup-*` commands still appear.**
 These were consolidated into `/team-learn` and `/team-init`. Remove any
-stale spec-kit levelup extension if present:
+stale spec-kit `levelup` extension if present (unrelated to the former
+`levelup-*` skills, now `team-learn`):
 
 ```bash
 specify extension disable levelup

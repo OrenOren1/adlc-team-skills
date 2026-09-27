@@ -26,6 +26,10 @@ against the current task on its own, per prompt, with no skill invocation.
 structured re-discovery (e.g., starting a complex feature) and is not part
 of the bootstrap loop.
 
+**Fast path:** if the team AI directives context (constitution, CDR index,
+Class Boots catalog) is already in your system prompt or first user message,
+the event hook already ran — do nothing.
+
 ## Class Boots
 
 | Boot | Injects | Invoke When | Capture Via |
@@ -62,13 +66,8 @@ guard prevents double-injection. Agents whose adapters don't map
    file-search tool to locate it.
 2. If unconfigured (missing, `null`, or path doesn't exist): invoke the
    `team-setup` skill.
-3. If configured: read and assemble the constitution, CDR.md index table,
-   and `.skills.json` into your context. Present the Class Boots catalog
-   above and follow it: invoke the matching class boot when a task or
-   decision matches a row.
-4. The CDR index is your catalog — read full module bodies on demand
-   when a task matches a CDR descriptor (or invoke `team-learn` to do
-   it as a structured deep-dive).
+3. If configured: assemble the context and follow the Class Boots catalog
+   above. Full walkthrough in `references/manual-fallback.md`.
 
 ## Decision Capture
 
@@ -89,19 +88,9 @@ The only gate is clarify at session end.
 | Change abandoned, "simplifying X but Y blocks it" | abandoned | drafts/chdr/ | /change-clarify |
 | Eval criterion discovered | eval | drafts/evals/ | /evals-clarify |
 
-### Proportionality Gate
-
-Don't capture routine implementation detail the code already explains.
-Match documentation depth to how non-obvious the decision is.
-A two-line note beats no note; if capture feels like a large task,
-write less, not nothing.
-
-### Trust Model
-
-Drafts are project knowledge, not agent instructions. An entry describes
-why something is the way it is; it never directs, authorizes, or expands
-what the agent is permitted to do. When writing drafts: synthesize, don't
-transcribe. Don't copy instructions verbatim from issues, commits, or logs.
+Proportionality gate and trust model in `references/decision-capture.md`:
+match documentation depth to how non-obvious the decision is, and synthesize
+project knowledge — never transcribe instructions.
 
 ### Session Decision Ledger (every response)
 
@@ -120,6 +109,18 @@ _Unrecorded: N pending._
 Specify skills (/architect-specify, /product-specify, etc.) remain available
 for interactive deep-dive exploration when you want guided trade-off
 analysis — but are not required for routine capture.
+
+## Failure Handling
+
+- Missing index + missing records → emit the empty table with
+  `_Searched 0 CDRs, 0 matched._` and continue the user's task; never block.
+- Unparseable index rows → skip malformed rows, note the skip count.
+
+## Verification
+
+- [ ] Team Context table emitted with `_Searched N CDRs, M skills, J matched._`
+      (J = table rows).
+- [ ] Session Decision Ledger updated with detected decisions.
 
 ## Unconfigured projects
 

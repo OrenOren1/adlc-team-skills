@@ -173,12 +173,17 @@ task answer, so downstream reasoning is grounded in the radar:
 - ⚠️ Stop: Jenkins → consider GitHub Actions, GitLab CI, or Tekton (see Why? above).
 
 _Source: Tikal Israeli Tech Radar (live: https://tikalk.com/radar.json) · N technologies matched._
+
+_Searched N blips, K matched._
 ```
 
 - One row per matched blip (include duplicates across quadrants when relevant).
 - Group a short **Radar guidance** list: safe-to-adopt vs avoid-with-alternatives.
 - Add a `_Source_` line noting the data came from the **live radar source** and
   how many technologies matched.
+- `N` = blips scanned in the loaded dataset; `K` = rows shown in the table.
+  **K MUST equal the table rows shown** — 0 matched → empty table, never
+  fabricate.
 
 If no candidate technology matches any blip, state that plainly with an empty
 table and a `_Source_` line (e.g. `_Source: … · 0 technologies matched._`) —

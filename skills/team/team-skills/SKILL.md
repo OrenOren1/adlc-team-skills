@@ -53,10 +53,10 @@ Team AI directives not configured.
 Run: /team-setup
 ```
 
-Helper scripts (relative to skill directory):
+Helper scripts (canonical in `team-setup`, referenced relative to skill directory):
 
-- `$(dirname "$0")/team-helpers.sh --json`
-- `$(Split-Path $PSCommandPath -Parent)/team-helpers.ps1 -Json`
+- `$(dirname "$0")/../team-setup/team-helpers.sh --json`
+- `$(Split-Path $PSCommandPath -Parent)/../team-setup/team-helpers.ps1 -Json`
 
 ### Step 1: Read Skills Manifest
 
@@ -175,7 +175,7 @@ Source: default (local:./skills/github-actions)
 - `TEAM_AI_DIRECTIVES` — Path to the team AI directives (overrides `.adlc/init-options.json`).
 - `.adlc/init-options.json` — Project-level config file with `team_ai_directives` field.
 - Default fallback: `team-ai-directives/` relative to project root.
-- `team-helpers.sh` / `team-helpers.ps1` — Shared scripts used for path resolution.
+- `../team-setup/team-helpers.sh` / `../team-setup/team-helpers.ps1` — Shared scripts (canonical in `team-setup`) used for path resolution.
 
 ## 12-Factor Alignment
 

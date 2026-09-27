@@ -213,7 +213,7 @@ If any check is `[FAIL]`, print the report, set exit code 1, and **STOP**. Do no
 
 **Objective**: Resolve paths and validate infrastructure
 
-Run `$(dirname "$0")/team-helpers.sh --json` (or the PowerShell equivalent) to resolve paths and parse JSON output:
+Run `$(dirname "$0")/../team-setup/team-helpers.sh --json` (or the PowerShell equivalent) to resolve paths and parse JSON output. The helper scripts are canonical in `team-setup` and shared by reference:
 
 ```json
 {
@@ -309,8 +309,8 @@ After repairing the team AI directives' own `AGENTS.md`, also ensure the **proje
 If Check 7 returned `[WARN]` or `[INFO]`, run the injection:
 
 ```bash
-bash "$(dirname "$0")/team-helpers.sh" --inject-agents "{REPO_ROOT}"
-# or: pwsh "$(Split-Path $PSCommandPath -Parent)/team-helpers.ps1" -InjectAgents "{REPO_ROOT}"
+bash "$(dirname "$0")/../team-setup/team-helpers.sh" --inject-agents "{REPO_ROOT}"
+# or: pwsh "$(Split-Path $PSCommandPath -Parent)/../team-setup/team-helpers.ps1" -InjectAgents "{REPO_ROOT}"
 ```
 
 If `--dry-run`:
@@ -1307,7 +1307,7 @@ For each violation, record:
 - `TEAM_AI_DIRECTIVES` — Path to the team AI directives (overrides `.adlc/init-options.json`).
 - `.adlc/init-options.json` — Project-level config file with `team_ai_directives` field.
 - Default fallback: `team-ai-directives/` relative to project root.
-- `team-helpers.sh` / `team-helpers.ps1` — Shared scripts used for path resolution.
+- `../team-setup/team-helpers.sh` / `../team-setup/team-helpers.ps1` — Shared scripts (canonical in `team-setup`) used for path resolution.
 
 ## 12-Factor Alignment
 

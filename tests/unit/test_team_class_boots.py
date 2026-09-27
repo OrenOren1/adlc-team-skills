@@ -44,12 +44,13 @@ BOOT_SH = (ROOT / "skills/team/team-boot/scripts/boot.sh").read_text(encoding="u
 BOOT_PS1 = (ROOT / "skills/team/team-boot/scripts/boot.ps1").read_text(encoding="utf-8")
 
 HELPER_TEMPLATES = {
-    "team-repair sh": ROOT / "skills/team/team-repair/team-helpers.sh",
-    "team-repair ps1": ROOT / "skills/team/team-repair/team-helpers.ps1",
     "team-setup sh": ROOT / "skills/team/team-setup/team-helpers.sh",
     "team-setup ps1": ROOT / "skills/team/team-setup/team-helpers.ps1",
-    "team-skills sh": ROOT / "skills/team/team-skills/team-helpers.sh",
-    "team-skills ps1": ROOT / "skills/team/team-skills/team-helpers.ps1",
+}
+
+BORROWER_SKILLS = {
+    "team-repair": ROOT / "skills/team/team-repair/SKILL.md",
+    "team-skills": ROOT / "skills/team/team-skills/SKILL.md",
 }
 
 
@@ -163,7 +164,7 @@ def test_boot_scripts_catalog_rows():
 
 
 def test_helper_templates_carry_catalog():
-    """All six team-helpers templates must embed the Class Boots catalog and
+    """Both canonical team-helpers templates must embed the Class Boots catalog and
     compact Decision Capture in the AGENTS.md managed section."""
     for label, path in HELPER_TEMPLATES.items():
         content = path.read_text(encoding="utf-8")
@@ -172,3 +173,14 @@ def test_helper_templates_carry_catalog():
             assert name in content, f"{label}: missing {name} row"
         assert "## Decision Capture" in content, f"{label}: no Decision Capture"
         assert "Session Decision Ledger" in content, f"{label}: no ledger contract"
+
+
+def test_helper_borrowers_reference_canonical():
+    """team-repair and team-skills must reference the canonical team-setup
+    helpers (no local copies)."""
+    for name, path in BORROWER_SKILLS.items():
+        assert not (path.parent / "team-helpers.sh").exists(), f"{name}: stale local team-helpers.sh"
+        assert not (path.parent / "team-helpers.ps1").exists(), f"{name}: stale local team-helpers.ps1"
+        content = path.read_text(encoding="utf-8")
+        assert "../team-setup/team-helpers.sh" in content, f"{name}: no canonical sh reference"
+        assert "../team-setup/team-helpers.ps1" in content, f"{name}: no canonical ps1 reference"

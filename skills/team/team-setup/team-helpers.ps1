@@ -6,12 +6,16 @@
 #   -Scaffold DIR      Create a fresh 11-file team AI directives scaffold at DIR
 #   -AgentsOnly DIR    Create only AGENTS.md at DIR (for repair use)
 #   -InjectAgents DIR  Inject team-boot directive into project-level AGENTS.md at DIR
+#   -AgentsStatus DIR  Report managed-section status in project-level AGENTS.md at DIR
+#   -AgentsUninstall DIR  Remove managed section from project-level AGENTS.md at DIR
 #   -Name NAME         Team name for scaffold (default: "My Team")
 param(
   [switch]$Json,
   [string]$Scaffold = "",
   [string]$AgentsOnly = "",
   [string]$InjectAgents = "",
+  [string]$AgentsStatus = "",
+  [string]$AgentsUninstall = "",
   [string]$Name = "My Team"
 )
 
@@ -392,6 +396,8 @@ Maintain a running Session Decision Ledger in every response (after the Team Con
 _Unrecorded: N pending._
 
 At session end, prompt to invoke the capture skills for any unrecorded decisions. Only suggest capture when genuinely warranted.
+
+Surface each detected decision as a task-list todo (write the draft to ``.adlc/drafts/{type}/``, then run the matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the Session Decision Ledger until _Unrecorded: 0 pending_.
 $MarkerEnd
 "@
 
@@ -422,6 +428,47 @@ $MarkerEnd
   }
 }
 
+function Get-ProjectAgentsSectionStatus {
+  param([string]$ProjectRoot = ".")
+  $AgentsFile = Join-Path $ProjectRoot "AGENTS.md"
+  $MarkerStart = "<!-- TEAM_AI_DIRECTIVES START -->"
+  $MarkerEnd = "<!-- TEAM_AI_DIRECTIVES END -->"
+  if (-not (Test-Path $AgentsFile)) {
+    Write-Output "STATUS: missing (no AGENTS.md at $ProjectRoot)"
+    return
+  }
+  $Content = Get-Content $AgentsFile -Raw -Encoding UTF8
+  if ($Content.Contains($MarkerStart) -and $Content.Contains($MarkerEnd)) {
+    Write-Output "STATUS: installed ($AgentsFile contains the managed section)"
+  } else {
+    Write-Output "STATUS: not-installed ($AgentsFile lacks the managed section)"
+  }
+}
+
+function Remove-ProjectAgentsSection {
+  param([string]$ProjectRoot = ".")
+  $AgentsFile = Join-Path $ProjectRoot "AGENTS.md"
+  $MarkerStart = "<!-- TEAM_AI_DIRECTIVES START -->"
+  $MarkerEnd = "<!-- TEAM_AI_DIRECTIVES END -->"
+  if (-not (Test-Path $AgentsFile)) {
+    Write-Output "Nothing to remove: no AGENTS.md at $ProjectRoot"
+    return
+  }
+  $Content = Get-Content $AgentsFile -Raw -Encoding UTF8
+  $StartIdx = $Content.IndexOf($MarkerStart)
+  $EndIdx = $Content.IndexOf($MarkerEnd)
+  if ($StartIdx -lt 0 -or $EndIdx -le $StartIdx) {
+    Write-Output "No managed section in $AgentsFile (nothing removed)"
+    return
+  }
+  $NewContent = $Content.Substring(0, $StartIdx) + $Content.Substring($EndIdx + $MarkerEnd.Length)
+  while ($NewContent.Contains("`n`n`n")) { $NewContent = $NewContent.Replace("`n`n`n", "`n`n") }
+  $NewContent = $NewContent.Trim("`r", "`n")
+  if ($NewContent) { $NewContent += "`n" }
+  Set-Content -Path $AgentsFile -Value $NewContent -Encoding UTF8
+  Write-Output "Removed team AI directives section from $AgentsFile"
+}
+
 # MAIN
 if ($Scaffold) {
   New-TeamAiDirectivesScaffold -Dest $Scaffold -TeamName $Name
@@ -429,6 +476,10 @@ if ($Scaffold) {
   New-AgentsOnly -Dest $AgentsOnly
 } elseif ($InjectAgents -ne "") {
   Invoke-ProjectAgentsInjection -ProjectRoot $InjectAgents
+} elseif ($AgentsStatus -ne "") {
+  Get-ProjectAgentsSectionStatus -ProjectRoot $AgentsStatus
+} elseif ($AgentsUninstall -ne "") {
+  Remove-ProjectAgentsSection -ProjectRoot $AgentsUninstall
 } elseif ($Json) {
   Write-OutputJson
 } else {
