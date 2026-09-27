@@ -1,6 +1,6 @@
 # Agent Integrations — Command & Skills Discovery
 
-Reference table for the `mission-brief` executor. Lists every known agent
+Reference table for the factory-mission executor. Lists every known agent
 integration and where its commands/skills live in a project. Used at
 generation time (Phase 4) to discover which directories actually exist in the
 current project and record them in `.mission-state.json` under

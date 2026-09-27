@@ -1,6 +1,8 @@
-# factory-mission — workflow configuration
+# factory-mission — mission policy
 #
-# Copy to .adlc/workflow/workflow-config.yml in your project and edit.
+# Mission policy (ex-workflow-config.yml — ADR-395). The executor copies this into
+# .adlc/workflows/runs/<run_id>/mission.yml at `workflow state start`; edit
+# per-run from there. Re-read live on LLM-executor resume (frozen on the CLI side).
 # Every field is optional; defaults are shown below.
 
 workflow:
@@ -80,11 +82,11 @@ workflow:
 
   # ── Scratchpad tools ───────────────────────────────────
   # Directory for scratchpads. Persist across steps within a run.
-  scratchpad_root: .adlc/workflow/scratchpads
+  scratchpad_root: .adlc/workflows/runs/<run_id>/scratchpads
 
   # ── Workflow memory ────────────────────────────────────
   # JSONL file for workflow memory. Persist knowledge across runs.
-  memory_path: .adlc/workflow/memory.jsonl
+  memory_path: .adlc/workflows/memory.jsonl
 
   # ── Hierarchical context parameters ─────────────────────
   # Define values once, reference as {{params.<key>}}

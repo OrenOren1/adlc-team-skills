@@ -132,7 +132,7 @@ Every gap line uses the form:
 
 **4. Drift section** — `## Drift vs <previous date> sweep` (or `## Baseline` on first sweep): new gaps, closed gaps, regressed areas. On refresh, this diff IS the report.
 
-**5. Findings output** — severity-ranked summary published as `output_type: findings` (comment bus if tracker-integrated, else `.adlc/workflow/findings/sweep.md`); every finding tagged `[layer: ...]` for correction routing (ADR-361). The matrix file itself is the artifact; the matrix **never edits records** — it reports, clarify fixes.
+**5. Findings output** — severity-ranked summary published as `output_type: findings` (comment bus if tracker-integrated, else `runs/<run_id>/findings/sweep.md`); every finding tagged `[layer: ...]` for correction routing (ADR-361). The matrix file itself is the artifact; the matrix **never edits records** — it reports, clarify fixes.
 
 ---
 
@@ -184,7 +184,7 @@ Every gap line uses the form:
 - `CHDR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/chdr`
 - `COVERAGE_DIR` — `{REPO_ROOT}/.adlc/coverage` (`coverage.md` + `history/`)
 - `PRD_FILE` — `{REPO_ROOT}/PRD.md` | `AD_FILE` — `{REPO_ROOT}/AD.md`
-- State file — `{REPO_ROOT}/.adlc/workflow/.factory-factory-init-state.json` (executor lease/resume)
+- Shared run state — `{REPO_ROOT}/.adlc/workflows/runs/<run_id>/state.json` via `adlc-cli workflow state` helpers (ADR-395; lease/resume)
 
 ## References
 
