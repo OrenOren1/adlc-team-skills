@@ -270,7 +270,7 @@ After confirmation, output structured sub-system data:
 **Note**: If sub-system decomposition is enabled (Phase 0), analyze each sub-system **separately** to provide focused insights.
 
 1. **Run Setup Script**:
-   - Execute `scripts/bash/setup-architect.sh` to initialize architecture files
+   - Execute `{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh` to initialize architecture files
    - Script scans codebase and outputs structured findings
    - Pass `--no-decompose` if decomposition was disabled
    - **If decomposed**: Script outputs sub-system breakdown for targeted analysis
@@ -367,7 +367,7 @@ After confirmation, output structured sub-system data:
 
 **Process**:
 
-1. Run `scripts/bash/setup-architect.sh` which calls `scan_existing_docs()`
+1. Run `{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh` which calls `scan_existing_docs()`
 2. Parse findings from JSON output
 3. For each finding, determine: Skip ADR / Reference existing / Document new
 4. Report: "X decisions covered by existing docs, Y new ADRs created"

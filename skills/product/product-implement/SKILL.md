@@ -304,8 +304,8 @@ D) Cancel — Stop execution
 Source the PDR lifecycle library and call `move_pdr` for each Accepted PDR. This performs an atomic `mv` (no copy-then-delete duplication risk) and regenerates both scopes' indexes automatically.
 
 ```bash
-source "{REPO_ROOT}/.agents/skills/product-implement/scripts/bash/pdr-lib.sh"
-# Or on Windows: . "{REPO_ROOT}/.agents/skills/product-implement/scripts/powershell/pdr-lib.ps1"
+source "{REPO_ROOT}/.agents/skills/product-clarify/scripts/bash/pdr-lib.sh"
+# Or on Windows: . "{REPO_ROOT}/.agents/skills/product-clarify/scripts/powershell/pdr-lib.ps1"
 
 for pdr_id in <list of Accepted PDR IDs>; do
   move_pdr "$pdr_id" drafts memory
@@ -322,7 +322,7 @@ done
 The `move_pdr` call in Step 4.1 already regenerates the memory index. To manually regenerate (e.g., after bulk edits to PDR files):
 
 ```bash
-source "{REPO_ROOT}/.agents/skills/product-implement/scripts/bash/pdr-lib.sh"
+source "{REPO_ROOT}/.agents/skills/product-clarify/scripts/bash/pdr-lib.sh"
 generate_pdr_index memory
 ```
 

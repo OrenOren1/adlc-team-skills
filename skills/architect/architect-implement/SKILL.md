@@ -396,7 +396,7 @@ Located in the skill's `templates/` directory:
 
 **Objective**: Analyze ADRs, detect sub-systems, generate customized DAG, get user approval
 
-**Script Action**: Run `scripts/bash/setup-architect.sh` which calls `plan-dag` internally
+**Script Action**: Run `{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh` which calls `plan-dag` internally
 
 #### Step 1.1: Load and Analyze ADRs
 
@@ -1092,7 +1092,7 @@ After generating AD.md, perform ALL of the following steps:
 After moving Accepted ADRs to `.adlc/memory/adr/`, generate a memory index file at `{REPO_ROOT}/.adlc/memory/adr/adr.md` using the `generate_adr_index` function from the setup script (the same function that generates the drafts index, but with scope=memory):
 
 ```bash
-source "{REPO_ROOT}/.agents/skills/architect-implement/scripts/bash/setup-architect.sh"
+source "{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh"
 generate_adr_index memory
 ```
 

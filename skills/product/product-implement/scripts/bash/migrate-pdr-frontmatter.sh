@@ -44,7 +44,7 @@ export REPO_ROOT
 echo "[INFO] REPO_ROOT = $REPO_ROOT"
 
 # Source the PDR lifecycle library
-source "$SCRIPT_DIR/pdr-lib.sh"
+source "$SCRIPT_DIR/../../../product-clarify/scripts/bash/pdr-lib.sh"
 
 # ============================================================================
 # Step 1: Migrate all PDR files in memory/pdr/ to YAML frontmatter

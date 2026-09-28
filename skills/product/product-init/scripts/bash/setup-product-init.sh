@@ -12,7 +12,7 @@ for arg in "$@"; do
   esac
 done
 
-source "$(dirname "${BASH_SOURCE[0]}")/pdr-lib.sh" 2>/dev/null || true
+source "$(dirname "${BASH_SOURCE[0]}")/../../../product-clarify/scripts/bash/pdr-lib.sh" 2>/dev/null || true
 REPO_ROOT="${REPO_ROOT:-$(_get_project_root)}"
 PDR_DRAFTS_DIR="$REPO_ROOT/.adlc/drafts/pdr"
 PRD_FILE="$REPO_ROOT/PRD.md"
