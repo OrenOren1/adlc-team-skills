@@ -368,15 +368,15 @@ Invoke the matching class boot when a task or decision matches a row:
 
 Each class boot emits its class context section and its own searched line (_Searched N records, K matched._).
 
-**Every response MUST include** a Team Context in Use section before the task answer:
+**Every response MUST include** a Team Context in Use section before the task answer (accepted records only — pending drafts never appear here; they go in the ledger):
 
 ## Team Context in Use
 
-| ID | Name | Type | Rel |
-|--|--|--|--|
-| CDR-YYYY-NNN | <name> | <type> | <relevance> |
+| ID | Name | Type | Rel | Status | Clarify |
+|--|--|--|--|--|--|
+| CDR-YYYY-NNN | <name> | <type> | <relevance> | in use | — |
 
-Plus: ``_Searched N CDRs, M skills, J matched._`` — **J MUST equal the number of rows in your table; if no CDRs/skills genuinely match, show an empty table with 0 matched (do not copy a hard-coded CDR or inflate the count).**
+Plus: ``_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown._`` — **J MUST equal the number of rows (any indexed type); every row Status=in use, Clarify=—. Empty table with 0 matched when nothing matches (do not copy a hard-coded row or inflate the count).** Scope names the always-available layer and class indexes (counts only, never content); class boots append their own scope line when fired.
 
 Render the section as markdown blocks — heading, table, and counts line each on their own lines; never collapse the table into a single line.
 
@@ -391,11 +391,11 @@ Detect decisions as they emerge; full detection and capture guidance lives in th
 
 Maintain a running Session Decision Ledger in every response (after the Team Context in Use table):
 
-| Decision | Type | Captured? | Skill |
-|----------|------|-----------|-------|
-| _none yet_ | — | — | — |
+| ID | Name | Type | Rel | Status | Clarify |
+|--|--|--|--|--|--|
+| — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |
 
-_Unrecorded: N pending._
+_Unrecorded: N pending (rows with Status=pending)._
 
 At session end, prompt to invoke the capture skills for any unrecorded decisions. Only suggest capture when genuinely warranted.
 

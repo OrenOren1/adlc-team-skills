@@ -265,3 +265,70 @@ def test_boot_ps1_file_edited_mode_parity():
         assert marker in BOOT_PS1, f"boot.ps1 missing {marker}"
     for skill in DRAFT_NUDGES.values():
         assert skill in BOOT_PS1, f"boot.ps1 missing nudge for {skill}"
+
+
+# ── Unified 6-col tables + consolidated pending table ───────────────────────
+# Locked format: | ID | Name | Type | Rel | Status | Clarify | for BOTH tables.
+# Team Context = accepted records only; Pending Decisions = one table with a
+# mandatory clarify-skill column (no per-class sections, no divergent 4-col).
+
+UNIFIED_HEADER = "| ID | Name | Type | Rel | Status | Clarify |"
+BOOT_SH_PATH = ROOT / "skills/team/team-boot/scripts/boot.sh"
+
+
+def test_unified_header_at_every_emission_site():
+    """Both tables share one header in boot.sh, boot.ps1, and both helpers."""
+    for label, path in {
+        "boot.sh": ROOT / "skills/team/team-boot/scripts/boot.sh",
+        "boot.ps1": ROOT / "skills/team/team-boot/scripts/boot.ps1",
+        "team-helpers.sh": ROOT / "skills/team/team-setup/team-helpers.sh",
+        "team-helpers.ps1": ROOT / "skills/team/team-setup/team-helpers.ps1",
+    }.items():
+        content = path.read_text(encoding="utf-8")
+        assert content.count(UNIFIED_HEADER) >= 2, f"{label}: need both tables in unified format"
+    for stale in ("| Decision | Type | Captured? | Skill |",
+                  "| Decision | Type | Captured? | Draft ID | Clarify |"):
+        for label, path in {
+            "boot.sh": ROOT / "skills/team/team-boot/scripts/boot.sh",
+            "boot.ps1": ROOT / "skills/team/team-boot/scripts/boot.ps1",
+            "team-helpers.sh": ROOT / "skills/team/team-setup/team-helpers.sh",
+            "team-helpers.ps1": ROOT / "skills/team/team-setup/team-helpers.ps1",
+        }.items():
+            assert stale not in path.read_text(encoding="utf-8"), f"{label}: stale ledger format"
+
+
+def test_boot_pending_decisions_consolidated_table(tmp_path, monkeypatch):
+    """Fixture project: one 6-col Pending Decisions table, per-draft statuses.
+
+    - lowercase/odd filenames count (glob is *.md, status grep filters)
+    - bold `- **Status:** Proposed` shape counts (tolerant pattern)
+    - files without a status line stay silent
+    - scope line reflects fixture memory globs
+    """
+    (tmp_path / ".adlc/drafts/adr").mkdir(parents=True)
+    (tmp_path / ".adlc/drafts/adr/ADR-x.md").write_text("---\nstatus: proposed\n---\n", encoding="utf-8")
+    (tmp_path / ".adlc/drafts/chdr").mkdir(parents=True)
+    (tmp_path / ".adlc/drafts/chdr/lower.md").write_text("- **Status:** Proposed\n", encoding="utf-8")
+    (tmp_path / ".adlc/drafts/pdr").mkdir(parents=True)
+    (tmp_path / ".adlc/drafts/pdr/nothing.md").write_text("no status here\n", encoding="utf-8")
+    (tmp_path / ".adlc/memory/adr").mkdir(parents=True)
+    (tmp_path / ".adlc/memory/adr/ADR-9.md").write_text("# x\n", encoding="utf-8")
+    td = tmp_path / "td"
+    td.mkdir()
+    (td / ".skills.json").write_text('{"default": [], "external": {}}', encoding="utf-8")
+    (tmp_path / ".adlc/init-options.json").write_text(
+        json.dumps({"team_ai_directives": str(td)}), encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    result = subprocess.run(["bash", str(BOOT_SH_PATH)],
+                            capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    out = result.stdout
+    assert out.count("## Pending Decisions") == 1
+    assert "| — | 1 ADR draft(s) | ADR | .adlc/drafts/adr/ | pending | /architect-clarify |" in out
+    assert "| — | 1 ChDR draft(s) | ChDR | .adlc/drafts/chdr/ | pending | /change-clarify |" in out
+    assert "_Pending total: 2 across 2 classes." in out
+    for old in ("## Pending ADRs", "## Pending PDRs", "## Pending ChDRs",
+                "## Pending CDRs", "## Pending EVALs"):
+        assert old not in out, f"stale per-class block: {old}"
+    assert "_Scope: 0 CDRs · 1 ADRs · 0 PDRs · 0 ChDRs · 0 evals · 0 skills — J rows shown._" in out
+    assert UNIFIED_HEADER in out

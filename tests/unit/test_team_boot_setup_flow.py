@@ -132,21 +132,27 @@ def test_boot_ps1_class_boots_catalog():
     assert "## ChDR Index" not in BOOT_PS1
 
 
-def test_boot_counts_line_is_cdrs_and_skills_only():
-    """The Searched...counts line covers what team-boot actually searches.
+def test_boot_scope_line_covers_all_record_classes():
+    """The scope line reports the whole always-available inventory, not only CDRs.
 
-    Class indexes are searched when their class boot is invoked — each boot
-    reports its own searched line. The always-on line must not claim PDR/ADR/
-    ChDR counts that were never injected.
+    Counts are cheap globs (no content loading), so naming ADR/PDR/ChDR/evals
+    does not break progressive disclosure. J = section-1 row count.
     """
-    assert "Searched $CDR_COUNT CDRs, $SKILL_TOTAL skills, J matched." in BOOT_SH
-    assert "Searched $CdrCount CDRs, $SkillTotal skills, J matched." in BOOT_PS1
-    assert "$PDR_COUNT" not in BOOT_SH
-    assert "$ADR_COUNT" not in BOOT_SH
-    assert "$CHDR_COUNT" not in BOOT_SH
-    assert "$PdrCount" not in BOOT_PS1
-    assert "$AdrCount" not in BOOT_PS1
-    assert "$ChdrCount" not in BOOT_PS1
+    assert "Scope:" in BOOT_SH
+    for token in ("CDRs ·", "ADRs ·", "PDRs ·", "ChDRs ·", "evals ·", "skills", "J rows shown"):
+        assert token in BOOT_SH, f"scope line missing {token}"
+    for var in ("$CDR_COUNT", "$ADR_COUNT", "$PDR_COUNT", "$CHDR_COUNT", "$EVAL_COUNT", "$SKILL_TOTAL"):
+        assert var in BOOT_SH, f"scope counter {var} missing"
+    assert "Scope:" in BOOT_PS1
+    for var in ("$CdrCount", "$AdrCount", "$PdrCount", "$ChdrCount", "$EvalCount", "$SkillTotal"):
+        assert var in BOOT_PS1, f"scope counter {var} missing"
+    # unified 6-col tables at every emission site
+    for source in (BOOT_SH, BOOT_PS1):
+        assert "| ID | Name | Type | Rel | Status | Clarify |" in source
+    # consolidated pending table; no per-class pending sections
+    assert "## Pending Decisions" in BOOT_SH
+    for old in ("## Pending ADRs", "## Pending PDRs", "## Pending ChDRs", "## Pending CDRs", "## Pending EVALs"):
+        assert old not in BOOT_SH, f"stale per-class block: {old}"
 
 
 def test_boot_sh_compact_decision_capture():
@@ -158,7 +164,7 @@ def test_boot_sh_compact_decision_capture():
     assert "/change-clarify" in BOOT_SH
     assert "/evals-clarify" in BOOT_SH
     assert "Session Decision Ledger" in BOOT_SH
-    assert "Unrecorded: N pending." in BOOT_SH
+    assert "Unrecorded: N pending (rows with Status=pending)." in BOOT_SH
 
 
 def test_boot_ps1_compact_decision_capture():
@@ -167,7 +173,7 @@ def test_boot_ps1_compact_decision_capture():
     assert "/architect-clarify" in BOOT_PS1
     assert "/team-learn" in BOOT_PS1
     assert "Session Decision Ledger" in BOOT_PS1
-    assert "Unrecorded: N pending." in BOOT_PS1
+    assert "Unrecorded: N pending (rows with Status=pending)." in BOOT_PS1
 
 
 def test_team_boot_sh_unconfigured_warns_user():

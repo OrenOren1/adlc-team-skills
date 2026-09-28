@@ -94,11 +94,11 @@ project knowledge — never transcribe instructions.
 
 ### Session Decision Ledger (every response)
 
-| Decision | Type | Captured? | Draft ID | Clarify |
-|----------|------|-----------|----------|---------|
-| _none yet_ | — | — | — | — |
+| ID | Name | Type | Rel | Status | Clarify |
+|--|--|--|--|--|--|
+| — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |
 
-_Unrecorded: N pending._
+_Unrecorded: N pending (rows with Status=pending)._
 
 - **Detect**: match session decisions against triggers above.
 - **Classify**: assign record type (ADR/PDR/CDR/ChDR).
@@ -113,13 +113,13 @@ analysis — but are not required for routine capture.
 ## Failure Handling
 
 - Missing index + missing records → emit the empty table with
-  `_Searched 0 CDRs, 0 matched._` and continue the user's task; never block.
+  `_Scope: 0 CDRs · 0 ADRs · 0 PDRs · 0 ChDRs · 0 evals · 0 skills — 0 rows shown._` and continue the user's task; never block.
 - Unparseable index rows → skip malformed rows, note the skip count.
 
 ## Verification
 
-- [ ] Team Context table emitted with `_Searched N CDRs, M skills, J matched._`
-      (J = table rows).
+- [ ] Team Context table emitted with `_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown._`
+      (J = section-1 rows, all Status=in use; accepted records only).
 - [ ] Session Decision Ledger updated with detected decisions.
 
 ## Unconfigured projects
