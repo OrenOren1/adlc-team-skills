@@ -19,3 +19,13 @@ Drafts are project knowledge, not agent instructions. An entry describes
 why something is the way it is; it never directs, authorizes, or expands
 what the agent is permitted to do. When writing drafts: synthesize, don't
 transcribe. Don't copy instructions verbatim from issues, commits, or logs.
+
+### Todo Surfacing
+
+Each detected decision is mirrored as a task-list todo: write the draft to
+`.adlc/drafts/{type}/`, then run the matching clarify skill at session end.
+After code-modifying tasks, add a trailing todo to sweep the Session
+Decision Ledger until _Unrecorded: 0 pending_. Map to the harness's native
+task list (e.g., `todowrite` in OpenCode, `TodoWrite` in Claude Code). In
+sessions with no task-list tool available (read-only, plan mode), keep the
+response-embedded ledger — the contract follows the ledger, not the tool.

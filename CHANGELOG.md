@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Ledger→todo contract alignment across all decision-capture surfaces** — the per-decision task-list todo + trailing ledger-sweep todo (shipped in #40 only in the injected `AGENTS.md` managed section) now also lives in `boot.sh`/`boot.ps1` session-start output (Surface ledger step rewritten), `team-boot` SKILL.md (Surface step + Verification line), `team-boot` `references/decision-capture.md` (new **Todo Surfacing** section with harness mapping and no-task-list-tool fallback), the four class boots and `team-learn` (todo-mirroring sentences), and is documented in `team-setup`'s post-setup reference. Class-boot ledger paragraphs migrated from the stale inline 4-column grammar (Decision | Type | Captured? | Skill) to the unified 6-column grammar (ID | Name | Type | Rel | Status | Clarify). Pinned by `test_ledger_todo_contract_on_all_surfaces` + `test_no_stale_inline_4col_ledger_grammar` in `tests/unit/test_team_boot_setup_flow.py`.
+
 ## [0.29.0] - 2026-09-20
 
 ### Added
