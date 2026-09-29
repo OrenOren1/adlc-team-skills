@@ -199,11 +199,13 @@ A technology selection is an **ADR-class decision**:
 | "X vs Y" comparison resolved | ADR → suggest `/architect-specify` with the comparison outcome |
 | `Stop`-ring technology retained anyway | ADR → suggest `/architect-specify` documenting why the radar guidance was overridden |
 
-Add/refresh rows in the **Session Decision Ledger** (Decision | Type |
-Captured? | Skill) for the selection. If `architect-boot` was already
-invoked this session, extend its ledger rows with the radar evidence; at
-session end, prompt to run `/architect-specify` for any unrecorded tech
-selections.
+Add/refresh rows in the **Session Decision Ledger** (ID | Name | Type | Rel |
+Status | Clarify) for the selection, mirrored as a task-list todo (draft →
+`/architect-specify` at session end); after code-modifying tasks, add a
+trailing todo to sweep the ledger until _Unrecorded: 0 pending_. If
+`architect-boot` was already invoked this session, extend its ledger rows
+with the radar evidence; at session end, prompt to run `/architect-specify`
+for any unrecorded tech selections.
 
 ## Failure Handling
 

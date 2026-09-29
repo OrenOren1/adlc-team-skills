@@ -88,10 +88,13 @@ _N pending drafts — run /product-clarify to review._
 | Monetization, pricing, target-market choice | PDR → direct write to `.adlc/drafts/pdr/` |
 | PDR-class decision already in the ledger | verify capture happened; if not, re-surface |
 
-Add/refresh rows in the **Session Decision Ledger** (Decision | Type |
-Captured? | Skill) for every PDR-class decision detected this session —
-including ones from before this boot was invoked. At session end, prompt to
-run `/product-clarify` for any unrecorded PDR drafts in `.adlc/drafts/pdr/`.
+Add/refresh rows in the **Session Decision Ledger** (ID | Name | Type | Rel |
+Status | Clarify) for every PDR-class decision detected this session —
+including ones from before this boot was invoked. Mirror each decision as a
+task-list todo (draft → `/product-clarify` at session end); after
+code-modifying tasks, add a trailing todo to sweep the ledger until
+_Unrecorded: 0 pending_. At session end, prompt to run `/product-clarify`
+for any unrecorded PDR drafts in `.adlc/drafts/pdr/`.
 
 ## Failure Handling
 

@@ -104,6 +104,7 @@ _Unrecorded: N pending (rows with Status=pending)._
 - **Classify**: assign record type (ADR/PDR/CDR/ChDR).
 - **Write**: write a lightweight draft directly to `.adlc/drafts/{type}/` using the family draft template.
 - **Track**: update the ledger with Draft ID.
+- **Surface**: mirror each detected decision as a task-list todo (draft → matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the ledger until _Unrecorded: 0 pending_.
 - **Session-end**: prompt to run clarify skills for pending drafts.
 
 Specify skills (/architect-specify, /product-specify, etc.) remain available
@@ -121,6 +122,8 @@ analysis — but are not required for routine capture.
 - [ ] Team Context table emitted with `_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown._`
       (J = section-1 rows, all Status=in use; accepted records only).
 - [ ] Session Decision Ledger updated with detected decisions.
+- [ ] Detected decisions mirrored as task-list todos; trailing ledger-sweep
+      todo added after code-modifying tasks.
 
 ## Unconfigured projects
 

@@ -165,6 +165,9 @@ def test_boot_sh_compact_decision_capture():
     assert "/evals-clarify" in BOOT_SH
     assert "Session Decision Ledger" in BOOT_SH
     assert "Unrecorded: N pending (rows with Status=pending)." in BOOT_SH
+    assert "task-list todo" in BOOT_SH
+    assert "trailing todo" in BOOT_SH
+    assert "Unrecorded: 0 pending" in BOOT_SH
 
 
 def test_boot_ps1_compact_decision_capture():
@@ -174,6 +177,47 @@ def test_boot_ps1_compact_decision_capture():
     assert "/team-learn" in BOOT_PS1
     assert "Session Decision Ledger" in BOOT_PS1
     assert "Unrecorded: N pending (rows with Status=pending)." in BOOT_PS1
+    assert "task-list todo" in BOOT_PS1
+    assert "trailing todo" in BOOT_PS1
+    assert "Unrecorded: 0 pending" in BOOT_PS1
+
+
+def _ledger_todo_surfaces():
+    """Every surface that carries the Session Decision Ledger contract."""
+    return {
+        "boot.sh": BOOT_SH,
+        "boot.ps1": BOOT_PS1,
+        "team-boot SKILL.md": BOOT,
+        "team-boot decision-capture.md": (ROOT / "skills/team/team-boot/references/decision-capture.md").read_text(encoding="utf-8"),
+        "team-helpers.sh": (ROOT / "skills/team/team-setup/team-helpers.sh").read_text(encoding="utf-8"),
+        "team-helpers.ps1": (ROOT / "skills/team/team-setup/team-helpers.ps1").read_text(encoding="utf-8"),
+        "architect-boot": (ROOT / "skills/architect/architect-boot/SKILL.md").read_text(encoding="utf-8"),
+        "product-boot": (ROOT / "skills/product/product-boot/SKILL.md").read_text(encoding="utf-8"),
+        "change-boot": (ROOT / "skills/change/change-boot/SKILL.md").read_text(encoding="utf-8"),
+        "tech-radar-boot": TECH_RADAR,
+        "team-learn": (ROOT / "skills/team/team-learn/SKILL.md").read_text(encoding="utf-8"),
+    }
+
+
+def test_ledger_todo_contract_on_all_surfaces():
+    """The ledger→todo contract must appear on every decision-capture surface.
+
+    PR #40 shipped the per-decision task-list todo + trailing ledger-sweep
+    only in the injected AGENTS.md managed section; the event-hook output
+    and skill bodies must carry the same contract or agents on either
+    surface drift apart.
+    """
+    for name, source in _ledger_todo_surfaces().items():
+        assert "task-list todo" in source, f"{name}: missing task-list todo contract"
+        assert "trailing todo" in source, f"{name}: missing trailing ledger-sweep todo"
+        assert "Unrecorded: 0 pending" in source, f"{name}: missing sweep target"
+
+
+def test_no_stale_inline_4col_ledger_grammar():
+    """No ledger surface may regress to the 4-column inline ledger grammar."""
+    for name, source in _ledger_todo_surfaces().items():
+        assert "Decision | Type |" not in source, f"{name}: stale 4-col ledger grammar"
+        assert "Captured? | Skill" not in source, f"{name}: stale 4-col ledger grammar"
 
 
 def test_team_boot_sh_unconfigured_warns_user():

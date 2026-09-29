@@ -90,10 +90,13 @@ _N pending drafts — run /architect-clarify to review._
 | Pattern selection, structural refactor | ADR → direct write to `.adlc/drafts/adr/` |
 | ADR-class decision already in the ledger | verify capture happened; if not, re-surface |
 
-Add/refresh rows in the **Session Decision Ledger** (Decision | Type |
-Captured? | Skill) for every ADR-class decision detected this session —
-including ones from before this boot was invoked. At session end, prompt to
-run `/architect-clarify` for any unrecorded ADR drafts in `.adlc/drafts/adr/`.
+Add/refresh rows in the **Session Decision Ledger** (ID | Name | Type | Rel |
+Status | Clarify) for every ADR-class decision detected this session —
+including ones from before this boot was invoked. Mirror each decision as a
+task-list todo (draft → `/architect-clarify` at session end); after
+code-modifying tasks, add a trailing todo to sweep the ledger until
+_Unrecorded: 0 pending_. At session end, prompt to run `/architect-clarify`
+for any unrecorded ADR drafts in `.adlc/drafts/adr/`.
 
 ## Failure Handling
 

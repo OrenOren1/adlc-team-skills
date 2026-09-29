@@ -179,8 +179,10 @@ When two projects draft the same pattern:
 
 team-learn integrates with the Session Decision Ledger maintained by team-boot.
 CDR-class decisions detected during the session are captured as drafts and
-tracked in the ledger. Do not fabricate ledger rows — only record decisions
-that actually emerged from the session.
+tracked in the ledger. Mirror each CDR-class decision as a task-list todo
+(draft → `/team-learn` at session end); after code-modifying tasks, add a
+trailing todo to sweep the ledger until _Unrecorded: 0 pending_. Do not fabricate
+ledger rows — only record decisions that actually emerged from the session.
 
 ## Verification
 

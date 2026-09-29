@@ -85,10 +85,13 @@ _N pending drafts — run /change-clarify to review._
 | Fix chain discovered in history | ChDR → direct write to `.adlc/drafts/chdr/` |
 | ChDR-class decision already in the ledger | verify capture happened; if not, re-surface |
 
-Add/refresh rows in the **Session Decision Ledger** (Decision | Type |
-Captured? | Skill) for every ChDR-class decision detected this session —
-including ones from before this boot was invoked. At session end, prompt to
-run `/change-clarify` for any unrecorded ChDR drafts in `.adlc/drafts/chdr/`.
+Add/refresh rows in the **Session Decision Ledger** (ID | Name | Type | Rel |
+Status | Clarify) for every ChDR-class decision detected this session —
+including ones from before this boot was invoked. Mirror each decision as a
+task-list todo (draft → `/change-clarify` at session end); after
+code-modifying tasks, add a trailing todo to sweep the ledger until
+_Unrecorded: 0 pending_. At session end, prompt to run `/change-clarify`
+for any unrecorded ChDR drafts in `.adlc/drafts/chdr/`.
 
 ## Failure Handling
 
