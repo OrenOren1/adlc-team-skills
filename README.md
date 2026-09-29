@@ -92,12 +92,18 @@ npx adlc-cli skills add tikalk/adlc-team-skills -a opencode
 npx skills add tikalk/adlc-team-skills -a claude -g
 ```
 
+Selective installs resolve closures automatically: `--skill architect-implement`
+also pulls its canonical home (`architect-clarify`) via `.skills-deps.json`,
+so shared helpers are never orphaned. Borrower skills fail fast with the exact
+recovery command if their canonical home is missing.
+
 Works with any agent supporting the [Agent Skills standard](https://agentskills.io) —
 Claude Code, Codex, OpenCode, Cursor, Copilot, and others.
 
 [`adlc-cli`](https://github.com/tikalk/adlc-cli) wraps `npx skills add`
-and additionally generates `/name` slash commands and wires `session_start` event
-hooks (via `.events.json`) for 9 coding agents. `team setup` also runs the
+and additionally generates `/name` slash commands and wires `session_start` /
+`session_compact` / `file_edited` event hooks (via `.events.json`) for 9 coding
+agents. `team setup` also runs the
 `/team-setup` skill via `agent run` to clone, link, or scaffold your
 team-ai-directives repo. Skills repos without `.events.json`
 get commands only.
@@ -280,7 +286,7 @@ each step. Works alongside:
 
 ### Team directives — every session, every user
 
-- **`team-boot`** — session-start bootstrap; injects the always-relevant layer (constitution titles, CDR index ranked by confidence, Class Boots catalog, skills registry) and dispatches to per-class boots on demand. Auto-triggered; re-declared for `session_compact` so the index survives harness compaction. Also fires the session-end friction trigger for CDR capture.
+- **`team-boot`** — session-start bootstrap; injects the always-relevant layer (constitution titles, CDR index ranked by confidence, Class Boots catalog, skills registry) and dispatches to per-class boots on demand. Auto-triggered; re-declared for `session_compact` so the index survives harness compaction. Also fires the session-end friction trigger for CDR capture, and `file_edited` draft-written nudges suggesting the matching clarify skill.
 - **`team-setup`** — clone, link, or scaffold a team-ai-directives repo.
 - **`team-constitution`** — define or amend team principles interactively.
 - **`team-discover`** — manual re-scan; structured match table (`/team-discover`).
@@ -426,10 +432,10 @@ by the pull each family has on a typical session (team first):
 
 ```
 skills/
-├── team/                  # team-* (8) + workspace (team-helpers live per-skill)
+├── team/                  # team-* (8) + workspace (shared helpers canonical here)
 ├── evals/                 # evals-* (6 skills) + evals-templates/
-├── product/               # product-* (7 skills) + product-templates/
-├── architect/             # architect-* (6 skills) + architect-templates/
+├── product/               # product-* (7 skills) + product-templates/ (pdr-lib canonical in product-clarify)
+├── architect/             # architect-* (6 skills) + architect-templates/ (setup-architect + generators canonical in architect-clarify)
 ├── change/                # change-* (4 skills) + change-templates/ — ChDRs from git history
 ├── tech-radar/            # tech-radar-* (1 skill) + resources/radar.json
 ├── authoring/             # writing-skills (1 skill) + templates/
