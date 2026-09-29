@@ -6,9 +6,9 @@ so they stop working like strangers.
 ## Table of contents
 
 - [How it works](#how-it-works)
+- [The developer journey](#the-developer-journey)
 - [The problems these skills solve](#the-problems-these-skills-solve)
 - [Install](#install)
-- [The basic workflow](#the-basic-workflow)
 - [The software factory](#the-software-factory)
 - [Universal orchestration](#universal-orchestration)
 - [What's inside](#whats-inside)
@@ -65,6 +65,93 @@ And because the skills trigger automatically from the index, you don't do
 anything special once they're installed. Your coding agent just has your
 team's context.
 
+## The developer journey
+
+What it actually looks like to get from zero to a factory, in order.
+
+### 0. Prerequisites
+
+- A coding agent (opencode, Claude Code, Cursor, Codex, Gemini CLI, …)
+- [`adlc-cli`](https://github.com/tikalk/adlc-cli) — `npx` works, no install needed
+- `jq` — the `team-boot` script parses the directives index with it
+
+### 1. Install — one command per project
+
+```bash
+npx adlc-cli team setup tikalk/adlc-team-skills -a opencode
+```
+
+This installs the skills (via `npx skills add`), generates the `/name` slash
+commands, wires the event hooks, then runs `/team-setup` headlessly to
+clone, link, or scaffold your team-ai-directives repo. It writes
+`.adlc/init-options.json` (agent, skills source, directives path) so every
+later command knows where things live.
+
+Plain `npx adlc-cli skills add tikalk/adlc-team-skills -a <agent>` installs
+skills + commands + events without the team configuration.
+
+### 2. First session — context arrives on its own
+
+Open a session in the project. `team-boot` fires on `session_start` and
+injects the index (constitution titles, CDR index ranked by confidence,
+Class Boots catalog, skills registry, MCP servers). On an unconfigured
+project it points you to `/team-setup`; `/team-constitution` fills in your
+team's principles once. There is nothing to remember after this point —
+skills trigger when the task matches.
+
+### 3. Daily work — index, class boots, decision capture
+
+- The agent checks the directives index before any task; full rule bodies
+  load on demand.
+- **Class boots** fire when a decision class shows up: `architect-boot`
+  (ADR index), `product-boot` (PDR index), `change-boot` (ChDR index),
+  `tech-radar-boot` (radar opinion before a tech selection).
+- **Decision capture runs continuously**: decisions detected mid-session
+  land as lightweight drafts in `.adlc/drafts/{adr,pdr,chdr,cdr,evals}/`.
+  The `file_edited` hook notices each draft landing and nudges the matching
+  clarify skill (`adr→/architect-clarify`, `pdr→/product-clarify`, …).
+- When harness compaction summarizes history away, `session_compact`
+  re-injects the index.
+
+### 4. Session end — learnings become records
+
+`team-learn` fires on `session_end`: it extracts hard-won fixes as CDRs +
+paired eval CDRs, scores confidence, batch-reviews them, and publishes
+accepted CDRs as a draft PR to team-ai-directives. Drafts and usage reports
+live in the `adlc` orphan branch (`drafts/cdr/` + `reports/`).
+
+### 5. Individual lifecycles — on demand
+
+Each record class has its own skill loop you invoke explicitly:
+
+```
+Product:     product-specify|init → product-clarify (accept + promote to memory) → product-implement → product-analyze
+Architecture: architect-specify|init → architect-clarify (accept + promote to memory) → architect-implement → architect-analyze
+Team:        team-init → team-learn (extract + review + publish) → team-repair (--update-confidence)
+Change:      change-init → change-clarify → change-publish (change-boot injects the chdr.md index)
+Evals:       evals-init → evals-specify → evals-clarify → evals-implement → evals-validate
+```
+
+Accepted PDRs/ADRs are promoted to memory on approval — no gap between
+"Accepted in drafts" and "moved to memory".
+
+### 6. The software factory — the outer loop
+
+Running intake → execution → review → learning unattended? The factory
+takes over from queue to PR — see [The software factory](#the-software-factory).
+
+### Ongoing maintenance
+
+```bash
+adlc-cli team update     # git pull team-ai-directives + skills update + confidence update
+adlc-cli team repair     # full repair via agent run (reindex, conflicts, freshness)
+adlc-cli team repair --update-confidence  # deterministic confidence aggregation (no agent)
+```
+
+`team-repair --build-to-delete` re-runs evals without a rule and proposes
+deletion when the model passes anyway; `--validate-drafts` validates draft
+files in `.adlc/drafts/` without modifying them.
+
 ## The problems these skills solve
 
 | # | Problem | Fixed by |
@@ -101,20 +188,13 @@ Works with any agent supporting the [Agent Skills standard](https://agentskills.
 Claude Code, Codex, OpenCode, Cursor, Copilot, and others.
 
 [`adlc-cli`](https://github.com/tikalk/adlc-cli) wraps `npx skills add`
-and additionally generates `/name` slash commands and wires `session_start` /
-`session_compact` / `file_edited` event hooks (via `.events.json`) for 9 coding
-agents. `team setup` also runs the
-`/team-setup` skill via `agent run` to clone, link, or scaffold your
-team-ai-directives repo. Skills repos without `.events.json`
-get commands only.
-
-**Ongoing maintenance:**
-
-```bash
-adlc-cli team update     # git pull team-ai-directives + skills update + confidence update
-adlc-cli team repair     # full repair via agent run (reindex, conflicts, freshness)
-adlc-cli team repair --update-confidence  # deterministic confidence aggregation (no agent)
-```
+and additionally generates `/name` slash commands and wires the four event
+hooks declared in this repo's `.events.json` — `session_start` and
+`session_compact` (team-boot), `session_end` (team-learn), and `file_edited`
+(team-boot, draft-written nudges) — for the 9 coding agents with native
+hook support. `team setup` also runs the `/team-setup` skill via
+`agent run` to clone, link, or scaffold your team-ai-directives repo.
+Skills repos without `.events.json` get commands only.
 
 **First run:** `team-boot` fires at session start. On an unconfigured project
 it points you to `/team-setup`, which clones, links, or scaffolds your
@@ -123,41 +203,6 @@ team-ai-directives repo. `/team-constitution` fills in your principles.
 **Using `agentic-sdlc-spec-kit` alongside this repo?** See
 [Coexistence with Spec Kit](docs/spec-kit-integration.md) for the
 conflict-free install flow.
-
-## The basic workflow
-
-1. **team-boot** — auto-runs at session start; injects the directives
-   index. Full rules pulled on demand when the task matches.
-2. **factory-mission** — before code, forces a spec contract (mission-brief format), then walks
-   `specify → plan → implement ↔ converge` with gates, circuit breaker,
-   resume, audit trail.
-3. **team-learn** — at session end, extracts hard-won fixes as CDRs +
-   paired eval CDRs, scores confidence, batch-reviews them, and publishes
-   accepted CDRs as a draft PR to team-ai-directives. Drafts and usage
-   reports live in the `adlc` orphan branch (`drafts/cdr/` + `reports/`).
-4. **team-repair --build-to-delete** — re-runs evals without a rule; if the
-   model passes anyway, the rule is proposed for deletion.
-   **team-repair --update-confidence** — aggregates usage data from the
-   `adlc` branch into confidence scores and updates OKF frontmatter.
-
-Product and architecture lifecycles run the same loop per record class:
-
-```
-Product:     product-specify|init → product-clarify (accept + promote to memory) → product-implement → product-analyze
-Architecture: architect-specify|init → architect-clarify (accept + promote to memory) → architect-implement → architect-analyze
-Team:        team-init → team-learn (extract + review + publish) → team-repair (--update-confidence)
-Evals:       evals-init → evals-specify → evals-clarify → evals-implement → evals-validate
-```
-
-**Accepted PDRs/ADRs are promoted to memory on approval** — no gap between "Accepted in drafts" and "moved to memory". `sweep_duplicates` in implement catches leftovers from manual copy. `analyze` flags duplicates as HIGH severity.
-
-**The agent checks the directives index before any task.** Skills trigger
-automatically when the active task matches — mandatory lifecycle, not
-suggestions.
-
-Running the whole lifecycle unattended — intake, execution, review,
-learning? The factory takes over from queue to PR: see
-[The software factory](#the-software-factory).
 
 ## The software factory
 
@@ -200,7 +245,7 @@ advisory; humans hold the gates (⭐).
          ▼
 ┌─────────────────┐  CDRs/ChDRs → team-ai-directives PR
 │  factory-learn  │  workflow memories → memory.jsonl
-└─────────────────┘
+└────────┬────────┘
          │
          └─▶ back to factory-mission (memories)
              + team-boot (CDR index — closes the context loop)
@@ -284,13 +329,15 @@ each step. Works alongside:
 
 ## What's inside
 
+44 skills across 8 categories.
+
 ### Team directives — every session, every user
 
 - **`team-boot`** — session-start bootstrap; injects the always-relevant layer (constitution titles, CDR index ranked by confidence, Class Boots catalog, skills registry) and dispatches to per-class boots on demand. Auto-triggered; re-declared for `session_compact` so the index survives harness compaction. Also fires the session-end friction trigger for CDR capture, and `file_edited` draft-written nudges suggesting the matching clarify skill.
 - **`team-setup`** — clone, link, or scaffold a team-ai-directives repo.
 - **`team-constitution`** — define or amend team principles interactively.
 - **`team-discover`** — manual re-scan; structured match table (`/team-discover`).
-- **`team-repair`** — re-index, conflict scan, freshness, `--build-to-delete`, deterministic-enforcement coverage check.
+- **`team-repair`** — re-index, conflict scan, freshness, `--build-to-delete`, `--validate-drafts`, deterministic-enforcement coverage check.
 - **`team-skills`** — browse/install team skills from the directives repo.
 - **`team-diagnose`** — evidence-first diagnosis when team context doesn't appear: walks the chain (init-options → jq → boot.sh → artifact sync) and routes injection-side bugs to adlc-cli.
 
@@ -341,16 +388,15 @@ each step. Works alongside:
 
 ### Tech selection
 
-- **`tech-radar-boot`** — class boot: injects Tikal Tech Radar context (adoption ring, quadrant, opinion) for tech selection + ADR capture pairing. Auto-triggered.
+- **`tech-radar-boot`** — class boot: injects Tikal Tech Radar context (adoption ring, quadrant, opinion) for tech selection + ADR capture pairing. Auto-triggered. The radar dataset is fetched live from `https://tikalk.com/radar.json` on every invocation — no bundled snapshot to go stale.
 
 ### Workspace
 
-- **`workspace`** — multi-repo workspace: `--init` creates `.adlc/` structure, discover/link/audit child repos (`--link`, `--status`).
+- **`workspace`** — multi-repo workspace: `--init` creates `.adlc/` structure, discover/link/audit child repos (`--link`, `--status`, `--ignore-only`).
 
 ### Skill authoring — contributors
 
 - **`writing-skills`** — TDD-for-skills: baseline the failure without the skill (RED), write the minimal skill (GREEN), close rationalization loopholes (REFACTOR). Iron Law: no skill without a failing baseline first (EVAL-011). Includes the `SKILL.md` template and the testing methodology.
-- **`team-diagnose`** — evidence-first diagnosis when team context doesn't appear: walks the session-start chain (init-options → jq → boot.sh → artifact sync → injection) and routes injection-side bugs to adlc-cli (EVAL-013).
 
 ## Philosophy
 
@@ -399,7 +445,8 @@ each step. Works alongside:
 - **Something else** — [open an issue](https://github.com/tikalk/adlc-team-skills/issues).
   To verify a suspected skill-behavior bug yourself, follow the
   [manual testing protocol](CONTRIBUTING.md#manual-testing) (scratch project,
-  real agent, report table).
+  real agent, report table). The repo's testing model — two directories,
+  three tiers — is mapped in [docs/testing.md](docs/testing.md).
 
 ## Security
 
@@ -432,24 +479,23 @@ by the pull each family has on a typical session (team first):
 
 ```
 skills/
-├── team/                  # team-* (8) + workspace (shared helpers canonical here)
-├── evals/                 # evals-* (6 skills) + evals-templates/
-├── product/               # product-* (7 skills) + product-templates/ (pdr-lib canonical in product-clarify)
-├── architect/             # architect-* (6 skills) + architect-templates/ (setup-architect + generators canonical in architect-clarify)
-├── change/                # change-* (4 skills) + change-templates/ — ChDRs from git history
-├── tech-radar/            # tech-radar-* (1 skill) + resources/radar.json
-├── authoring/             # writing-skills (1 skill) + templates/
-└── factory/               # factory-* (9 skills) — platform orchestration
+├── team/          # team-* (9) + workspace + templates/ (team-helpers canonical in team-setup)
+├── evals/         # evals-* (6) + evals-templates/
+├── product/       # product-* (7) + product-templates/ + templates/ (pdr-lib canonical in product-clarify)
+├── architect/     # architect-* (6) + templates/ (setup-architect + generators canonical in architect-clarify)
+├── change/        # change-* (4) + templates/
+├── tech-radar/    # tech-radar-boot (1) — live radar fetch, no bundled dataset
+├── authoring/     # writing-skills (1; templates live inside the skill)
+└── factory/       # factory-* (9) — platform orchestration
 ```
 
 This places every single skill exactly 2 levels deep, fully resolving the
 default depth limit of the `skills` CLI and ensuring all skills install
 out of the box. (Enforced by `tests/unit/test_playbook_integrity.py`.)
 
-**Template consolidation (v0.29.0):** Each skill family now shares a single
-`{family}/templates/` directory instead of duplicating templates per-skill.
-This eliminated ~12,000 lines of duplicate template files across
-architect, product, change, evals, and team families.
+Each skill family shares a `{family}/templates/` directory instead of
+duplicating templates per-skill (evals and product retain their
+`-templates/` names for compatibility).
 
 </details>
 
@@ -498,10 +544,18 @@ All skills write to `.adlc/` (project root) and the team AI directives repo.
 
 **Missions** (inside `.adlc/` of the target project):
 
-- `.adlc/workflow/workflow-config.yml` — mission execution/supervision/budgets config
-- `.adlc/workflow/.mission-state.json` — step list, completed steps, brief, discovery results
-- `.adlc/workflow/runs/<feature>/mission-log.json` — final audit trail
-- `.adlc/workflow/runs/<feature>/iterations.md` — per-implement audit entries
+- `.adlc/workflows/runs/<run_id>/` — the durable run archive: `brief.md`
+  (ADR-331), `mission.yml` (execution/supervision/budgets policy),
+  `state.json` (program counter, written via the `adlc-cli workflow state`
+  helpers), `lease.json` (strict run lease, ADR-395), `scratchpads/`,
+  `findings/`, `decisions/`, `artifacts/`, `iterations.md`
+- `.adlc/workflows/<run_id>/workflow.yml` — generated-by-slug workflow
+  definition (ADR-391-amendment)
+- `.adlc/workflows/memory.jsonl` — cross-run workflow memory
+  (workspace-global; read/write by `factory-learn` retrospectives)
+- `.adlc/worktrees/<run_id>/` — isolated mission worktrees
+- `refs/factory-runs/<run_id>` — git-refs Tier-3 transport of the run
+  archive (ADR-393)
 
 **Governance** (inside target project and repo root):
 
@@ -510,6 +564,7 @@ All skills write to `.adlc/` (project root) and the team AI directives repo.
 - `.adlc/memory/evals/EVAL-{NNN}.md` — accepted/completed eval criteria
 - `.adlc/memory/evals/evals.md` — accepted evals index
 - `.adlc/memory/evals/holdout.json` — isolated/reserved holdout test dataset
+- `.adlc/coverage/coverage.md` — factory-init PDR↔ADR↔ChDR↔code coverage matrix
 - `evals/{system}/goldset.md` — published goldset (human-readable)
 - `evals/{system}/goldset.json` — published goldset (machine-readable)
 - `evals/{system}/config.yml` — evaluation framework configuration
@@ -580,7 +635,7 @@ Confidence:   team-repair --update-confidence → team-boot (ranks CDRs by confi
 
 **Mission:**
 ```
-factory-mission "feature" → review brief → execute steps → converge → mission-log.json
+factory-mission "feature" → review brief → execute steps → converge → run archive (.adlc/workflows/runs/<run_id>/)
 ```
 
 **Multi-repo workspace:**
@@ -595,13 +650,6 @@ workspace --status → audit branch, dirty, unpushed, SHA drift
 ```
 Greenfield (Spec-Driven): evals-init → evals-specify (from spec) → evals-clarify → evals-implement → evals-validate
 Brownfield (Error-Driven): evals-init → evals-specify (from failures) → evals-clarify → evals-implement → evals-validate → evals-analyze
-```
-
-**Full product → architecture → team:**
-```
-Product:     product-specify → product-clarify → product-implement → product-analyze
-Architecture: architect-specify → architect-clarify → architect-implement → architect-analyze
-Team:        team-learn (extract + review + publish) → team-repair
 ```
 
 </details>
