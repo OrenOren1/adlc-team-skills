@@ -297,7 +297,7 @@ After confirmation, output structured sub-system data:
 5. **Check Existing Documentation**:
    - Scan `README.md` for already-documented tech stack
    - Check `AGENTS.md` for project context
-   - Check team directives: Run `scripts/bash/setup-architect.sh` and look for `TEAM_AGENTS_MD` in output - if present, this file contains usage instructions for team-wide agent directives
+   - Check team directives: Run `{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh` (Requires the `architect-clarify` skill: `adlc-cli skills add tikalk/adlc-team-skills --skill architect-clarify`). and look for `TEAM_AGENTS_MD` in output - if present, this file contains usage instructions for team-wide agent directives
    - Review `CONTRIBUTING.md` for dev guidelines
    - Note: Don't duplicate - reference existing docs
 
@@ -541,7 +541,7 @@ Chosen option: "{title option 1}", because {justification}.
 **Objective**: Write finalized ADRs to file
 
 1. **Run Setup Script**:
-   - Execute `scripts/bash/setup-architect.sh` to ensure `{REPO_ROOT}/.adlc/drafts/adr/` directory exists
+   - Execute `{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh` (Requires the `architect-clarify` skill: `adlc-cli skills add tikalk/adlc-team-skills --skill architect-clarify`). to ensure `{REPO_ROOT}/.adlc/drafts/adr/` directory exists
    - Script creates from template if directory is empty
    - Pass `--no-decompose` if decomposition was disabled
 
@@ -640,7 +640,7 @@ After `specify` completes, run `/architect-clarify` to refine and validate the A
 
 ## Verification
 
-- The setup script `scripts/bash/setup-architect.sh` has been executed and `{REPO_ROOT}/.adlc/drafts/adr/` exists.
+- The setup script `{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh` (Requires the `architect-clarify` skill: `adlc-cli skills add tikalk/adlc-team-skills --skill architect-clarify`). has been executed and `{REPO_ROOT}/.adlc/drafts/adr/` exists.
 - One focused ADR file per decision exists at `{REPO_ROOT}/.adlc/drafts/adr/ADR-{NNN}.md`.
 - Each ADR follows MADR format, includes its parent sub-system tag, and has status `Proposed`.
 - `adr.md` is auto-generated in `{REPO_ROOT}/.adlc/drafts/adr/`.

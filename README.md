@@ -35,8 +35,8 @@ CLAUDE.md files that live on one machine, drift out of date, and don't
 transfer between teammates or tools.
 
 When you ask the agent to build something, it doesn't jump to code.
-`mission-brief` forces a contract first — goal, constraints, non-goals,
-success criteria — then walks `specify → plan → implement ↔ converge`, with
+`factory-mission` forces a contract first — goal, constraints, non-goals,
+success criteria (the mission-brief format) — then walks `specify → plan → implement ↔ converge`, with
 gates, a circuit breaker, resume, and an audit trail. When a session
 surfaces a hard-won fix, `team-learn` extracts it as a Context
 Directive Record (CDR), scores it by confidence, and publishes accepted
@@ -70,7 +70,7 @@ team's context.
 | # | Problem | Fixed by |
 |--|--|--|
 | 1 | The agent doesn't know how your team works | **`team-*`** — session-start index + on-demand rules |
-| 2 | The agent guesses instead of asking | **`mission-brief`** — spec contract before code |
+| 2 | The agent guesses instead of asking | **`factory-mission`** — spec contract before code |
 | 3 | The maker grades its own work | **`evals-*`** — binary graders, holdout splits, nothing auto-merges |
 | 4 | Session learnings evaporate | **`team-learn`** — extract fixes as CDRs, publish to the team repo |
 | 5 | Product and architecture decisions are invisible | **`product-*`** / **`architect-*`** — PDR→PRD, ADR→AD traceability |
@@ -92,12 +92,18 @@ npx adlc-cli skills add tikalk/adlc-team-skills -a opencode
 npx skills add tikalk/adlc-team-skills -a claude -g
 ```
 
+Selective installs resolve closures automatically: `--skill architect-implement`
+also pulls its canonical home (`architect-clarify`) via `.skills-deps.json`,
+so shared helpers are never orphaned. Borrower skills fail fast with the exact
+recovery command if their canonical home is missing.
+
 Works with any agent supporting the [Agent Skills standard](https://agentskills.io) —
 Claude Code, Codex, OpenCode, Cursor, Copilot, and others.
 
 [`adlc-cli`](https://github.com/tikalk/adlc-cli) wraps `npx skills add`
-and additionally generates `/name` slash commands and wires `session_start` event
-hooks (via `.events.json`) for 9 coding agents. `team setup` also runs the
+and additionally generates `/name` slash commands and wires `session_start` /
+`session_compact` / `file_edited` event hooks (via `.events.json`) for 9 coding
+agents. `team setup` also runs the
 `/team-setup` skill via `agent run` to clone, link, or scaffold your
 team-ai-directives repo. Skills repos without `.events.json`
 get commands only.
@@ -122,7 +128,7 @@ conflict-free install flow.
 
 1. **team-boot** — auto-runs at session start; injects the directives
    index. Full rules pulled on demand when the task matches.
-2. **mission-brief** — before code, forces a spec contract, then walks
+2. **factory-mission** — before code, forces a spec contract (mission-brief format), then walks
    `specify → plan → implement ↔ converge` with gates, circuit breaker,
    resume, audit trail.
 3. **team-learn** — at session end, extracts hard-won fixes as CDRs +
@@ -262,7 +268,7 @@ flowchart LR
 
 ## Universal orchestration
 
-`mission-brief` doesn't force a proprietary ecosystem. At mission start it
+`factory-mission` doesn't force a proprietary ecosystem. At mission start it
 scans installed skills directories, reads each `SKILL.md` frontmatter, and
 hands the inventory to the subagent — the model picks the skill that fits
 each step. Works alongside:
@@ -280,7 +286,7 @@ each step. Works alongside:
 
 ### Team directives — every session, every user
 
-- **`team-boot`** — session-start bootstrap; injects the always-relevant layer (constitution titles, CDR index ranked by confidence, Class Boots catalog, skills registry) and dispatches to per-class boots on demand. Auto-triggered; re-declared for `session_compact` so the index survives harness compaction. Also fires the session-end friction trigger for CDR capture.
+- **`team-boot`** — session-start bootstrap; injects the always-relevant layer (constitution titles, CDR index ranked by confidence, Class Boots catalog, skills registry) and dispatches to per-class boots on demand. Auto-triggered; re-declared for `session_compact` so the index survives harness compaction. Also fires the session-end friction trigger for CDR capture, and `file_edited` draft-written nudges suggesting the matching clarify skill.
 - **`team-setup`** — clone, link, or scaffold a team-ai-directives repo.
 - **`team-constitution`** — define or amend team principles interactively.
 - **`team-discover`** — manual re-scan; structured match table (`/team-discover`).
@@ -301,7 +307,7 @@ each step. Works alongside:
 
 ### Mission-driven development
 
-- **`mission-brief`** — spec-contract pipeline with converge loop, circuit breaker, resume (`mission-brief "feature"`, `--resume`).
+- **`factory-mission`** — spec-contract pipeline with converge loop, circuit breaker, resume (`factory-mission "feature"`, `--resume`).
 
 ### Learning loop (CDR lifecycle)
 
@@ -426,11 +432,10 @@ by the pull each family has on a typical session (team first):
 
 ```
 skills/
-├── team/                  # team-* (8) + workspace (team-helpers live per-skill)
-├── mission/               # mission-brief (1 skill) — core SDD orchestrator
+├── team/                  # team-* (8) + workspace (shared helpers canonical here)
 ├── evals/                 # evals-* (6 skills) + evals-templates/
-├── product/               # product-* (7 skills) + product-templates/
-├── architect/             # architect-* (6 skills) + architect-templates/
+├── product/               # product-* (7 skills) + product-templates/ (pdr-lib canonical in product-clarify)
+├── architect/             # architect-* (6 skills) + architect-templates/ (setup-architect + generators canonical in architect-clarify)
 ├── change/                # change-* (4 skills) + change-templates/ — ChDRs from git history
 ├── tech-radar/            # tech-radar-* (1 skill) + resources/radar.json
 ├── authoring/             # writing-skills (1 skill) + templates/
@@ -575,7 +580,7 @@ Confidence:   team-repair --update-confidence → team-boot (ranks CDRs by confi
 
 **Mission:**
 ```
-mission-brief "feature" → review brief → execute steps → converge → mission-log.json
+factory-mission "feature" → review brief → execute steps → converge → mission-log.json
 ```
 
 **Multi-repo workspace:**

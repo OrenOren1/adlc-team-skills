@@ -8,6 +8,9 @@ contract across the skill files, the boot scripts, and the helper templates.
 """
 
 from pathlib import Path
+import json
+import os
+import subprocess
 
 ROOT = Path(__file__).parent.parent.parent
 
@@ -44,12 +47,13 @@ BOOT_SH = (ROOT / "skills/team/team-boot/scripts/boot.sh").read_text(encoding="u
 BOOT_PS1 = (ROOT / "skills/team/team-boot/scripts/boot.ps1").read_text(encoding="utf-8")
 
 HELPER_TEMPLATES = {
-    "team-repair sh": ROOT / "skills/team/team-repair/team-helpers.sh",
-    "team-repair ps1": ROOT / "skills/team/team-repair/team-helpers.ps1",
     "team-setup sh": ROOT / "skills/team/team-setup/team-helpers.sh",
     "team-setup ps1": ROOT / "skills/team/team-setup/team-helpers.ps1",
-    "team-skills sh": ROOT / "skills/team/team-skills/team-helpers.sh",
-    "team-skills ps1": ROOT / "skills/team/team-skills/team-helpers.ps1",
+}
+
+BORROWER_SKILLS = {
+    "team-repair": ROOT / "skills/team/team-repair/SKILL.md",
+    "team-skills": ROOT / "skills/team/team-skills/SKILL.md",
 }
 
 
@@ -163,7 +167,7 @@ def test_boot_scripts_catalog_rows():
 
 
 def test_helper_templates_carry_catalog():
-    """All six team-helpers templates must embed the Class Boots catalog and
+    """Both canonical team-helpers templates must embed the Class Boots catalog and
     compact Decision Capture in the AGENTS.md managed section."""
     for label, path in HELPER_TEMPLATES.items():
         content = path.read_text(encoding="utf-8")
@@ -172,3 +176,159 @@ def test_helper_templates_carry_catalog():
             assert name in content, f"{label}: missing {name} row"
         assert "## Decision Capture" in content, f"{label}: no Decision Capture"
         assert "Session Decision Ledger" in content, f"{label}: no ledger contract"
+
+
+def test_helper_borrowers_reference_canonical():
+    """team-repair and team-skills must reference the canonical team-setup
+    helpers (no local copies)."""
+    for name, path in BORROWER_SKILLS.items():
+        assert not (path.parent / "team-helpers.sh").exists(), f"{name}: stale local team-helpers.sh"
+        assert not (path.parent / "team-helpers.ps1").exists(), f"{name}: stale local team-helpers.ps1"
+        content = path.read_text(encoding="utf-8")
+        assert "../team-setup/team-helpers.sh" in content, f"{name}: no canonical sh reference"
+        assert "../team-setup/team-helpers.ps1" in content, f"{name}: no canonical ps1 reference"
+
+
+# ── team-boot file_edited payload mode ──────────────────────────────────────
+# The dispatcher sets ADLC_EVENT=file_edited and forwards the event payload on
+# stdin. A draft landing in .adlc/drafts/{type}/ must nudge the matching
+# EXISTING clarify skill; everything else stays silent. Default (session-start)
+# mode is untouched.
+
+DRAFT_NUDGES = {
+    "adr": "/architect-clarify",
+    "pdr": "/product-clarify",
+    "chdr": "/change-clarify",
+    "cdr": "/team-learn",
+    "evals": "/evals-clarify",
+}
+
+BOOT_SH_PATH = ROOT / "skills/team/team-boot/scripts/boot.sh"
+
+
+def _run_boot_sh(env_event, payload):
+    env = {**os.environ}
+    if env_event is None:
+        env.pop("ADLC_EVENT", None)
+    else:
+        env["ADLC_EVENT"] = env_event
+    return subprocess.run(
+        ["bash", str(BOOT_SH_PATH)],
+        input=payload, capture_output=True, text=True, env=env, timeout=30,
+    )
+
+
+def test_boot_file_edited_nudges_matching_clarify_skill():
+    """Each draft type nudges its matching existing clarify skill."""
+    for draft_type, skill in DRAFT_NUDGES.items():
+        payload = json.dumps({"type": "file.edited", "file": f".adlc/drafts/{draft_type}/x.md"})
+        result = _run_boot_sh("file_edited", payload)
+        assert result.returncode == 0
+        assert "[pending-drafts]" in result.stdout, f"{draft_type}: no nudge emitted"
+        assert skill in result.stdout, f"{draft_type} draft must nudge {skill}"
+
+
+def test_boot_file_edited_silent_for_non_drafts():
+    """Code-file edits produce no output (no counter, no noise)."""
+    result = _run_boot_sh("file_edited", json.dumps({"type": "file.edited", "file": "src/main.py"}))
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_boot_file_edited_handles_agent_payload_shapes():
+    """opencode flat, nested properties, and claude-code tool_input shapes all resolve."""
+    flat = _run_boot_sh("file_edited", json.dumps({"type": "file.edited", "file": ".adlc/drafts/adr/a.md"}))
+    nested = _run_boot_sh("file_edited", json.dumps({"type": "file.edited", "properties": {"file": "/abs/repo/.adlc/drafts/pdr/b.md"}}))
+    tool_input = _run_boot_sh("file_edited", json.dumps({"tool_input": {"file_path": ".adlc/drafts/evals/c.yml"}}))
+    assert "[pending-drafts]" in flat.stdout and "/architect-clarify" in flat.stdout
+    assert "[pending-drafts]" in nested.stdout and "/product-clarify" in nested.stdout
+    assert "[pending-drafts]" in tool_input.stdout and "/evals-clarify" in tool_input.stdout
+
+
+def test_boot_file_edited_silent_on_garbage_payload():
+    """Malformed payload: fail-open silence, exit 0."""
+    result = _run_boot_sh("file_edited", "not-json")
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_boot_default_mode_untouched():
+    """Without ADLC_EVENT the script keeps its session-start contract."""
+    result = _run_boot_sh(None, "{}")
+    assert result.returncode == 0
+    assert "<EXTREMELY_IMPORTANT>" in result.stdout
+
+
+def test_boot_ps1_file_edited_mode_parity():
+    """boot.ps1 carries the same mode: env guard, marker, and all five nudges."""
+    for marker in ("ADLC_EVENT", "file_edited", "pending-drafts"):
+        assert marker in BOOT_PS1, f"boot.ps1 missing {marker}"
+    for skill in DRAFT_NUDGES.values():
+        assert skill in BOOT_PS1, f"boot.ps1 missing nudge for {skill}"
+
+
+# ── Unified 6-col tables + consolidated pending table ───────────────────────
+# Locked format: | ID | Name | Type | Rel | Status | Clarify | for BOTH tables.
+# Team Context = accepted records only; Pending Decisions = one table with a
+# mandatory clarify-skill column (no per-class sections, no divergent 4-col).
+
+UNIFIED_HEADER = "| ID | Name | Type | Rel | Status | Clarify |"
+BOOT_SH_PATH = ROOT / "skills/team/team-boot/scripts/boot.sh"
+
+
+def test_unified_header_at_every_emission_site():
+    """Both tables share one header in boot.sh, boot.ps1, and both helpers."""
+    for label, path in {
+        "boot.sh": ROOT / "skills/team/team-boot/scripts/boot.sh",
+        "boot.ps1": ROOT / "skills/team/team-boot/scripts/boot.ps1",
+        "team-helpers.sh": ROOT / "skills/team/team-setup/team-helpers.sh",
+        "team-helpers.ps1": ROOT / "skills/team/team-setup/team-helpers.ps1",
+    }.items():
+        content = path.read_text(encoding="utf-8")
+        assert content.count(UNIFIED_HEADER) >= 2, f"{label}: need both tables in unified format"
+    for stale in ("| Decision | Type | Captured? | Skill |",
+                  "| Decision | Type | Captured? | Draft ID | Clarify |"):
+        for label, path in {
+            "boot.sh": ROOT / "skills/team/team-boot/scripts/boot.sh",
+            "boot.ps1": ROOT / "skills/team/team-boot/scripts/boot.ps1",
+            "team-helpers.sh": ROOT / "skills/team/team-setup/team-helpers.sh",
+            "team-helpers.ps1": ROOT / "skills/team/team-setup/team-helpers.ps1",
+        }.items():
+            assert stale not in path.read_text(encoding="utf-8"), f"{label}: stale ledger format"
+
+
+def test_boot_pending_decisions_consolidated_table(tmp_path, monkeypatch):
+    """Fixture project: one 6-col Pending Decisions table, per-draft statuses.
+
+    - lowercase/odd filenames count (glob is *.md, status grep filters)
+    - bold `- **Status:** Proposed` shape counts (tolerant pattern)
+    - files without a status line stay silent
+    - scope line reflects fixture memory globs
+    """
+    (tmp_path / ".adlc/drafts/adr").mkdir(parents=True)
+    (tmp_path / ".adlc/drafts/adr/ADR-x.md").write_text("---\nstatus: proposed\n---\n", encoding="utf-8")
+    (tmp_path / ".adlc/drafts/chdr").mkdir(parents=True)
+    (tmp_path / ".adlc/drafts/chdr/lower.md").write_text("- **Status:** Proposed\n", encoding="utf-8")
+    (tmp_path / ".adlc/drafts/pdr").mkdir(parents=True)
+    (tmp_path / ".adlc/drafts/pdr/nothing.md").write_text("no status here\n", encoding="utf-8")
+    (tmp_path / ".adlc/memory/adr").mkdir(parents=True)
+    (tmp_path / ".adlc/memory/adr/ADR-9.md").write_text("# x\n", encoding="utf-8")
+    td = tmp_path / "td"
+    td.mkdir()
+    (td / ".skills.json").write_text('{"default": [], "external": {}}', encoding="utf-8")
+    (tmp_path / ".adlc/init-options.json").write_text(
+        json.dumps({"team_ai_directives": str(td)}), encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    result = subprocess.run(["bash", str(BOOT_SH_PATH)],
+                            capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    out = result.stdout
+    assert out.count("## Pending Decisions") == 1
+    assert "| — | 1 ADR draft(s) | ADR | .adlc/drafts/adr/ | pending | /architect-clarify |" in out
+    assert "| — | 1 ChDR draft(s) | ChDR | .adlc/drafts/chdr/ | pending | /change-clarify |" in out
+    assert "_Pending total: 2 across 2 classes." in out
+    for old in ("## Pending ADRs", "## Pending PDRs", "## Pending ChDRs",
+                "## Pending CDRs", "## Pending EVALs"):
+        assert old not in out, f"stale per-class block: {old}"
+    assert "_Scope: 0 CDRs · 1 ADRs · 0 PDRs · 0 ChDRs · 0 evals · 0 skills — J rows shown._" in out
+    assert UNIFIED_HEADER in out

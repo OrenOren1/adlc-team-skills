@@ -27,7 +27,7 @@ pytest tests/ evals/promptfoo/tests/ -v
 - `tests/unit/test_team_boot_setup_flow.py`, `test_team_class_boots.py`,
   `test_tech_radar.py`, `test_validate_prd.py` — behavioral contracts of the
   boot scripts, class boots, and validators.
-- `tests/e2e/` — workflow state machines (mission-brief loop, factory loop,
+- `tests/e2e/` — workflow state machines (factory-mission loop, factory loop,
   team-repair, universal skill routing) re-implemented as deterministic
   Python. **Known limit:** they test a re-implementation, not the markdown
   — a SKILL.md edit that changes behavior passes unless its Python twin is

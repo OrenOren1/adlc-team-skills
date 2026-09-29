@@ -38,6 +38,8 @@ Reverse-engineers product decisions from an **existing product** using a **three
 sh: scripts/bash/setup-product-init.sh [--json]
 ps: scripts/powershell/setup-product-init.ps1
 ```
+**Requires:** the `product-clarify` skill (provides `pdr-lib.sh`): `adlc-cli skills add tikalk/adlc-team-skills --skill product-clarify`
+
 
 **Setup output** (JSON):
 ```json

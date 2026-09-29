@@ -94,7 +94,7 @@ The response omits the Team Context in Use section, uses wrong or missing column
 ## Criterion EVAL-005: Universal Skill Orchestration — Local Skills Routing
 
 **Status**: published
-**Description**: Verifies that the mission-brief delegation prompt includes an "Available Skills" section listing installed skills with their descriptions, instructs the subagent to invoke matching skills, and does NOT hard-code phase-to-skill mapping tables (routing is LLM-decided).
+**Description**: Verifies that the factory-mission delegation prompt includes an "Available Skills" section listing installed skills with their descriptions, instructs the subagent to invoke matching skills, and does NOT hard-code phase-to-skill mapping tables (routing is LLM-decided).
 
 ### Pass Condition
 The delegation prompt includes an "Available Skills in This Workspace" section with skill names and descriptions, instructs the subagent to invoke matching skills, includes a fallback ("proceed with direct execution" or similar), and contains no hard-coded phase→skill mapping.

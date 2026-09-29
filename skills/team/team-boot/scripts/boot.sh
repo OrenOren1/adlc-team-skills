@@ -3,6 +3,25 @@
 # Pure shell (grep/sed), no runtime dependencies.
 set -euo pipefail
 
+# file_edited payload mode (event-driven, not session-start).
+# The dispatcher sets ADLC_EVENT and forwards the event payload on stdin.
+# When a decision draft lands in .adlc/drafts/{type}/, suggest the matching
+# existing clarify skill on stdout (the agent hook injects it). Silence for
+# anything else — boot skills already did the capture; this is only the nudge.
+if [ "${ADLC_EVENT:-}" = "file_edited" ]; then
+  _payload="$(cat)"
+  _file="$(printf '%s' "$_payload" | jq -r '.file // .properties.file // .tool_input.file_path // .tool_input.filePath // .tool_input.path // .path // .filePath // empty' 2>/dev/null || true)"
+  case "$_file" in
+    *.adlc/drafts/adr/*)   echo "[pending-drafts] ADR draft written — run /architect-clarify to review and accept it." ;;
+    *.adlc/drafts/pdr/*)   echo "[pending-drafts] PDR draft written — run /product-clarify to review and accept it." ;;
+    *.adlc/drafts/chdr/*)  echo "[pending-drafts] ChDR draft written — run /change-clarify to review and accept it." ;;
+    *.adlc/drafts/cdr/*)   echo "[pending-drafts] CDR draft written — run /team-learn to review and accept it." ;;
+    *.adlc/drafts/evals/*) echo "[pending-drafts] eval draft written — run /evals-clarify to review and accept it." ;;
+    *) ;; # not a decision draft — stay silent
+  esac
+  exit 0
+fi
+
 INIT_FILE=".adlc/init-options.json"
 
 if [ ! -f "$INIT_FILE" ]; then
@@ -106,6 +125,29 @@ echo ""
 echo "_Total: $SKILL_TOTAL skills available._"
 echo ""
 
+# Scope counts — accepted-record inventory per class. Cheap globs only, no
+# content is ever read (progressive disclosure intact): published indexes are
+# counted, never loaded into context. Arithmetic normalization strips wc -l
+# padding (a regex guard would zero real counts — wc pads with spaces).
+ADR_COUNT=$(ls .adlc/memory/adr/ADR-*.md 2>/dev/null | wc -l || true); ADR_COUNT=$((ADR_COUNT))
+PDR_COUNT=$(ls .adlc/memory/pdr/PDR-*.md 2>/dev/null | wc -l || true); PDR_COUNT=$((PDR_COUNT))
+_CHDR_FILE=0
+if [ -f .adlc/memory/chdr.md ]; then
+  # grep -c prints the count even on exit 1 (no match) — capture it, and map
+  # every other failure shape (empty, multi-line) to 0 via case validation.
+  _CHDR_FILE=$(grep -c '^\| ChDR' .adlc/memory/chdr.md 2>/dev/null || true)
+  case "$_CHDR_FILE" in ''|*[!0-9]*) _CHDR_FILE=0 ;; esac
+  _CHDR_FILE=$((_CHDR_FILE))
+fi
+_CHDR_DIR=$(ls .adlc/memory/chdr/ChDR-*.md 2>/dev/null | wc -l || true); _CHDR_DIR=$((_CHDR_DIR))
+CHDR_COUNT=$((_CHDR_FILE + _CHDR_DIR))
+EVAL_COUNT=$(ls .adlc/memory/evals/EVAL-*.md 2>/dev/null | wc -l || true); EVAL_COUNT=$((EVAL_COUNT))
+# Normalized pending-status set — one dialect for every class. Previous
+# per-class greps drifted (ChDR matched Discovered, ADR/PDR did not) and all
+# missed real-world shapes (status: Proposed, Status:** Proposed). Case-
+# insensitive (-i at call sites), space/star tolerant after the colon.
+PENDING_STATUS='status:[ *]*proposed\|status:[ *]*discovered\|status:[ *]*draft'
+
 # MCP Servers — names only (lean)
 echo "## MCP Servers"
 jq -r '.mcpServers | keys[]' "$TEAM_AI_DIRECTIVES/.mcp.json" 2>/dev/null | while read -r name; do
@@ -118,16 +160,18 @@ echo "Invoke the matching class boot when a task or decision matches a Class Boo
 echo "Prefer targeted file searches over broad directory listings to conserve context."
 echo ""
 echo "**Every response MUST include** a Team Context in Use section before the task answer:"
-echo "Match CDR entries and skills from the lists above to the current task."
+echo "Match entries from the lists above (any indexed type) to the current task."
+echo "Team Context shows ACCEPTED records only — pending drafts never appear here; they go in the Session Decision Ledger below."
 echo ""
 echo "## Team Context in Use"
 echo ""
-echo "| ID | Name | Type | Rel |"
-echo "|--|--|--|--|"
-echo "| CDR-YYYY-NNN | <name> | <type> | <relevance> |"
+echo "| ID | Name | Type | Rel | Status | Clarify |"
+echo "|--|--|--|--|--|--|"
+echo "| CDR-YYYY-NNN | <name> | <type> | <relevance> | in use | — |"
 echo ""
-echo "Plus: _Searched $CDR_COUNT CDRs, $SKILL_TOTAL skills, J matched._ (Class indexes are searched when their class boot is invoked — each reports its own line.)"
-echo "**J MUST equal the number of rows in your table; if no CDRs/skills genuinely match, show an empty table with 0 matched (do not copy a hard-coded CDR or inflate the count).**"
+echo "Plus: _Scope: $CDR_COUNT CDRs · $ADR_COUNT ADRs · $PDR_COUNT PDRs · $CHDR_COUNT ChDRs · $EVAL_COUNT evals · $SKILL_TOTAL skills — J rows shown._ The scope line names the always-available layer and class indexes (counts only, never content). Class boots append their own scope line when fired."
+echo "**J MUST equal the number of rows in the table (any indexed type); every row MUST be Status=in use and Clarify=—. Empty table with 0 matched when nothing genuinely matches — never copy a hard-coded row or inflate the count.**"
+echo "Render the section as markdown blocks — heading, table, and counts line each on their own lines; never collapse the table into a single line."
 echo ""
 echo "## Decision Capture"
 echo ""
@@ -174,16 +218,16 @@ echo "### Session Decision Ledger (every response)"
 echo ""
 echo "After the Team Context in Use table, include:"
 echo ""
-echo "| Decision | Type | Captured? | Draft ID | Clarify |"
-echo "|----------|------|-----------|----------|---------|"
-echo "| _none yet_ | — | — | — | — |"
+echo "| ID | Name | Type | Rel | Status | Clarify |"
+echo "|--|--|--|--|--|--|"
+echo "| — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |"
 echo ""
-echo "_Unrecorded: N pending._"
+echo "_Unrecorded: N pending (rows with Status=pending)._"
 echo ""
 echo "- **Detect**: match session decisions against triggers above."
 echo "- **Classify**: assign record type (ADR/PDR/CDR/ChDR)."
 echo "- **Write**: write a lightweight draft directly to .adlc/drafts/{type}/ using the family draft template."
-echo "- **Track**: update the ledger with Draft ID and whether draft was written."
+echo "- **Track**: update the ledger row (ID = draft ID or —, Status = captured/pending, Clarify = matching skill)."
 echo "- **Surface**: list unrecorded decisions with suggested type."
 echo "- **Session-end**: before closing, prompt to run clarify skills for pending drafts."
 echo ""
@@ -198,61 +242,58 @@ echo "Specify skills (/architect-specify, /product-specify, etc.) remain availab
 echo "for interactive deep-dive exploration when you want guided trade-off"
 echo "analysis — but are not required for routine capture."
 
-# Pending ChDRs — remind user to clarify
-if [ -d ".adlc/drafts/chdr" ]; then
-  PENDING_CHDRS=$(grep -rl "status: proposed\|Status: Proposed\|Status: \*\*Discovered\*\*" .adlc/drafts/chdr/ChDR-*.md 2>/dev/null | wc -l || true)
-  if [ "$PENDING_CHDRS" -gt 0 ]; then
-    echo ""
-    echo "## Pending ChDRs"
-    echo "$PENDING_CHDRS proposed/discovered ChDR(s) awaiting review in \`.adlc/drafts/chdr/\`"
-    echo "Run \`/change-clarify\` to accept, reject, or defer them."
-  fi
-fi
-
-# Pending CDRs — check adlc orphan branch in team-ai-directives
-if [ -n "$TEAM_AI_DIRECTIVES" ] && [ -d "$TEAM_AI_DIRECTIVES/.git" ]; then
-  if git -C "$TEAM_AI_DIRECTIVES" show-ref --verify --quiet "refs/heads/adlc" 2>/dev/null; then
-    PENDING_CDRS=$(git -C "$TEAM_AI_DIRECTIVES" show "adlc:drafts/cdr/" 2>/dev/null | grep -c "CDR-" || echo 0)
-    if [ "$PENDING_CDRS" -gt 0 ]; then
-      echo ""
-      echo "## Pending CDRs"
-      echo "$PENDING_CDRS proposed CDR(s) awaiting review in adlc branch"
-      echo "Run \`/team-learn\` to accept, reject, or defer them."
+# Pending decisions — ONE consolidated table: no per-class rows, each row
+# carries its clarify skill. Pending drafts are never part of Team Context
+# (accepted records only). Status set is normalized (PENDING_STATUS): one
+# dialect for every class.
+PENDING_ROWS=""
+PENDING_CLASSES=0
+_add_pending_row() { # $1=class-dir $2=glob $3=type $4=clarify
+  _count=0
+  if [ -d ".adlc/drafts/$1" ]; then
+    # shellcheck disable=SC2086
+    _count=$(grep -ril "$PENDING_STATUS" .adlc/drafts/$1/$2 2>/dev/null | wc -l || true); _count=$((_count))
+    if [ "$_count" -gt 0 ]; then
+      PENDING_ROWS="${PENDING_ROWS}| — | ${_count} $3 draft(s) | $3 | .adlc/drafts/$1/ | pending | $4 |"$'\n'
+      PENDING_CLASSES=$((PENDING_CLASSES + 1))
     fi
   fi
+  PENDING_TOTAL=$((PENDING_TOTAL + _count))
+}
+PENDING_TOTAL=0
+_add_pending_row adr "*.md" ADR /architect-clarify
+_add_pending_row pdr "*.md" PDR /product-clarify
+_add_pending_row chdr "*.md" ChDR /change-clarify
+_add_pending_row evals "*.md" Eval /evals-clarify
+# Pending CDRs — local drafts PLUS adlc orphan branch in team-ai-directives
+# (git storage, not files). Row emits whenever either source is non-zero.
+PENDING_CDRS=0
+if [ -d ".adlc/drafts/cdr" ]; then
+  # shellcheck disable=SC2086
+  _local_cdrs=$(grep -ril "$PENDING_STATUS" .adlc/drafts/cdr/*.md 2>/dev/null | wc -l || true); _local_cdrs=$((_local_cdrs))
+  PENDING_CDRS=$((_local_cdrs))
 fi
-
-# Pending ADRs — remind user to clarify
-if [ -d ".adlc/drafts/adr" ]; then
-  PENDING_ADRS=$(grep -rl "status: proposed\|Status: Proposed" .adlc/drafts/adr/ADR-*.md 2>/dev/null | wc -l || true)
-  if [ "$PENDING_ADRS" -gt 0 ]; then
-    echo ""
-    echo "## Pending ADRs"
-    echo "$PENDING_ADRS proposed ADR(s) awaiting review in \`.adlc/drafts/adr/\`"
-    echo "Run \`/architect-clarify\` to accept, reject, or defer them."
+if [ -n "$TEAM_AI_DIRECTIVES" ] && [ -d "$TEAM_AI_DIRECTIVES/.git" ]; then
+  if git -C "$TEAM_AI_DIRECTIVES" show-ref --verify --quiet "refs/heads/adlc" 2>/dev/null; then
+    _branch_cdrs=$(git -C "$TEAM_AI_DIRECTIVES" show "adlc:drafts/cdr/" 2>/dev/null | grep -c "CDR-" || true)
+    case "$_branch_cdrs" in ''|*[!0-9]*) _branch_cdrs=0 ;; esac
+    PENDING_CDRS=$((PENDING_CDRS + _branch_cdrs))
   fi
 fi
-
-# Pending PDRs — remind user to clarify
-if [ -d ".adlc/drafts/pdr" ]; then
-  PENDING_PDRS=$(grep -rl "status: proposed\|Status: Proposed" .adlc/drafts/pdr/PDR-*.md 2>/dev/null | wc -l || true)
-  if [ "$PENDING_PDRS" -gt 0 ]; then
-    echo ""
-    echo "## Pending PDRs"
-    echo "$PENDING_PDRS proposed PDR(s) awaiting review in \`.adlc/drafts/pdr/\`"
-    echo "Run \`/product-clarify\` to accept, reject, or defer them."
-  fi
+if [ "$PENDING_CDRS" -gt 0 ]; then
+  PENDING_ROWS="${PENDING_ROWS}| — | ${PENDING_CDRS} CDR draft(s) | CDR | .adlc/drafts/cdr/ + adlc branch | pending | /team-learn |"$'\n'
+  PENDING_CLASSES=$((PENDING_CLASSES + 1))
 fi
-
-# Pending EVALs — remind user to clarify
-if [ -d ".adlc/drafts/evals" ]; then
-  PENDING_EVALS=$(grep -rl "status: draft\|status: proposed" .adlc/drafts/evals/EVAL-*.md 2>/dev/null | wc -l || true)
-  if [ "$PENDING_EVALS" -gt 0 ]; then
-    echo ""
-    echo "## Pending EVALs"
-    echo "$PENDING_EVALS draft EVAL(s) awaiting review in \`.adlc/drafts/evals/\`"
-    echo "Run \`/evals-clarify\` to accept, reject, or defer them."
-  fi
+PENDING_TOTAL=$((PENDING_TOTAL + PENDING_CDRS))
+if [ "$PENDING_TOTAL" -gt 0 ]; then
+  echo ""
+  echo "## Pending Decisions"
+  echo ""
+  echo "| ID | Name | Type | Rel | Status | Clarify |"
+  echo "|--|--|--|--|--|--|"
+  printf '%s' "$PENDING_ROWS"
+  echo ""
+  echo "_Pending total: $PENDING_TOTAL across $PENDING_CLASSES classes. Run the row's clarify skill to accept, reject, or defer._"
 fi
 
 # Friction-based learning trigger (configurable, default on)

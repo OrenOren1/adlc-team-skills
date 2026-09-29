@@ -616,12 +616,20 @@ generate_adr_index() {
 
     local quick_links=$'\n---\n\n## Quick Links\n\n'
 
-    # Sort ADR files numerically
-    for f in $(ls -1 "$adr_dir"/ADR-*.md 2>/dev/null | sort -t'-' -k2 -n); do
+    # Lexical filename sort (repo names are zero-padded: amendment-before-base
+    # order falls out naturally). IDs are filename stems verbatim — suffixes
+    # (e.g. -amendment-2) are preserved, never arithmetically parsed.
+    for f in $(ls -1 "$adr_dir"/ADR-*.md 2>/dev/null | LC_ALL=C sort); do
         local fname
         fname=$(basename "$f")
-        local id
-        id=$(echo "$fname" | sed -E 's/ADR-([0-9]+)\.md/\1/')
+        local stem="${fname%.md}"
+        local id="${stem#ADR-}"
+        # Purely numeric stems keep the legacy zero-padded display; suffixed
+        # stems render verbatim (printf %03d on them printed ADR-000).
+        local disp="$id"
+        if [[ "$id" =~ ^[0-9]+$ ]]; then
+            disp=$(printf "%03d" "$id")
+        fi
 
         # Extract metadata from MADR frontmatter (fallback to empty + defaults)
         local title=""
@@ -643,8 +651,8 @@ generate_adr_index() {
         [[ -z "$subsystem" ]] && subsystem="System"
         [[ -z "$title" ]] && title="ADR-$id"
 
-        index_content+="| ADR-$(printf "%03d" "$id") | $subsystem | $title | $status | $date | $decision_makers | [$fname]($fname) |\n"
-        quick_links+="- [ADR-$(printf "%03d" "$id"): $title]($fname)\n"
+        index_content+="| ADR-$disp | $subsystem | $title | $status | $date | $decision_makers | [$fname]($fname) |\n"
+        quick_links+="- [ADR-$disp: $title]($fname)\n"
     done
 
     echo -e "${index_content}\n${quick_links}" > "$index_file"
@@ -657,16 +665,24 @@ get_adr_by_id() {
     local scope="${2:-drafts}"
     local adr_dir="$REPO_ROOT/.adlc/$scope/adr"
 
-    # Normalize ID
-    local numeric_id
-    numeric_id=$(echo "$adr_id" | sed -E 's/[^0-9]//g')
-    local padded_id
-    padded_id=$(printf "%03d" "$numeric_id")
-
-    local hybrid_file="$adr_dir/ADR-$padded_id.md"
+    # Resolve exact stems first (ADR-<given>.md verbatim); numeric fallback
+    # only for bare IDs. Never strip suffixes (386-amendment-2 is not 3862).
+    # Reject path separators outright (the old digit-strip sanitized by
+    # accident; keep traversal impossible explicitly).
+    case "$adr_id" in *"/"*|.*) return 1;; esac
+    local hybrid_file="$adr_dir/ADR-$adr_id.md"
     if [[ -f "$hybrid_file" ]]; then
         cat "$hybrid_file"
         return 0
+    fi
+    if [[ "$adr_id" =~ ^[0-9]+$ ]]; then
+        local padded_id
+        padded_id=$(printf "%03d" "$adr_id")
+        hybrid_file="$adr_dir/ADR-$padded_id.md"
+        if [[ -f "$hybrid_file" ]]; then
+            cat "$hybrid_file"
+            return 0
+        fi
     fi
 
     return 1
@@ -678,7 +694,7 @@ list_adrs() {
     local adr_dir="$REPO_ROOT/.adlc/$scope/adr"
 
     if [[ -d "$adr_dir" ]]; then
-        ls -1 "$adr_dir"/ADR-*.md 2>/dev/null | sed -E 's/.*ADR-([0-9]+)\.md/\1/' | sort -n
+        ls -1 "$adr_dir"/ADR-*.md 2>/dev/null | sed -E 's#.*/##; s/\.md$//' | LC_ALL=C sort
     fi
 }
 
@@ -703,12 +719,15 @@ write_adr() {
 
     mkdir -p "$adr_dir"
 
-    local numeric_id
-    numeric_id=$(echo "$adr_id" | sed -E 's/[^0-9]//g')
-    local padded_id
-    padded_id=$(printf "%03d" "$numeric_id")
+    local target_name
+    if [[ "$adr_id" =~ ^[0-9]+$ ]]; then
+        target_name="ADR-$(printf "%03d" "$adr_id").md"
+    else
+        case "$adr_id" in *"/"*|.*) echo "write_adr: invalid id: $adr_id" >&2; return 1;; esac
+        target_name="ADR-$adr_id.md"
+    fi
 
-    echo "$adr_content" > "$adr_dir/ADR-$padded_id.md"
+    echo "$adr_content" > "$adr_dir/$target_name"
 
     # Regenerate derived artifacts
     generate_adr_index "$scope"
@@ -723,15 +742,17 @@ move_adr() {
     local from_dir="$REPO_ROOT/.adlc/$from_scope/adr"
     local to_dir="$REPO_ROOT/.adlc/$to_scope/adr"
 
-    local numeric_id
-    numeric_id=$(echo "$adr_id" | sed -E 's/[^0-9]//g')
-    local padded_id
-    padded_id=$(printf "%03d" "$numeric_id")
+    case "$adr_id" in *"/"*|.*) echo "move_adr: invalid id: $adr_id" >&2; return 1;; esac
 
     mkdir -p "$to_dir"
 
-    if [[ -f "$from_dir/ADR-$padded_id.md" ]]; then
-        mv "$from_dir/ADR-$padded_id.md" "$to_dir/ADR-$padded_id.md"
+    # Exact stem first; numeric fallback only for bare IDs.
+    local src_file="$from_dir/ADR-$adr_id.md"
+    if [[ ! -f "$src_file" ]] && [[ "$adr_id" =~ ^[0-9]+$ ]]; then
+        src_file="$from_dir/ADR-$(printf "%03d" "$adr_id").md"
+    fi
+    if [[ -f "$src_file" ]]; then
+        mv "$src_file" "$to_dir/$(basename "$src_file")"
     fi
 
     # Regenerate both scopes

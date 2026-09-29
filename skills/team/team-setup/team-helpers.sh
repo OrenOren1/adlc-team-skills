@@ -6,6 +6,8 @@
 #   --scaffold [DIR]    Create a fresh 11-file team AI directives scaffold at DIR
 #   --agents-only DIR   Create only AGENTS.md at DIR (for repair use)
 #   --inject-agents [DIR]  Inject team-boot directive into project-level AGENTS.md at DIR
+#   --agents-status [DIR]  Report managed-section status in project-level AGENTS.md at DIR
+#   --agents-uninstall [DIR]  Remove managed section from project-level AGENTS.md at DIR
 #   --name NAME         Team name for scaffold (default: "My Team")
 set -euo pipefail
 
@@ -379,15 +381,17 @@ Invoke the matching class boot when a task or decision matches a row:
 
 Each class boot emits its class context section and its own searched line (_Searched N records, K matched._).
 
-**Every response MUST include** a Team Context in Use section before the task answer:
+**Every response MUST include** a Team Context in Use section before the task answer (accepted records only — pending drafts never appear here; they go in the ledger):
 
 ## Team Context in Use
 
-| ID | Name | Type | Rel |
-|--|--|--|--|
-| CDR-YYYY-NNN | <name> | <type> | <relevance> |
+| ID | Name | Type | Rel | Status | Clarify |
+|--|--|--|--|--|--|
+| CDR-YYYY-NNN | <name> | <type> | <relevance> | in use | — |
 
-Plus: \`_Searched N CDRs, M skills, J matched._\` — **J MUST equal the number of rows in your table; if no CDRs/skills genuinely match, show an empty table with 0 matched (do not copy a hard-coded CDR or inflate the count).**
+Plus: \`_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown._\` — **J MUST equal the number of rows (any indexed type); every row Status=in use, Clarify=—. Empty table with 0 matched when nothing matches (do not copy a hard-coded row or inflate the count).** Scope names the always-available layer and class indexes (counts only, never content); class boots append their own scope line when fired.
+
+Render the section as markdown blocks — heading, table, and counts line each on their own lines; never collapse the table into a single line.
 
 ## Decision Capture
 
@@ -400,13 +404,15 @@ Detect decisions as they emerge; full detection and capture guidance lives in th
 
 Maintain a running Session Decision Ledger in every response (after the Team Context in Use table):
 
-| Decision | Type | Captured? | Skill |
-|----------|------|-----------|-------|
-| _none yet_ | — | — | — |
+| ID | Name | Type | Rel | Status | Clarify |
+|--|--|--|--|--|--|
+| — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |
 
-_Unrecorded: N pending._
+_Unrecorded: N pending (rows with Status=pending)._
 
 At session end, prompt to invoke the capture skills for any unrecorded decisions. Only suggest capture when genuinely warranted.
+
+Surface each detected decision as a task-list todo (write the draft to \`.adlc/drafts/{type}/\`, then run the matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the Session Decision Ledger until _Unrecorded: 0 pending_.
 ${marker_end}
 SECTION
 )
@@ -451,6 +457,66 @@ PY
 }
 
 ###############################################################################
+# 5. MANAGED SECTION STATUS + UNINSTALL
+###############################################################################
+
+agents_section_status() {
+  local project_root="${1:-.}"
+  local agents_file="${project_root}/AGENTS.md"
+  local marker_start="<!-- TEAM_AI_DIRECTIVES START -->"
+  local marker_end="<!-- TEAM_AI_DIRECTIVES END -->"
+
+  if [[ ! -f "$agents_file" ]]; then
+    echo "STATUS: missing (no AGENTS.md at ${project_root})"
+    return 1
+  fi
+  if grep -qF "$marker_start" "$agents_file" && grep -qF "$marker_end" "$agents_file"; then
+    echo "STATUS: installed (${agents_file} contains the managed section)"
+  else
+    echo "STATUS: not-installed (${agents_file} lacks the managed section)"
+    return 1
+  fi
+}
+
+agents_section_uninstall() {
+  local project_root="${1:-.}"
+  local agents_file="${project_root}/AGENTS.md"
+  local marker_start="<!-- TEAM_AI_DIRECTIVES START -->"
+  local marker_end="<!-- TEAM_AI_DIRECTIVES END -->"
+
+  if [[ ! -f "$agents_file" ]]; then
+    echo "Nothing to remove: no AGENTS.md at ${project_root}"
+    return 0
+  fi
+
+  python3 - "$agents_file" "$marker_start" "$marker_end" <<'PY'
+import sys
+
+agents_path, start, end = sys.argv[1:4]
+
+with open(agents_path, "r", encoding="utf-8") as f:
+    content = f.read()
+
+s_idx = content.find(start)
+e_idx = content.find(end)
+
+if s_idx == -1 or e_idx == -1 or s_idx >= e_idx:
+    print(f"No managed section in {agents_path} (nothing removed)")
+    sys.exit(0)
+
+new_content = content[:s_idx] + content[e_idx + len(end):]
+while "\n\n\n" in new_content:
+    new_content = new_content.replace("\n\n\n", "\n\n")
+new_content = new_content.strip("\n")
+if new_content:
+    new_content += "\n"
+with open(agents_path, "w", encoding="utf-8") as f:
+    f.write(new_content)
+print(f"Removed team AI directives section from {agents_path}")
+PY
+}
+
+###############################################################################
 # MAIN
 ###############################################################################
 
@@ -464,14 +530,20 @@ main() {
   local has_scaffold=false
   local has_agents_only=false
   local has_inject_agents=false
+  local has_agents_status=false
+  local has_agents_uninstall=false
   local scaffold_dest=""
   local agents_only_dest=""
   local inject_dest=""
+  local agents_status_dest=""
+  local agents_uninstall_dest=""
   local team_name="My Team"
   local parsing_scaffold=false
   local parsing_agents=false
   local parsing_name=false
   local parsing_inject=false
+  local parsing_status=false
+  local parsing_uninstall=false
 
   for arg in "$@"; do
     if [[ "$arg" == "--json" || "$arg" == "-Json" ]]; then
@@ -479,7 +551,7 @@ main() {
       continue
     fi
     if [[ "$arg" == "--help" || "$arg" == "-h" ]]; then
-      echo "Usage: team-helpers.sh [--json] [--scaffold DIR] [--agents-only DIR] [--inject-agents [DIR]] [--name NAME]"
+      echo "Usage: team-helpers.sh [--json] [--scaffold DIR] [--agents-only DIR] [--inject-agents [DIR]] [--agents-status [DIR]] [--agents-uninstall [DIR]] [--name NAME]"
       exit 0
     fi
     if [[ "$arg" == "--scaffold" ]]; then
@@ -488,6 +560,8 @@ main() {
       parsing_agents=false
       parsing_name=false
       parsing_inject=false
+      parsing_status=false
+      parsing_uninstall=false
       continue
     fi
     if [[ "$arg" == "--agents-only" ]]; then
@@ -496,6 +570,8 @@ main() {
       parsing_scaffold=false
       parsing_name=false
       parsing_inject=false
+      parsing_status=false
+      parsing_uninstall=false
       continue
     fi
     if [[ "$arg" == "--inject-agents" ]]; then
@@ -504,6 +580,28 @@ main() {
       parsing_scaffold=false
       parsing_agents=false
       parsing_name=false
+      parsing_status=false
+      parsing_uninstall=false
+      continue
+    fi
+    if [[ "$arg" == "--agents-status" ]]; then
+      has_agents_status=true
+      parsing_status=true
+      parsing_scaffold=false
+      parsing_agents=false
+      parsing_name=false
+      parsing_inject=false
+      parsing_uninstall=false
+      continue
+    fi
+    if [[ "$arg" == "--agents-uninstall" ]]; then
+      has_agents_uninstall=true
+      parsing_uninstall=true
+      parsing_scaffold=false
+      parsing_agents=false
+      parsing_name=false
+      parsing_inject=false
+      parsing_status=false
       continue
     fi
     if [[ "$arg" == "--name" ]]; then
@@ -511,6 +609,8 @@ main() {
       parsing_scaffold=false
       parsing_agents=false
       parsing_inject=false
+      parsing_status=false
+      parsing_uninstall=false
       continue
     fi
     if $parsing_scaffold && [[ -n "$arg" ]]; then
@@ -526,6 +626,16 @@ main() {
     if $parsing_inject && [[ -n "$arg" ]]; then
       inject_dest="$arg"
       parsing_inject=false
+      continue
+    fi
+    if $parsing_status && [[ -n "$arg" ]]; then
+      agents_status_dest="$arg"
+      parsing_status=false
+      continue
+    fi
+    if $parsing_uninstall && [[ -n "$arg" ]]; then
+      agents_uninstall_dest="$arg"
+      parsing_uninstall=false
       continue
     fi
     if $parsing_name && [[ -n "$arg" ]]; then
@@ -556,6 +666,18 @@ main() {
   if $has_inject_agents; then
     local project_root="${inject_dest:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
     inject_project_agents "$project_root"
+    return
+  fi
+
+  if $has_agents_status; then
+    local project_root="${agents_status_dest:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+    agents_section_status "$project_root"
+    return
+  fi
+
+  if $has_agents_uninstall; then
+    local project_root="${agents_uninstall_dest:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+    agents_section_uninstall "$project_root"
     return
   fi
 

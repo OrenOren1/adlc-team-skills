@@ -218,14 +218,22 @@ generate_pdr_index() {
 |----|--------------|----------|--------|------|-------|-------|
 "
 
-    # Sort PDR files numerically
-    local f fname id title status date owner category feature_area padded_id
+    # Lexical filename sort (repo names are zero-padded: amendment-before-base
+    # order falls out naturally). IDs are filename stems verbatim.
+    local f fname id stem title status date owner category feature_area padded_id
     local blank_warnings=""
 
-    for f in $(ls -1 "$pdr_dir"/PDR-*.md 2>/dev/null | sort -t'-' -k2 -n); do
+    for f in $(ls -1 "$pdr_dir"/PDR-*.md 2>/dev/null | LC_ALL=C sort); do
         fname=$(basename "$f")
-        id=$(echo "$fname" | sed -E 's/PDR-([0-9]+)\.md/\1/')
-        padded_id=$(printf "%03d" "$((10#$id))")
+        stem="${fname%.md}"
+        id="${stem#PDR-}"
+        # Purely numeric stems keep the legacy zero-padded display; suffixed
+        # stems render verbatim (printf %03d on them errored).
+        if [[ "$id" =~ ^[0-9]+$ ]]; then
+            padded_id=$(printf "%03d" "$((10#$id))")
+        else
+            padded_id="$id"
+        fi
 
         title=$(parse_pdr_title "$f")
         status=$(parse_pdr_field "$f" "status")
@@ -273,23 +281,27 @@ move_pdr() {
     local from_dir="$REPO_ROOT/.adlc/$from_scope/pdr"
     local to_dir="$REPO_ROOT/.adlc/$to_scope/pdr"
 
-    local numeric_id
-    numeric_id=$(echo "$pdr_id" | sed -E 's/[^0-9]//g')
-    local padded_id
-    padded_id=$(printf "%03d" "$((10#$numeric_id))")
+    # Resolve exact stems first (PDR-<given>.md verbatim); numeric fallback
+    # only for bare IDs. Never strip suffixes (010-amendment-2 is not 0102).
+    # Reject path separators outright.
+    case "$pdr_id" in *"/"*|.*) echo "[ERROR] move_pdr: invalid id: $pdr_id" >&2; return 1;; esac
 
     mkdir -p "$to_dir"
 
-    if [ -f "$from_dir/PDR-$padded_id.md" ]; then
-        mv "$from_dir/PDR-$padded_id.md" "$to_dir/PDR-$padded_id.md"
+    local src_file="$from_dir/PDR-$pdr_id.md"
+    if [ ! -f "$src_file" ] && [[ "$pdr_id" =~ ^[0-9]+$ ]]; then
+        src_file="$from_dir/PDR-$(printf "%03d" "$((10#$pdr_id))").md"
+    fi
+    if [ -f "$src_file" ]; then
+        mv "$src_file" "$to_dir/$(basename "$src_file")"
     else
-        echo "[WARN] move_pdr: source file not found: $from_dir/PDR-$padded_id.md" >&2
+        echo "[WARN] move_pdr: source file not found: $src_file" >&2
         return 1
     fi
 
     # Duplicate check — the source must be gone
-    if [ -f "$from_dir/PDR-$padded_id.md" ]; then
-        echo "[ERROR] move_pdr: duplicate detected — PDR-$padded_id still exists in $from_scope after move" >&2
+    if [ -f "$src_file" ]; then
+        echo "[ERROR] move_pdr: duplicate detected — $(basename "$src_file") still exists in $from_scope after move" >&2
         return 1
     fi
 

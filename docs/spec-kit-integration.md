@@ -44,7 +44,7 @@ commands only and lets `adlc-team-skills` own the team-context layer.
 
 | Domain / Layer | Owned By | Provided Artifacts |
 |---|---|---|
-| `team-ai-directives` context | `adlc-team-skills` | Auto `team-boot`, `/team-discover`, `/team-constitution`, `/mission-brief` |
+| `team-ai-directives` context | `adlc-team-skills` | Auto `team-boot`, `/team-discover`, `/team-constitution` (brief format contract lives in `factory-mission`) |
 | PDR, ADR, Evals & CDR | `adlc-team-skills` | `/product-*`, `/architect-*`, `/evals-*`, `/team-learn` |
 | Factory Orchestration | `adlc-team-skills` | `/factory-mission`, `/factory-product`, `/factory-architect`, `/factory-learn`, `/factory-queue`, `/factory-review` |
 | Spec-Driven Feature Dev | `spec-kit` | `/spec.specify`, `/spec.plan`, `/spec.tasks`, `/spec.implement`, `/spec.converge` |
@@ -134,7 +134,8 @@ missing.
 
 **Old `/levelup-*` commands still appear.**
 These were consolidated into `/team-learn` and `/team-init`. Remove any
-stale spec-kit levelup extension if present:
+stale spec-kit `levelup` extension if present (unrelated to the former
+`levelup-*` skills, now `team-learn`):
 
 ```bash
 specify extension disable levelup

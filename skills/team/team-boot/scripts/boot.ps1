@@ -2,6 +2,31 @@
 # PowerShell native (ConvertFrom-Json).
 $ErrorActionPreference = "Stop"
 
+# file_edited payload mode (event-driven, not session-start).
+# The dispatcher sets ADLC_EVENT and forwards the event payload on stdin.
+# When a decision draft lands in .adlc/drafts/{type}/, suggest the matching
+# existing clarify skill on stdout (the agent hook injects it). Silence for
+# anything else — boot skills already did the capture; this is only the nudge.
+if ($env:ADLC_EVENT -eq "file_edited") {
+    $payload = [Console]::In.ReadToEnd()
+    $file = $null
+    try {
+        $json = $payload | ConvertFrom-Json
+        $file = @($json.file, $json.properties.file, $json.tool_input.file_path,
+                  $json.tool_input.filePath, $json.tool_input.path, $json.path, $json.filePath) |
+            Where-Object { $_ } | Select-Object -First 1
+    } catch { $file = $null }
+    if ($null -ne $file) {
+        $f = $file.ToString().Replace("\", "/")
+        if     ($f -like "*.adlc/drafts/adr/*")   { Write-Output "[pending-drafts] ADR draft written — run /architect-clarify to review and accept it." }
+        elseif ($f -like "*.adlc/drafts/pdr/*")   { Write-Output "[pending-drafts] PDR draft written — run /product-clarify to review and accept it." }
+        elseif ($f -like "*.adlc/drafts/chdr/*")  { Write-Output "[pending-drafts] ChDR draft written — run /change-clarify to review and accept it." }
+        elseif ($f -like "*.adlc/drafts/cdr/*")   { Write-Output "[pending-drafts] CDR draft written — run /team-learn to review and accept it." }
+        elseif ($f -like "*.adlc/drafts/evals/*") { Write-Output "[pending-drafts] eval draft written — run /evals-clarify to review and accept it." }
+    }
+    exit 0
+}
+
 $INIT_FILE = ".adlc/init-options.json"
 
 if (-not (Test-Path $INIT_FILE)) {
@@ -113,6 +138,19 @@ Write-Output ""
 Write-Output "_Total: $SkillTotal skills available._"
 Write-Output ""
 
+# Scope counts — accepted-record inventory per class (cheap globs, no content).
+$AdrCount = @(Get-ChildItem ".adlc/memory/adr/ADR-*.md" -ErrorAction SilentlyContinue).Count
+$PdrCount = @(Get-ChildItem ".adlc/memory/pdr/PDR-*.md" -ErrorAction SilentlyContinue).Count
+$ChdrCount = 0
+if (Test-Path ".adlc/memory/chdr.md") {
+    $ChdrCount = @(Select-String -Path ".adlc/memory/chdr.md" -Pattern '^\| ChDR' -ErrorAction SilentlyContinue).Count
+}
+$ChdrCount += @(Get-ChildItem ".adlc/memory/chdr/ChDR-*.md" -ErrorAction SilentlyContinue).Count
+$EvalCount = @(Get-ChildItem ".adlc/memory/evals/EVAL-*.md" -ErrorAction SilentlyContinue).Count
+# Normalized pending-status set — one dialect for every class (-match is
+# case-insensitive; [ *]* tolerates "Status:** Proposed" shapes).
+$PendingStatus = 'status:[ *]*proposed|status:[ *]*discovered|status:[ *]*draft'
+
 # MCP Servers — names only (lean)
 Write-Output "## MCP Servers"
 $mcpPath = Join-Path $TEAM_AI_DIRECTIVES ".mcp.json"
@@ -127,16 +165,18 @@ Write-Output "Invoke the matching class boot when a task or decision matches a C
 Write-Output "Prefer targeted file searches over broad directory listings to conserve context."
 Write-Output ""
 Write-Output "**Every response MUST include** a Team Context in Use section before the task answer:"
-Write-Output "Match CDR entries and skills from the lists above to the current task."
+Write-Output "Match entries from the lists above (any indexed type) to the current task."
+Write-Output "Team Context shows ACCEPTED records only — pending drafts never appear here; they go in the Session Decision Ledger below."
 Write-Output ""
 Write-Output "## Team Context in Use"
 Write-Output ""
-Write-Output "| ID | Name | Type | Rel |"
-Write-Output "|--|--|--|--|"
-Write-Output "| CDR-YYYY-NNN | <name> | <type> | <relevance> |"
+Write-Output "| ID | Name | Type | Rel | Status | Clarify |"
+Write-Output "|--|--|--|--|--|--|"
+Write-Output "| CDR-YYYY-NNN | <name> | <type> | <relevance> | in use | — |"
 Write-Output ""
-Write-Output "Plus: _Searched $CdrCount CDRs, $SkillTotal skills, J matched._ (Class indexes are searched when their class boot is invoked — each reports its own line.)"
-Write-Output "**J MUST equal the number of rows in your table; if no CDRs/skills genuinely match, show an empty table with 0 matched (do not copy a hard-coded CDR or inflate the count).**"
+Write-Output "Plus: _Scope: $CdrCount CDRs · $AdrCount ADRs · $PdrCount PDRs · $ChdrCount ChDRs · $EvalCount evals · $SkillTotal skills — J rows shown._ The scope line names the always-available layer and class indexes (counts only, never content). Class boots append their own scope line when fired."
+Write-Output "**J MUST equal the number of rows in the table (any indexed type); every row MUST be Status=in use and Clarify=—. Empty table with 0 matched when nothing genuinely matches — never copy a hard-coded row or inflate the count.**"
+Write-Output "Render the section as markdown blocks — heading, table, and counts line each on their own lines; never collapse the table into a single line."
 Write-Output ""
 Write-Output "## Decision Capture"
 Write-Output ""
@@ -183,16 +223,16 @@ Write-Output "### Session Decision Ledger (every response)"
 Write-Output ""
 Write-Output "After the Team Context in Use table, include:"
 Write-Output ""
-Write-Output "| Decision | Type | Captured? | Draft ID | Clarify |"
-Write-Output "|----------|------|-----------|----------|---------|"
-Write-Output "| _none yet_ | - | - | - | - |"
+Write-Output "| ID | Name | Type | Rel | Status | Clarify |"
+Write-Output "|--|--|--|--|--|--|"
+Write-Output "| — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |"
 Write-Output ""
-Write-Output "_Unrecorded: N pending._"
+Write-Output "_Unrecorded: N pending (rows with Status=pending)._"
 Write-Output ""
 Write-Output "- **Detect**: match session decisions against triggers above."
 Write-Output "- **Classify**: assign record type (ADR/PDR/CDR/ChDR)."
 Write-Output "- **Write**: write a lightweight draft directly to .adlc/drafts/{type}/ using the family draft template."
-Write-Output "- **Track**: update the ledger with Draft ID and whether draft was written."
+Write-Output "- **Track**: update the ledger row (ID = draft ID or —, Status = captured/pending, Clarify = matching skill)."
 Write-Output "- **Surface**: list unrecorded decisions with suggested type."
 Write-Output "- **Session-end**: before closing, prompt to run clarify skills for pending drafts."
 Write-Output ""
@@ -207,67 +247,48 @@ Write-Output "Specify skills (/architect-specify, /product-specify, etc.) remain
 Write-Output "for interactive deep-dive exploration when you want guided trade-off"
 Write-Output "analysis — but are not required for routine capture."
 
-# Pending ChDRs — remind user to clarify
-if (Test-Path ".adlc/drafts/chdr") {
-    $pendingChdrFiles = Get-ChildItem ".adlc/drafts/chdr/ChDR-*.md" -ErrorAction SilentlyContinue
-    $pendingChdrs = ($pendingChdrFiles | Where-Object { (Get-Content $_.FullName -Raw) -match 'status: proposed|Status: Proposed|Status: \*\*Discovered\*\*' }).Count
-    if ($pendingChdrs -gt 0) {
-        Write-Output ""
-        Write-Output "## Pending ChDRs"
-        Write-Output "$pendingChdrs proposed/discovered ChDR(s) awaiting review in .adlc/drafts/chdr/"
-        Write-Output "Run /change-clarify to accept, reject, or defer them."
+# Pending decisions — ONE consolidated table: no per-class rows, each row
+# carries its clarify skill. Pending drafts are never part of Team Context
+# (accepted records only). Normalized status set ($PendingStatus): one dialect
+# for every class.
+$pendingRows = @()
+function Add-PendingRow {
+    param($Dir, $Type, $Clarify)
+    $files = Get-ChildItem ".adlc/drafts/$Dir/*.md" -ErrorAction SilentlyContinue
+    $n = @($files | Where-Object { (Get-Content $_.FullName -Raw -ErrorAction SilentlyContinue) -match $PendingStatus }).Count
+    if ($n -gt 0) {
+        $script:pendingRows += "| — | $n $Type draft(s) | $Type | .adlc/drafts/$Dir/ | pending | $Clarify |"
     }
+    return [int]$n
 }
-
-# Pending CDRs — check adlc orphan branch in team-ai-directives
+$pendingAdrs = Add-PendingRow "adr" "ADR" "/architect-clarify"
+$pendingPdrs = Add-PendingRow "pdr" "PDR" "/product-clarify"
+$pendingChdrs = Add-PendingRow "chdr" "ChDR" "/change-clarify"
+$pendingEvals = Add-PendingRow "evals" "Eval" "/evals-clarify"
+# Pending CDRs — local drafts PLUS adlc orphan branch in team-ai-directives.
+$pendingCdrs = 0
+$localCdr = @(Get-ChildItem ".adlc/drafts/cdr/*.md" -ErrorAction SilentlyContinue | Where-Object { (Get-Content $_.FullName -Raw -ErrorAction SilentlyContinue) -match $PendingStatus }).Count
+$pendingCdrs = [int]$localCdr
 if ($TEAM_AI_DIRECTIVES -and (Test-Path "$TEAM_AI_DIRECTIVES/.git")) {
-    $adlcBranch = git -C "$TEAM_AI_DIRECTIVES" show-ref --verify --quiet "refs/heads/adlc" 2>$null
-    if ($adlcBranch) {
+    git -C "$TEAM_AI_DIRECTIVES" show-ref --verify --quiet "refs/heads/adlc" 2>$null
+    if ($LASTEXITCODE -eq 0) {
         $cdrList = git -C "$TEAM_AI_DIRECTIVES" show "adlc:drafts/cdr/" 2>$null
-        $pendingCdrs = ($cdrList -split "`n" | Where-Object { $_ -match "CDR-" }).Count
-        if ($pendingCdrs -gt 0) {
-            Write-Output ""
-            Write-Output "## Pending CDRs"
-            Write-Output "$pendingCdrs proposed CDR(s) awaiting review in adlc branch"
-            Write-Output "Run /team-learn to accept, reject, or defer them."
-        }
+        $pendingCdrs += ($cdrList -split "`n" | Where-Object { $_ -match "CDR-" }).Count
     }
 }
-
-# Pending ADRs — remind user to clarify
-if (Test-Path ".adlc/drafts/adr") {
-    $pendingAdrFiles = Get-ChildItem ".adlc/drafts/adr/ADR-*.md" -ErrorAction SilentlyContinue
-    $pendingAdrs = ($pendingAdrFiles | Where-Object { (Get-Content $_.FullName -Raw) -match 'status: proposed|Status: Proposed' }).Count
-    if ($pendingAdrs -gt 0) {
-        Write-Output ""
-        Write-Output "## Pending ADRs"
-        Write-Output "$pendingAdrs proposed ADR(s) awaiting review in .adlc/drafts/adr/"
-        Write-Output "Run /architect-clarify to accept, reject, or defer them."
-    }
+if ($pendingCdrs -gt 0) {
+    $pendingRows += "| — | $pendingCdrs CDR draft(s) | CDR | .adlc/drafts/cdr/ + adlc branch | pending | /team-learn |"
 }
-
-# Pending PDRs — remind user to clarify
-if (Test-Path ".adlc/drafts/pdr") {
-    $pendingPdrFiles = Get-ChildItem ".adlc/drafts/pdr/PDR-*.md" -ErrorAction SilentlyContinue
-    $pendingPdrs = ($pendingPdrFiles | Where-Object { (Get-Content $_.FullName -Raw) -match 'status: proposed|Status: Proposed' }).Count
-    if ($pendingPdrs -gt 0) {
-        Write-Output ""
-        Write-Output "## Pending PDRs"
-        Write-Output "$pendingPdrs proposed PDR(s) awaiting review in .adlc/drafts/pdr/"
-        Write-Output "Run /product-clarify to accept, reject, or defer them."
-    }
-}
-
-# Pending EVALs — remind user to clarify
-if (Test-Path ".adlc/drafts/evals") {
-    $pendingEvalFiles = Get-ChildItem ".adlc/drafts/evals/EVAL-*.md" -ErrorAction SilentlyContinue
-    $pendingEvals = ($pendingEvalFiles | Where-Object { (Get-Content $_.FullName -Raw) -match 'status: draft|status: proposed' }).Count
-    if ($pendingEvals -gt 0) {
-        Write-Output ""
-        Write-Output "## Pending EVALs"
-        Write-Output "$pendingEvals draft EVAL(s) awaiting review in .adlc/drafts/evals/"
-        Write-Output "Run /evals-clarify to accept, reject, or defer them."
-    }
+$pendingTotal = $pendingAdrs + $pendingPdrs + $pendingChdrs + $pendingCdrs + $pendingEvals
+if ($pendingTotal -gt 0) {
+    Write-Output ""
+    Write-Output "## Pending Decisions"
+    Write-Output ""
+    Write-Output "| ID | Name | Type | Rel | Status | Clarify |"
+    Write-Output "|--|--|--|--|--|--|"
+    $pendingRows | ForEach-Object { Write-Output $_ }
+    Write-Output ""
+    Write-Output "_Pending total: $pendingTotal across $($pendingRows.Count) classes. Run the row's clarify skill to accept, reject, or defer._"
 }
 
 # Friction-based learning trigger (configurable, default on)

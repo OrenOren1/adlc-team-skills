@@ -1,4 +1,4 @@
-"""E2E tests for mission-brief Universal Skill Orchestration (Phase 4a.1).
+"""E2E tests for factory-mission Universal Skill Orchestration (Phase 4a.1).
 
 These tests simulate the local skills inventory discovery and delegation prompt
 wiring without calling real LLMs. They verify:
