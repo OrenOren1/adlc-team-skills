@@ -119,3 +119,49 @@ def test_skill_docs_point_at_canonical():
                 ROOT / "skills/architect/architect-specify/SKILL.md"]:
         assert "`scripts/bash/setup-architect.sh`" not in doc.read_text(encoding="utf-8"), \
             f"{doc.parent.name}/SKILL.md: stale bare path"
+
+
+def test_selective_install_guards_name_recovery_command():
+    """Borrowers fail fast with the exact install command when canonical is absent."""
+    consumers = [
+        ROOT / "skills/product/product-implement/scripts/bash/setup-product-implement.sh",
+        ROOT / "skills/product/product-init/scripts/bash/setup-product-init.sh",
+        ROOT / "skills/product/product-specify/scripts/bash/setup-product-specify.sh",
+        ROOT / "skills/product/product-implement/scripts/bash/migrate-pdr-frontmatter.sh",
+    ]
+    for path in consumers:
+        content = path.read_text(encoding="utf-8")
+        assert "command -v generate_pdr_index" in content, f"{path.parent.parent.name}: no guard"
+        assert "adlc-cli skills add tikalk/adlc-team-skills --skill product-clarify" in content, \
+            f"{path.parent.parent.name}: guard lacks recovery command"
+
+
+def test_borrower_docs_name_requires_skill():
+    """Every borrower SKILL.md states its canonical-home dependency explicitly."""
+    docs = {
+        ROOT / "skills/architect/architect-analyze/SKILL.md": "architect-clarify",
+        ROOT / "skills/architect/architect-implement/SKILL.md": "architect-clarify",
+        ROOT / "skills/architect/architect-init/SKILL.md": "architect-clarify",
+        ROOT / "skills/architect/architect-specify/SKILL.md": "architect-clarify",
+        ROOT / "skills/product/product-implement/SKILL.md": "product-clarify",
+        ROOT / "skills/product/product-init/SKILL.md": "product-clarify",
+        ROOT / "skills/product/product-specify/SKILL.md": "product-clarify",
+    }
+    for doc, home in docs.items():
+        content = doc.read_text(encoding="utf-8")
+        assert "Requires" in content and home in content, f"{doc.parent.name}: no Requires line"
+        assert f"--skill {home}" in content, f"{doc.parent.name}: no install command"
+
+
+def test_skills_deps_manifest_valid():
+    """skills-deps.json: every borrower and home must be a real skill dir."""
+    import json
+    manifest = json.loads((ROOT / ".skills-deps.json").read_text(encoding="utf-8"))
+    assert manifest["version"] == "1.0.0"
+    skill_dirs = {p.parent.name for p in ROOT.glob("skills/*/*/SKILL.md")}
+    assert skill_dirs, "no skills found"
+    for borrower, homes in manifest["requires"].items():
+        assert borrower in skill_dirs, f"unknown borrower skill: {borrower}"
+        assert borrower not in homes, f"{borrower} lists itself"
+        for home in homes:
+            assert home in skill_dirs, f"unknown canonical home: {home} (required by {borrower})"

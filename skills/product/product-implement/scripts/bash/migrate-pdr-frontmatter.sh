@@ -45,6 +45,9 @@ echo "[INFO] REPO_ROOT = $REPO_ROOT"
 
 # Source the PDR lifecycle library
 source "$SCRIPT_DIR/../../../product-clarify/scripts/bash/pdr-lib.sh"
+# Fail fast when the canonical helper is absent (selective install without
+# product-clarify) instead of dying later on a missing function.
+command -v generate_pdr_index >/dev/null 2>&1 || { echo "ERROR: pdr-lib.sh not loaded — install the product-clarify skill: adlc-cli skills add tikalk/adlc-team-skills --skill product-clarify" >&2; return 1 2>/dev/null || exit 1; }
 
 # ============================================================================
 # Step 1: Migrate all PDR files in memory/pdr/ to YAML frontmatter

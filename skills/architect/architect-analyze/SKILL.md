@@ -88,7 +88,7 @@ Architecture document hierarchy:
 **Objective**: Load all architecture artifacts for analysis
 
 1. **Run Setup Script**:
-   - Execute `{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh` from repo root
+   - Execute `{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh` (Requires the `architect-clarify` skill: `adlc-cli skills add tikalk/adlc-team-skills --skill architect-clarify`). from repo root
    - Parse JSON for file paths and existence status
 
 2. **Load System-Level Artifacts**:

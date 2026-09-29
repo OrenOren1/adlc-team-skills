@@ -13,6 +13,9 @@ for arg in "$@"; do
 done
 
 source "$(dirname "${BASH_SOURCE[0]}")/../../../product-clarify/scripts/bash/pdr-lib.sh" 2>/dev/null || true
+# Fail fast when the canonical helper is absent (selective install without
+# product-clarify) instead of dying later on a missing function.
+command -v generate_pdr_index >/dev/null 2>&1 || { echo "ERROR: pdr-lib.sh not loaded — install the product-clarify skill: adlc-cli skills add tikalk/adlc-team-skills --skill product-clarify" >&2; return 1 2>/dev/null || exit 1; }
 REPO_ROOT="${REPO_ROOT:-$(_get_project_root)}"
 PDR_DRAFTS_DIR="$REPO_ROOT/.adlc/drafts/pdr"
 PRD_FILE="$REPO_ROOT/PRD.md"

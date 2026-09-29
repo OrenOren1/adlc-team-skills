@@ -298,6 +298,8 @@ D) Cancel — Stop execution
 ```
 
 ### Phase 4: PDR Lifecycle Management (MANDATORY)
+**Requires:** the `product-clarify` skill (provides `pdr-lib.sh`): `adlc-cli skills add tikalk/adlc-team-skills --skill product-clarify`
+
 
 **Step 4.1: Move Accepted PDRs to Memory (atomic — script-driven)**
 

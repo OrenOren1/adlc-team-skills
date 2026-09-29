@@ -40,6 +40,8 @@ Transforms a high-level product idea into documented Product Decision Records (P
 sh: scripts/bash/setup-product-specify.sh [--json]
 ps: scripts/powershell/setup-product-specify.ps1
 ```
+**Requires:** the `product-clarify` skill (provides `pdr-lib.sh`): `adlc-cli skills add tikalk/adlc-team-skills --skill product-clarify`
+
 
 **Setup output** (JSON):
 ```json

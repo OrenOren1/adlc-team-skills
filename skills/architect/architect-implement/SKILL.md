@@ -396,7 +396,7 @@ Located in the skill's `templates/` directory:
 
 **Objective**: Analyze ADRs, detect sub-systems, generate customized DAG, get user approval
 
-**Script Action**: Run `{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh` which calls `plan-dag` internally
+**Script Action**: Run `{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh` (Requires the `architect-clarify` skill: `adlc-cli skills add tikalk/adlc-team-skills --skill architect-clarify`). which calls `plan-dag` internally
 
 #### Step 1.1: Load and Analyze ADRs
 
