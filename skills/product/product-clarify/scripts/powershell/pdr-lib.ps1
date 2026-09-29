@@ -97,7 +97,8 @@ function Parse-PdrHeadingTitle {
     if (-not (Test-Path $File)) { return "" }
     $lines = Get-Content $File
     foreach ($line in $lines) {
-        if ($line -match '^#+\s*PDR-\d+:\s*(.*)$') {
+        # Suffixed variants (e.g. PDR-010-amendment-2) must match, not just bare numerics.
+        if ($line -match '^#+\s*PDR-[0-9A-Za-z-]+:\s*(.*)$') {
             return $Matches[1].Trim()
         }
     }
@@ -148,10 +149,12 @@ function Generate-PdrIndex {
 
     $body = ""
     $warnings = @()
-    $files = Get-ChildItem -Path $pdrDir -Filter 'PDR-*.md' | Sort-Object { [int]($_.BaseName -replace 'PDR-','') }
+    # Lexical BaseName sort (zero-padded repo names keep amendment-before-base order). IDs are stems verbatim.
+    $files = Get-ChildItem -Path $pdrDir -Filter 'PDR-*.md' | Sort-Object BaseName
     foreach ($f in $files) {
-        $id = ($f.BaseName -replace 'PDR-','')
-        $paddedId = '{0:D3}' -f [int]$id
+        $id = ($f.BaseName -replace '^PDR-','')
+        # Purely numeric stems keep the legacy zero-padded display; suffixed stems render verbatim.
+        if ($id -match '^[0-9]+$') { $paddedId = '{0:D3}' -f [int]$id } else { $paddedId = $id }
 
         $title = Parse-PdrTitle -File $f.FullName
         $status = Parse-PdrField -File $f.FullName -Field "status"
@@ -184,16 +187,21 @@ function Generate-PdrIndex {
 # ============================================================================
 function Move-Pdr {
     param([string]$PdrId, [string]$FromScope = "drafts", [string]$ToScope = "memory")
-    $numericId = ($PdrId -replace '[^0-9]','')
-    $paddedId = '{0:D3}' -f [int]$numericId
+    # Resolve exact stems first (PDR-<given>.md verbatim); numeric fallback
+    # only for bare IDs. Never strip suffixes. Reject path separators.
+    if ($PdrId -match '[\\/]|^\.') { Write-Error "Move-Pdr: invalid id: $PdrId"; return $false }
     $fromDir = Join-Path $REPO_ROOT ".adlc/$FromScope/pdr"
     $toDir = Join-Path $REPO_ROOT ".adlc/$ToScope/pdr"
     New-Item -ItemType Directory -Force -Path $toDir | Out-Null
-    $srcFile = Join-Path $fromDir "PDR-$paddedId.md"
-    $dstFile = Join-Path $toDir "PDR-$paddedId.md"
+    $srcFile = Join-Path $fromDir "PDR-$PdrId.md"
+    if ((-not (Test-Path $srcFile)) -and ($PdrId -match '^[0-9]+$')) {
+        $paddedId = '{0:D3}' -f [int]$PdrId
+        $srcFile = Join-Path $fromDir "PDR-$paddedId.md"
+    }
+    $dstFile = Join-Path $toDir (Split-Path $srcFile -Leaf)
     if (-not (Test-Path $srcFile)) { Write-Warning "Move-Pdr: source not found: $srcFile"; return $false }
     Move-Item -Path $srcFile -Destination $dstFile -Force
-    if (Test-Path $srcFile) { Write-Error "Move-Pdr: duplicate detected — PDR-$paddedId still in $FromScope after move"; return $false }
+    if (Test-Path $srcFile) { Write-Error "Move-Pdr: duplicate detected — still in $FromScope after move"; return $false }
     Generate-PdrIndex -Scope $FromScope
     Generate-PdrIndex -Scope $ToScope
     return $true

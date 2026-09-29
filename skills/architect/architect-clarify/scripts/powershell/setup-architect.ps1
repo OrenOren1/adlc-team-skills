@@ -1148,7 +1148,8 @@ function Invoke-PlanDag {
         $lines = Get-Content $indexFile
         foreach ($line in $lines) {
             # Parse ADR index table rows: | ADR-XXX | SubSystem | ...
-            if ($line -match '^\|\s*ADR-\d+\s*\|\s*([^|]+)\s*\|') {
+            # ID class is alphanumeric+dash: suffixed variants (e.g. ADR-386-amendment-2) must match, not just bare numerics.
+            if ($line -match '^\|\s*ADR-[0-9A-Za-z-]+\s*\|\s*([^|]+)\s*\|') {
                 $subsystem = $Matches[1].Trim()
                 if ($subsystem -and $subsystem -ne "Sub-System" -and $subsystems -notcontains $subsystem) {
                     $subsystems += $subsystem
