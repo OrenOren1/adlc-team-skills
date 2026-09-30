@@ -19,7 +19,7 @@ elif [ -f "$_pd_dir/../../../workspace/scripts/bash/paths.sh" ]; then
   . "$_pd_dir/../../../workspace/scripts/bash/paths.sh"
 fi
 REPO_ROOT="${REPO_ROOT:-$(_get_project_root)}"
-PDR_DRAFTS_DIR="$REPO_ROOT/.adlc/drafts/pdr"
+PDR_DRAFTS_DIR="$REPO_ROOT/${ADLC_DRAFTS:-.adlc/drafts}/pdr"
 # ADR-401: canonical PDR memory root (legacy .adlc/memory stays read-compatible).
 PDR_MEMORY_DIR="$REPO_ROOT/docs/adlc/memory/pdr"
 PRD_FILE="$REPO_ROOT/docs/adlc/product/PRD.md"
@@ -31,7 +31,7 @@ mkdir -p "$PDR_MEMORY_DIR"
 mkdir -p "$SECTIONS_DIR"
 mkdir -p "$REPO_ROOT/.adlc/product"
 # ADR-401: compiled PRD lives under docs/adlc/product/ — ensure the parent exists.
-mkdir -p "$REPO_ROOT/docs/adlc/product"
+mkdir -p "$REPO_ROOT/${DOCS_ADLC_PRODUCT:-docs/adlc/product}"
 
 ACCEPTED_COUNT=0
 if [[ -d "$PDR_DRAFTS_DIR" ]]; then

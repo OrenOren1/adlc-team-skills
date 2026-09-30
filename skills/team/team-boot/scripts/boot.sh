@@ -261,9 +261,9 @@ PENDING_ROWS=""
 PENDING_CLASSES=0
 _add_pending_row() { # $1=class-dir $2=glob $3=type $4=clarify
   _count=0
-  if [ -d ".adlc/drafts/$1" ]; then
+  if [ -d "${ADLC_DRAFTS:-.adlc/drafts}/$1" ]; then
     # shellcheck disable=SC2086
-    _count=$(grep -ril "$PENDING_STATUS" .adlc/drafts/$1/$2 2>/dev/null | wc -l || true); _count=$((_count))
+    _count=$(grep -ril "$PENDING_STATUS" ${ADLC_DRAFTS:-.adlc/drafts}/$1/$2 2>/dev/null | wc -l || true); _count=$((_count))
     if [ "$_count" -gt 0 ]; then
       PENDING_ROWS="${PENDING_ROWS}| — | ${_count} $3 draft(s) | $3 | .adlc/drafts/$1/ | pending | $4 |"$'\n'
       PENDING_CLASSES=$((PENDING_CLASSES + 1))
@@ -279,9 +279,9 @@ _add_pending_row evals "*.md" Eval /evals-clarify
 # Pending CDRs — local drafts PLUS adlc orphan branch in team-ai-directives
 # (git storage, not files). Row emits whenever either source is non-zero.
 PENDING_CDRS=0
-if [ -d ".adlc/drafts/cdr" ]; then
+if [ -d "${ADLC_DRAFTS:-.adlc/drafts}/cdr" ]; then
   # shellcheck disable=SC2086
-  _local_cdrs=$(grep -ril "$PENDING_STATUS" .adlc/drafts/cdr/*.md 2>/dev/null | wc -l || true); _local_cdrs=$((_local_cdrs))
+  _local_cdrs=$(grep -ril "$PENDING_STATUS" ${ADLC_DRAFTS:-.adlc/drafts}/cdr/*.md 2>/dev/null | wc -l || true); _local_cdrs=$((_local_cdrs))
   PENDING_CDRS=$((_local_cdrs))
 fi
 if [ -n "$TEAM_AI_DIRECTIVES" ] && [ -d "$TEAM_AI_DIRECTIVES/.git" ]; then

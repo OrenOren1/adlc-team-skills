@@ -23,6 +23,12 @@ NC='\033[0m' # No Color
 STRICT_MODE=false
 WARN_MODE=true
 PRD_FILE="${1:-docs/adlc/product/PRD.md}"
+# ADR-401 dual-read: bare invocation on a legacy-only repo falls back to the
+# repo-root PRD.md (mirrors the dual-check in setup-product-analyze.sh).
+# An explicit path argument is always honored verbatim.
+if [ -z "${1:-}" ] && [ ! -f "$PRD_FILE" ] && [ -f "PRD.md" ]; then
+    PRD_FILE="PRD.md"
+fi
 WARNINGS=0
 ERRORS=0
 

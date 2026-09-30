@@ -167,7 +167,9 @@ discover_child_repos() {
 
 PROJECT_ROOT=$(resolve_project_root)
 BRANCH=$(resolve_branch)
-ADLC_DIR="${PROJECT_ROOT}/.adlc"
+# Absolute form derived from the sourced ADLC_DIR constant (paths.sh),
+# never redefined as a competing literal.
+ADLC_DIR="${PROJECT_ROOT}/${ADLC_DIR:-.adlc}"
 GITIGNORE_EXISTS=false
 [[ -f "${PROJECT_ROOT}/.gitignore" ]] && GITIGNORE_EXISTS=true
 

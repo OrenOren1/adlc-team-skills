@@ -259,7 +259,7 @@ generate_pdr_index() {
 
     for _d in "${scan_dirs[@]}"; do
         [ -d "$_d" ] || continue
-        _pdr_index_files+="$(ls -1 "$_d"/PDR-*.md 2>/dev/null)"$'\n'
+        _pdr_index_files+="$(ls -1 "$_d"/PDR-*.md 2>/dev/null || true)"$'\n'
     done
     for f in $(printf '%s' "$_pdr_index_files" | LC_ALL=C sort); do
         fname=$(basename "$f")

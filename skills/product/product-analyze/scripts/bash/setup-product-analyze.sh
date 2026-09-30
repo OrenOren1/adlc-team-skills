@@ -14,8 +14,8 @@ elif [ -f "$_pd_dir/../../../workspace/scripts/bash/paths.sh" ]; then
   # shellcheck disable=SC1091
   . "$_pd_dir/../../../workspace/scripts/bash/paths.sh"
 fi
-PDR_DRAFTS_DIR="$REPO_ROOT/.adlc/drafts/pdr"
-PRD_FILE="$REPO_ROOT/docs/adlc/product/PRD.md"
+PDR_DRAFTS_DIR="$REPO_ROOT/${ADLC_DRAFTS:-.adlc/drafts}/pdr"
+PRD_FILE="$REPO_ROOT/${DOCS_ADLC_PRODUCT:-docs/adlc/product}/PRD.md"
 PDR_COUNT=$(find "$PDR_DRAFTS_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l)
 # ADR-401 dual-read: compiled PRD at docs/adlc/product/PRD.md, legacy repo-root
 # PRD.md fallback (either counts as present).
