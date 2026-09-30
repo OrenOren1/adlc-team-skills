@@ -412,7 +412,7 @@ _Unrecorded: N pending · Unclarified: M captured drafts._
 
 At session end, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off. Only suggest capture when genuinely warranted.
 
-Surface each detected decision as a task-list todo (write the draft to \`.adlc/drafts/{type}/\`, then run the matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the Session Decision Ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff).
+Surface each detected decision as a task-list todo (write the draft to \`.adlc/drafts/{type}/\`, then run the matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the Session Decision Ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill).
 ${marker_end}
 SECTION
 )

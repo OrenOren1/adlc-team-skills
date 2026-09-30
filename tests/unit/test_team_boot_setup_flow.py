@@ -219,6 +219,7 @@ def test_ledger_todo_contract_on_all_surfaces():
         assert "Unclarified: 0 drafts" in source, f"{name}: missing unclarified-drafts target"
         assert "handed off" in source, f"{name}: missing handoff exit"
         assert "clarify prompt" in source, f"{name}: missing session-end clarify prompt"
+        assert "execute skill" in source, f"{name}: handoff must allow a named execute-skill target"
 
 
 def test_no_stale_inline_4col_ledger_grammar():

@@ -104,7 +104,7 @@ _Unrecorded: N pending · Unclarified: M captured drafts._
 - **Classify**: assign record type (ADR/PDR/CDR/ChDR).
 - **Write**: write a lightweight draft directly to `.adlc/drafts/{type}/` using the family draft template.
 - **Track**: update the ledger row (ID = draft ID or —, Status = pending/captured/clarified/handed off, Clarify = matching skill).
-- **Surface**: mirror each detected decision as a task-list todo (draft → matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff).
+- **Surface**: mirror each detected decision as a task-list todo (draft → matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill).
 - **Session-end**: before closing, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off.
 
 Specify skills (/architect-specify, /product-specify, etc.) remain available

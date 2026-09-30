@@ -27,7 +27,7 @@ Each detected decision is mirrored as a task-list todo: write the draft to
 After code-modifying tasks, add a trailing todo to sweep the Session
 Decision Ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ —
 a draft leaves Unclarified only via its clarify skill or an explicit user
-handoff. Before closing, deliver the clarify prompt naming each captured
+handoff to a named clarify or execute skill. Before closing, deliver the clarify prompt naming each captured
 draft (ID + clarify skill); if the user defers clarify, mark those rows
 handed off. Map to the harness's native
 task list (e.g., `todowrite` in OpenCode, `TodoWrite` in Claude Code). In
