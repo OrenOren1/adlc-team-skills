@@ -16,7 +16,7 @@
     ],
     "session_end": [
       {
-        "skill": "team-learn",
+        "skill": "team-levelup",
         "description": "Extract, review, and publish CDRs with confidence scoring",
         "timeout": 120
       }
@@ -24,7 +24,7 @@
     "file_edited": [
       {
         "skill": "team-boot",
-        "description": "Nudge the matching clarify skill when a decision draft lands in .adlc/drafts/{type}/ (adr→/architect-clarify, pdr→/product-clarify, chdr→/change-clarify, cdr→/team-learn, evals→/evals-clarify); silent for all other file edits",
+        "description": "Nudge the matching clarify skill when a decision draft lands in .adlc/drafts/{type}/ (adr→/architect-clarify, pdr→/product-clarify, chdr→/change-clarify, cdr→/team-levelup, evals→/evals-clarify); silent for all other file edits",
         "timeout": 10,
         "matcher": "Edit|Write"
       }
