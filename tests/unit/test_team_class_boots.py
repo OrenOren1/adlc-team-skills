@@ -30,10 +30,10 @@ CLASS_BOOTS = {
         "index": ".adlc/memory/chdr.md",
         "capture": "/change-init",
     },
-    "team-learn": {
-        "dir": ROOT / "skills" / "team" / "team-learn",
+    "team-levelup": {
+        "dir": ROOT / "skills" / "team" / "team-levelup",
         "index": "context_modules",
-        "capture": "/team-learn",
+        "capture": "/team-levelup",
     },
     "tech-radar-boot": {
         "dir": ROOT / "skills" / "tech-radar" / "tech-radar-boot",
@@ -118,7 +118,7 @@ def test_class_boot_searched_line_contract():
         "architect-boot": "Searched N ADRs, K matched.",
         "product-boot": "Searched N PDRs, K matched.",
         "change-boot": "Searched N ChDRs, K matched.",
-        "team-learn": "Searched N CDRs, K matched.",
+        "team-levelup": "Searched N CDRs, K matched.",
     }
     for name, line in expected.items():
         content = (CLASS_BOOTS[name]["dir"] / "SKILL.md").read_text(encoding="utf-8")
@@ -222,7 +222,7 @@ DRAFT_NUDGES = {
     "adr": "/architect-clarify",
     "pdr": "/product-clarify",
     "chdr": "/change-clarify",
-    "cdr": "/team-learn",
+    "cdr": "/team-levelup",
     "evals": "/evals-clarify",
 }
 

@@ -177,7 +177,7 @@ Output: `[OK]` or `[FAIL]` with reason
 
 Output:
 - `[OK]` — every mechanical rule has a paired check; every skill has eval coverage or a stated reason
-- `[WARN]` — N mechanical rules lack checks; M skills lack eval coverage (promotion candidates → feed to factory-learn Maintenance route / team-learn Phase 2b, action P)
+- `[WARN]` — N mechanical rules lack checks; M skills lack eval coverage (promotion candidates → feed to factory-learn Maintenance route / team-levelup Phase 2b, action P)
 
 #### Check 9: adlc Orphan Branch
 
@@ -782,10 +782,10 @@ Conflict levels:
 | Scope Overlap | Overlapping rules | INFO |
 | Constitution Conflict | Rule vs principle | CRITICAL |
 
-Use `team-learn/scripts/helpers.sh` conflict detection or implement inline:
+Use `team-levelup/scripts/helpers.sh` conflict detection or implement inline:
 
 ```bash
-skills/team/team-learn/scripts/helpers.sh --conflicts "$TEAM_AI_DIRECTIVES/context_modules/rules"
+skills/team/team-levelup/scripts/helpers.sh --conflicts "$TEAM_AI_DIRECTIVES/context_modules/rules"
 ```
 
 #### Step 3: Create Conflict CDRs
@@ -826,7 +826,7 @@ Rule
 
 Regenerate the local CDR index.
 
-Handoff: if conflict CDRs created, suggest `/team-learn`.
+Handoff: if conflict CDRs created, suggest `/team-levelup`.
 
 ### Phase 9: Freshness Verification
 
@@ -924,7 +924,7 @@ For each `{directive-id}` directory, read:
 - `evals/{directive-id}/goldset.md` — human-readable cases
 - `evals/{directive-id}/goldset.json` — machine-readable cases
 
-If no goldensets exist, report: "No evals found — run /team-learn to create eval CDRs first." and skip this phase.
+If no goldensets exist, report: "No evals found — run /team-levelup to create eval CDRs first." and skip this phase.
 
 #### Step 2: Identify Paired Directives
 
@@ -1017,7 +1017,7 @@ Delete both the directive file and its paired eval goldenset.
 - Test date: [YYYY-MM-DD]
 ```
 
-Regenerate the local CDR index. Handoff: suggest `/team-learn` to review deletion candidates.
+Regenerate the local CDR index. Handoff: suggest `/team-levelup` to review deletion candidates.
 
 For each **Promotion candidate**, create a CDR in `adlc branch drafts/cdr/CDR-{NNN}.md`:
 
@@ -1044,7 +1044,7 @@ pre-commit hook / lint rule / CI job) can enforce it without session context.
 ### Decision
 Build the deterministic check. Once it exists and runs in CI, deprecate the CDR
 or reduce it to a thin pointer (`enforced by <check path>`). Route to
-`/team-learn` action **P — Promote to check** (Phase 2b).
+`/team-levelup` action **P — Promote to check** (Phase 2b).
 
 ### Evidence
 - Directive: context_modules/rules/{domain}/{file}.md
@@ -1053,7 +1053,7 @@ or reduce it to a thin pointer (`enforced by <check path>`). Route to
 - Test date: [YYYY-MM-DD]
 ```
 
-Regenerate the local CDR index again. Handoff: suggest `/team-learn` to review promotion candidates (action P).
+Regenerate the local CDR index again. Handoff: suggest `/team-levelup` to review promotion candidates (action P).
 
 ### Phase 11: Validate Drafts
 
@@ -1160,7 +1160,7 @@ For each violation, record:
 
 #### Step 6: Handoff
 
-- If errors were found: suggest fixing the draft files before promoting them via the appropriate clarify skill (`/architect-clarify` for ADRs, `/product-clarify` for PDRs, `/change-clarify` for ChDRs, `/team-learn` for CDRs).
+- If errors were found: suggest fixing the draft files before promoting them via the appropriate clarify skill (`/architect-clarify` for ADRs, `/product-clarify` for PDRs, `/change-clarify` for ChDRs, `/team-levelup` for CDRs).
 - If all drafts pass validation: confirm drafts are structurally ready for promotion.
 - Remind: validation does not check semantic quality — only structural completeness. A draft that passes validation may still be rejected during clarification.
 
@@ -1244,7 +1244,7 @@ For each violation, record:
 ### Next Steps
 
 1. Review repaired files
-2. If conflict CDRs were created, run `/team-learn` to resolve them
+2. If conflict CDRs were created, run `/team-levelup` to resolve them
 3. Commit changes if satisfied
 ```
 

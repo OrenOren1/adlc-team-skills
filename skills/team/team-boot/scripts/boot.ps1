@@ -25,7 +25,7 @@ if ($env:ADLC_EVENT -eq "file_edited") {
         if     ($f -like "*.adlc/drafts/adr/*")   { Write-Output "[pending-drafts] ADR draft written — run /architect-clarify to review and accept it." }
         elseif ($f -like "*.adlc/drafts/pdr/*")   { Write-Output "[pending-drafts] PDR draft written — run /product-clarify to review and accept it." }
         elseif ($f -like "*.adlc/drafts/chdr/*")  { Write-Output "[pending-drafts] ChDR draft written — run /change-clarify to review and accept it." }
-        elseif ($f -like "*.adlc/drafts/cdr/*")   { Write-Output "[pending-drafts] CDR draft written — run /team-learn to review and accept it." }
+        elseif ($f -like "*.adlc/drafts/cdr/*")   { Write-Output "[pending-drafts] CDR draft written — run /team-levelup to review and accept it." }
         elseif ($f -like "*.adlc/drafts/evals/*") { Write-Output "[pending-drafts] eval draft written — run /evals-clarify to review and accept it." }
     }
     exit 0
@@ -125,7 +125,7 @@ Write-Output "|--|--|--|--|"
 Write-Output "| architect-boot | ADR index (docs/adlc/memory/adr/ + legacy .adlc/memory/adr/) | architecture work; tech-stack/pattern choice | direct write to .adlc/drafts/adr/ |"
 Write-Output "| product-boot | PDR index (docs/adlc/memory/pdr/ + legacy .adlc/memory/pdr/) | product/feature scope, personas, monetization | direct write to .adlc/drafts/pdr/ |"
 Write-Output "| change-boot | ChDR index (docs/adlc/memory/chdr.md + legacy .adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits, git commands w/ human-authored messages, authored PRs, CHANGELOG edits | direct write to .adlc/drafts/chdr/ |"
-Write-Output "| team-learn | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch drafts/cdr/ |"
+Write-Output "| team-levelup | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch drafts/cdr/ |"
 Write-Output "| tech-radar-boot | Tikal Tech Radar context | choosing/evaluating technology | radar context + direct write to .adlc/drafts/adr/ |"
 Write-Output ""
 Write-Output "Invoke a class boot when a task or decision matches its row. Each boot emits its class context section and its own searched line (_Searched N <class> records, K matched._)."
@@ -204,7 +204,7 @@ Write-Output "| Pattern | Type | Drafts to | Clarify via |"
 Write-Output "|---------|------|-----------|-------------|"
 Write-Output "| Tech stack choice, pattern selection, \"we chose X over Y\" | decision | drafts/adr/ | /architect-clarify |"
 Write-Output "| Feature scope, persona, monetization | product | drafts/pdr/ | /product-clarify |"
-Write-Output "| Reusable team rule, \"we always do X\" | pattern | drafts/cdr/ | /team-learn |"
+Write-Output "| Reusable team rule, \"we always do X\" | pattern | drafts/cdr/ | /team-levelup |"
 Write-Output "| Revert/hotfix rationale, issue-linked commit, git command w/ human-authored message, authored PR title/body, CHANGELOG edit | incident | drafts/chdr/ | /change-clarify |"
 Write-Output "| Workaround adopted, \"X for now because Y\" | workaround | drafts/chdr/ | /change-clarify |"
 Write-Output "| Operational constraint, \"only works because Z\" | constraint | drafts/adr/ | /architect-clarify |"
@@ -254,7 +254,7 @@ Write-Output "Use the lightweight draft template from the matching skill family:
 Write-Output "- architect: ../templates/adr-draft-template.md"
 Write-Output "- product: ../templates/pdr-draft-template.md"
 Write-Output "- change: ../templates/chdr-draft-template.md"
-Write-Output "- team-learn: ../templates/cdr-draft-template.md"
+Write-Output "- team-levelup: ../templates/cdr-draft-template.md"
 Write-Output "- evals: evals-templates/eval-draft-template.md"
 Write-Output ""
 Write-Output "Specify skills (/architect-specify, /product-specify, etc.) remain available"
@@ -291,7 +291,7 @@ if ($TEAM_AI_DIRECTIVES -and (Test-Path "$TEAM_AI_DIRECTIVES/.git")) {
     }
 }
 if ($pendingCdrs -gt 0) {
-    $pendingRows += "| — | $pendingCdrs CDR draft(s) | CDR | .adlc/drafts/cdr/ + adlc branch | pending | /team-learn |"
+    $pendingRows += "| — | $pendingCdrs CDR draft(s) | CDR | .adlc/drafts/cdr/ + adlc branch | pending | /team-levelup |"
 }
 $pendingTotal = $pendingAdrs + $pendingPdrs + $pendingChdrs + $pendingCdrs + $pendingEvals
 if ($pendingTotal -gt 0) {

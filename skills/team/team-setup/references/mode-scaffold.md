@@ -193,7 +193,7 @@ Create `{DEST}/context_modules/rules/index.md`:
 ```markdown
 # Rules
 
-No rules defined yet. Use `/team-learn` to create rules via CDRs.
+No rules defined yet. Use `/team-levelup` to create rules via CDRs.
 ```
 
 Create `{DEST}/context_modules/rules/log.md`:
@@ -205,7 +205,7 @@ Create `{DEST}/context_modules/personas/index.md`:
 ```markdown
 # Personas
 
-No personas defined yet. Use `/team-learn` to create personas via CDRs.
+No personas defined yet. Use `/team-levelup` to create personas via CDRs.
 ```
 
 Create `{DEST}/context_modules/personas/log.md`:
@@ -217,7 +217,7 @@ Create `{DEST}/context_modules/examples/index.md`:
 ```markdown
 # Examples
 
-No examples defined yet. Use `/team-learn` to create examples via CDRs.
+No examples defined yet. Use `/team-levelup` to create examples via CDRs.
 ```
 
 Create `{DEST}/context_modules/examples/log.md`:
@@ -233,7 +233,7 @@ touch "{DEST}/context_modules/examples/.gitkeep"
 touch "{DEST}/skills/.gitkeep"
 ```
 
-Initialize git (required for `/team-learn` branch/commit/PR flow):
+Initialize git (required for `/team-levelup` branch/commit/PR flow):
 ```bash
 cd "{DEST}" && git init && git add -A && git commit -m "Initial team-ai-directives scaffold"
 ```

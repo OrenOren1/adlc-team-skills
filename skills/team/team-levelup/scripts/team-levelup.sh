@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# team-learn.sh — Session-end CDR lifecycle entry point
+# team-levelup.sh — Session-end CDR lifecycle entry point
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,7 +11,7 @@ if [[ "${1:-}" == "--setup" ]]; then
 fi
 
 # Resolve paths
-eval "$(resolve_team_learn_paths)"
+eval "$(resolve_team_levelup_paths)"
 
 if [[ -z "$TEAM_AI_DIRECTIVES" ]] || [[ ! -d "$TEAM_AI_DIRECTIVES" ]]; then
   echo "Team AI directives repository not configured."

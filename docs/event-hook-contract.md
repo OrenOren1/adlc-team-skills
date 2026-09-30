@@ -63,7 +63,7 @@ Boot skills already capture decisions as drafts in `.adlc/drafts/{type}/`.
   other edit is silent (boot scripts echo nothing).
 - **Output**: one `[pending-drafts]` line naming the matching skill —
   `adr→/architect-clarify`, `pdr→/product-clarify`, `chdr→/change-clarify`,
-  `cdr→/team-learn`, `evals→/evals-clarify`.
+  `cdr→/team-levelup`, `evals→/evals-clarify`.
 - **Payload shapes**: opencode `{file}` (flat), nested `{properties:{file}}`,
   claude-code `{tool_input:{file_path}}` — all extracted, fail-open silence
   on anything unparseable.

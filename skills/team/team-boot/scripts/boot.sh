@@ -22,7 +22,7 @@ if [ "${ADLC_EVENT:-}" = "file_edited" ]; then
     *.adlc/drafts/adr/*)   echo "[pending-drafts] ADR draft written — run /architect-clarify to review and accept it." ;;
     *.adlc/drafts/pdr/*)   echo "[pending-drafts] PDR draft written — run /product-clarify to review and accept it." ;;
     *.adlc/drafts/chdr/*)  echo "[pending-drafts] ChDR draft written — run /change-clarify to review and accept it." ;;
-    *.adlc/drafts/cdr/*)   echo "[pending-drafts] CDR draft written — run /team-learn to review and accept it." ;;
+    *.adlc/drafts/cdr/*)   echo "[pending-drafts] CDR draft written — run /team-levelup to review and accept it." ;;
     *.adlc/drafts/evals/*) echo "[pending-drafts] eval draft written — run /evals-clarify to review and accept it." ;;
     *) ;; # not a decision draft — stay silent
   esac
@@ -116,7 +116,7 @@ echo "|--|--|--|--|"
 echo "| architect-boot | ADR index (docs/adlc/memory/adr/ + legacy .adlc/memory/adr/) | architecture work; tech-stack/pattern choice | direct write to .adlc/drafts/adr/ |"
 echo "| product-boot | PDR index (docs/adlc/memory/pdr/ + legacy .adlc/memory/pdr/) | product/feature scope, personas, monetization | direct write to .adlc/drafts/pdr/ |"
 echo "| change-boot | ChDR index (docs/adlc/memory/chdr.md + legacy .adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits, git commands w/ human-authored messages, authored PRs, CHANGELOG edits | direct write to .adlc/drafts/chdr/ |"
-echo "| team-learn | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch drafts/cdr/ |"
+echo "| team-levelup | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch drafts/cdr/ |"
 echo "| tech-radar-boot | Tikal Tech Radar context | choosing/evaluating technology | radar context + direct write to .adlc/drafts/adr/ |"
 echo ""
 echo "Invoke a class boot when a task or decision matches its row. Each boot emits its class context section and its own searched line (_Searched N <class> records, K matched._)."
@@ -201,7 +201,7 @@ echo "| Pattern | Type | Drafts to | Clarify via |"
 echo "|---------|------|-----------|-------------|"
 echo "| Tech stack choice, pattern selection, \"we chose X over Y\" | decision | drafts/adr/ | /architect-clarify |"
 echo "| Feature scope, persona, monetization | product | drafts/pdr/ | /product-clarify |"
-echo "| Reusable team rule, \"we always do X\" | pattern | drafts/cdr/ | /team-learn |"
+echo "| Reusable team rule, \"we always do X\" | pattern | drafts/cdr/ | /team-levelup |"
 echo "| Revert/hotfix rationale, issue-linked commit, git command w/ human-authored message, authored PR title/body, CHANGELOG edit | incident | drafts/chdr/ | /change-clarify |"
 echo "| Workaround adopted, \"X for now because Y\" | workaround | drafts/chdr/ | /change-clarify |"
 echo "| Operational constraint, \"only works because Z\" | constraint | drafts/adr/ | /architect-clarify |"
@@ -251,7 +251,7 @@ echo "Use the lightweight draft template from the matching skill family:"
 echo "- architect: ../templates/adr-draft-template.md"
 echo "- product: ../templates/pdr-draft-template.md"
 echo "- change: ../templates/chdr-draft-template.md"
-echo "- team-learn: ../templates/cdr-draft-template.md"
+echo "- team-levelup: ../templates/cdr-draft-template.md"
 echo "- evals: evals-templates/eval-draft-template.md"
 echo ""
 echo "Specify skills (/architect-specify, /product-specify, etc.) remain available"
@@ -297,7 +297,7 @@ if [ -n "$TEAM_AI_DIRECTIVES" ] && [ -d "$TEAM_AI_DIRECTIVES/.git" ]; then
   fi
 fi
 if [ "$PENDING_CDRS" -gt 0 ]; then
-  PENDING_ROWS="${PENDING_ROWS}| — | ${PENDING_CDRS} CDR draft(s) | CDR | .adlc/drafts/cdr/ + adlc branch | pending | /team-learn |"$'\n'
+  PENDING_ROWS="${PENDING_ROWS}| — | ${PENDING_CDRS} CDR draft(s) | CDR | .adlc/drafts/cdr/ + adlc branch | pending | /team-levelup |"$'\n'
   PENDING_CLASSES=$((PENDING_CLASSES + 1))
 fi
 PENDING_TOTAL=$((PENDING_TOTAL + PENDING_CDRS))
