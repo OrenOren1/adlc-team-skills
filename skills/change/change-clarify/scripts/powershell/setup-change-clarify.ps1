@@ -24,7 +24,9 @@ function Resolve-ProjectRoot {
 
 $ProjectRoot = Resolve-ProjectRoot
 $ChdrDraftsDir = Join-Path $projectRoot ".adlc/drafts/chdr"
-$MemoryDir = Join-Path $projectRoot ".adlc/memory/chdr"
+# ADR-401: published ChDRs live under docs/adlc/memory (legacy .adlc/memory/chdr
+# stays read-compatible — dual-read).
+$MemoryDir = Join-Path $projectRoot "docs/adlc/memory/chdr"
 
 if (-not (Test-Path $ChdrDraftsDir)) { New-Item -ItemType Directory -Path $ChdrDraftsDir -Force | Out-Null }
 

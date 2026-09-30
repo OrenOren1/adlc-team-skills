@@ -318,7 +318,7 @@ if ($ContributeHint -eq "true") {
     Write-Output "3. **PDR violation** — work contradicts an accepted PDR → suggest /product-clarify"
     Write-Output "4. **Clarify backlog** — pending drafts in .adlc/drafts/ → suggest running clarify skills"
     Write-Output ""
-    Write-Output "Guardrail: Before assessing ADR/PDR alignment, read relevant ADR/PDR files from .adlc/memory/adr/ and .adlc/memory/pdr/ if not already loaded."
+    Write-Output "Guardrail: Before assessing ADR/PDR alignment, read relevant ADR/PDR files from docs/adlc/memory/adr/ and docs/adlc/memory/pdr/ (legacy .adlc/memory/ fallback) if not already loaded."
     Write-Output "Do NOT suggest for routine work. At most one suggestion per task completion."
 }
 

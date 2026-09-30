@@ -1,6 +1,6 @@
 ---
 name: change-boot
-description: Use when past-change rationale matters (refactoring unfamiliar code, revert or hotfix analysis, issue-linked commit archaeology, session authors git changes with human-authored messages) — injects the published ChDR index (.adlc/memory/chdr.md) as session context; pairs history mining (/change-init) with routine capture (direct-write drafts clarified via /change-clarify); invoked from team-boot's Class Boots catalog.
+description: Use when past-change rationale matters (refactoring unfamiliar code, revert or hotfix analysis, issue-linked commit archaeology, session authors git changes with human-authored messages) — injects the published ChDR index (docs/adlc/memory/chdr.md, legacy .adlc/memory/chdr.md fallback) as session context; pairs history mining (/change-init) with routine capture (direct-write drafts clarified via /change-clarify); invoked from team-boot's Class Boots catalog.
 ---
 
 # change-boot

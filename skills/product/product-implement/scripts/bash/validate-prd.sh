@@ -352,7 +352,11 @@ if grep -qi "Constitution Alignment\|Aligns with Constitution" "$PRD_FILE"; then
     pass "Constitution alignment section found"
     
     # Check if constitution is populated (not just template)
-    CONST_FILE=".adlc/memory/constitution.md"
+    # ADR-401 dual-read: canonical docs/adlc/memory first, legacy fallback.
+    CONST_FILE="docs/adlc/memory/constitution.md"
+    if [ ! -f "$CONST_FILE" ]; then
+        CONST_FILE=".adlc/memory/constitution.md"
+    fi
     if [[ -f "$CONST_FILE" ]]; then
         if grep -qE '\[PRINCIPLE_[0-9]+_NAME\]|\[PROJECT_NAME\]' "$CONST_FILE" 2>/dev/null; then
             warn "Constitution file contains template placeholders - populate or remove alignment claims"

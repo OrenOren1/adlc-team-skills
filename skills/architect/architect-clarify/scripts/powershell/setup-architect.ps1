@@ -632,7 +632,7 @@ function Invoke-Specify {
     Write-Host "  2. Ask clarifying questions about architecture"
     Write-Host "  3. Create ADRs for each key decision"
     Write-Host "  4. Save decisions to .adlc/drafts/adr/ADR-{NNN}.md (Proposed status)"
-    Write-Host "     (ADRs will be moved to .adlc/memory after /architect-implement)"
+    Write-Host "     (ADRs will be moved to docs/adlc/memory after /architect-implement)"
     if ($Decompose) {
         Write-Host "  5. Organize ADRs by sub-system"
     }

@@ -625,9 +625,22 @@ parse_fm_title() {
 generate_adr_index() {
     local scope="${1:-drafts}"
     local adr_dir="$REPO_ROOT/.adlc/$scope/adr"
-    local index_file="$adr_dir/adr.md"
 
-    if [[ ! -d "$adr_dir" ]]; then
+    # ADR-401 dual-read (R8): the memory scope indexes the canonical
+    # docs/adlc/memory root plus any records still in the legacy .adlc/memory
+    # root (migration stragglers). The index is written where the records
+    # live — docs preferred whenever it holds any record, else legacy.
+    local scan_dirs=("$adr_dir")
+    if [[ "$scope" == "memory" ]]; then
+        local docs_adr_dir="$REPO_ROOT/${DOCS_ADLC_MEMORY:-docs/adlc/memory}/adr"
+        if compgen -G "$docs_adr_dir/ADR-*.md" >/dev/null 2>&1; then
+            scan_dirs=("$docs_adr_dir" "$adr_dir")
+        fi
+    fi
+
+    local index_file="${scan_dirs[0]}/adr.md"
+
+    if [[ ! -d "${scan_dirs[0]}" ]]; then
         return 0
     fi
 
@@ -644,7 +657,13 @@ generate_adr_index() {
     # Lexical filename sort (repo names are zero-padded: amendment-before-base
     # order falls out naturally). IDs are filename stems verbatim — suffixes
     # (e.g. -amendment-2) are preserved, never arithmetically parsed.
-    for f in $(ls -1 "$adr_dir"/ADR-*.md 2>/dev/null | LC_ALL=C sort); do
+    local _adr_index_files=""
+    local _d
+    for _d in "${scan_dirs[@]}"; do
+        [[ -d "$_d" ]] || continue
+        _adr_index_files+="$(ls -1 "$_d"/ADR-*.md 2>/dev/null)"$'\n'
+    done
+    for f in $(printf '%s' "$_adr_index_files" | LC_ALL=C sort); do
         local fname
         fname=$(basename "$f")
         local stem="${fname%.md}"

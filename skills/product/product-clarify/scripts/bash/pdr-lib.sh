@@ -11,9 +11,14 @@
 # Bundled with each product-* skill so it works standalone.
 # Sourced by setup-product-*.sh scripts and callable directly.
 #
+# ADR-401 note: scope-addressed helpers keep the legacy .adlc/memory root for
+# the memory scope (back-compat); generate_pdr_index memory additionally
+# indexes docs/adlc/memory/pdr/ (the canonical promotion target) and writes
+# the index there whenever that root holds records.
+
 # Usage:
 #   source pdr-lib.sh                          # load functions
-#   generate_pdr_index memory                  # regenerate .adlc/memory/pdr/pdr.md
+#   generate_pdr_index memory                  # regenerate the memory pdr.md (docs root preferred)
 #   generate_pdr_index drafts                  # regenerate .adlc/drafts/pdr/pdr.md
 #   move_pdr 020 drafts memory                # atomically move PDR-020 drafts→memory
 #   migrate_pdr_to_frontmatter .adlc/memory/pdr/PDR-001.md   # one-time legacy migration
@@ -204,9 +209,22 @@ parse_pdr_title() {
 generate_pdr_index() {
     local scope="${1:-drafts}"
     local pdr_dir="$REPO_ROOT/.adlc/$scope/pdr"
-    local index_file="$pdr_dir/pdr.md"
 
-    if [ ! -d "$pdr_dir" ]; then
+    # ADR-401 dual-read (R8): the memory scope indexes the canonical
+    # docs/adlc/memory root plus any records still in the legacy .adlc/memory
+    # root (migration stragglers). The index is written where the records
+    # live — docs preferred whenever it holds any record, else legacy.
+    local scan_dirs=("$pdr_dir")
+    if [ "$scope" = "memory" ]; then
+        local docs_pdr_dir="$REPO_ROOT/${DOCS_ADLC_MEMORY:-docs/adlc/memory}/pdr"
+        if compgen -G "$docs_pdr_dir/PDR-*.md" >/dev/null 2>&1; then
+            scan_dirs=("$docs_pdr_dir" "$pdr_dir")
+        fi
+    fi
+
+    local index_file="${scan_dirs[0]}/pdr.md"
+
+    if [ ! -d "${scan_dirs[0]}" ]; then
         return 0
     fi
 
@@ -235,8 +253,14 @@ generate_pdr_index() {
     # order falls out naturally). IDs are filename stems verbatim.
     local f fname id stem title status date owner category feature_area padded_id
     local blank_warnings=""
+    local _pdr_index_files=""
+    local _d
 
-    for f in $(ls -1 "$pdr_dir"/PDR-*.md 2>/dev/null | LC_ALL=C sort); do
+    for _d in "${scan_dirs[@]}"; do
+        [ -d "$_d" ] || continue
+        _pdr_index_files+="$(ls -1 "$_d"/PDR-*.md 2>/dev/null)"$'\n'
+    done
+    for f in $(printf '%s' "$_pdr_index_files" | LC_ALL=C sort); do
         fname=$(basename "$f")
         stem="${fname%.md}"
         id="${stem#PDR-}"

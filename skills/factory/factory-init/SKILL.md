@@ -68,7 +68,7 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 | 6 | `architect-implement` | architect-implement | build | artifact-ref (`docs/adlc/architect/AD.md`) |
 | 7 | `change-init` | change-init | generate | draft (`.adlc/drafts/chdr/`) |
 | 8 | `change-clarify`⭐ | change-clarify | clarify | decision |
-| 9 | `change-publish` | change-publish | build | artifact-ref (`.adlc/memory/chdr/`) |
+| 9 | `change-publish` | change-publish | build | artifact-ref (`docs/adlc/memory/chdr/`) |
 | 10 | `product-analyze` | product-analyze | analyze | findings |
 | 11 | `architect-analyze` | architect-analyze | analyze | findings |
 | 12 | `sweep` | inline (this skill, §The Sweep Step) | analyze | findings (`.adlc/coverage/coverage.md` + history) |

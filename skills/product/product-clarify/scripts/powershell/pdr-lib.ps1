@@ -7,7 +7,12 @@
 #
 # Usage:
 #   . .\pdr-lib.ps1                        # load functions
-#   Generate-PdrIndex memory              # regenerate .adlc/memory/pdr/pdr.md
+# ADR-401 note: scope-addressed helpers keep the legacy .adlc/memory root for
+# the memory scope (back-compat); Generate-PdrIndex memory additionally
+# indexes docs/adlc/memory/pdr/ (the canonical promotion target) and writes
+# the index there whenever that root holds records.
+#
+#   Generate-PdrIndex memory              # regenerate the memory pdr.md (docs root preferred)
 #   Generate-PdrIndex drafts               # regenerate .adlc/drafts/pdr/pdr.md
 #   Move-Pdr 020 drafts memory             # atomically move PDR-020 drafts→memory
 #   Migrate-PdrToFrontmatter .adlc\memory\pdr\PDR-001.md   # one-time legacy migration
@@ -143,8 +148,20 @@ function Parse-PdrTitle {
 function Generate-PdrIndex {
     param([string]$Scope = "drafts")
     $pdrDir = Join-Path $REPO_ROOT ".adlc/$Scope/pdr"
-    $indexFile = Join-Path $pdrDir "pdr.md"
-    if (-not (Test-Path $pdrDir)) { return }
+
+    # ADR-401 dual-read (R8): the memory scope indexes the canonical
+    # docs/adlc/memory root plus any records still in the legacy .adlc/memory
+    # root (migration stragglers). The index is written where the records
+    # live — docs preferred whenever it holds any record, else legacy.
+    $scanDirs = @($pdrDir)
+    if ($Scope -eq "memory") {
+        $docsPdrDir = Join-Path $REPO_ROOT "docs/adlc/memory/pdr"
+        if (@(Get-ChildItem -Path $docsPdrDir -Filter 'PDR-*.md' -ErrorAction SilentlyContinue).Count -gt 0) {
+            $scanDirs = @($docsPdrDir, $pdrDir)
+        }
+    }
+    $indexFile = Join-Path $scanDirs[0] "pdr.md"
+    if (-not (Test-Path $scanDirs[0])) { return }
 
     $header = "# Product Decision Records"
     if ($Scope -eq "memory") {
@@ -157,7 +174,7 @@ function Generate-PdrIndex {
     $body = ""
     $warnings = @()
     # Lexical BaseName sort (zero-padded repo names keep amendment-before-base order). IDs are stems verbatim.
-    $files = Get-ChildItem -Path $pdrDir -Filter 'PDR-*.md' | Sort-Object BaseName
+    $files = Get-ChildItem -Path $scanDirs -Filter 'PDR-*.md' | Sort-Object BaseName
     foreach ($f in $files) {
         $id = ($f.BaseName -replace '^PDR-','')
         # Purely numeric stems keep the legacy zero-padded display; suffixed stems render verbatim.

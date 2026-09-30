@@ -27,7 +27,9 @@ resolve_project_root() {
 
 PROJECT_ROOT=$(resolve_project_root)
 CHDR_DRAFTS_DIR="${PROJECT_ROOT}/.adlc/drafts/chdr"
-MEMORY_DIR="${PROJECT_ROOT}/.adlc/memory/chdr"
+# ADR-401: published ChDRs live under docs/adlc/memory (legacy .adlc/memory/chdr
+# stays read-compatible — dual-read).
+MEMORY_DIR="${PROJECT_ROOT}/docs/adlc/memory/chdr"
 
 mkdir -p "$CHDR_DRAFTS_DIR" 2>/dev/null || true
 

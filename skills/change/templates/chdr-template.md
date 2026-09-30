@@ -1,6 +1,6 @@
 ---
 # ChDR template — full format for /change-init mining and /change-clarify enrichment.
-# Written to .adlc/drafts/chdr/ChDR-{NNN}.md, promoted to .adlc/memory/chdr/ by /change-publish.
+# Written to .adlc/drafts/chdr/ChDR-{NNN}.md, promoted to docs/adlc/memory/chdr/ by /change-publish.
 status: discovered  # discovered | proposed | accepted | rejected | superseded
 date: YYYY-MM-DD
 type: incident  # incident | workaround | abandoned

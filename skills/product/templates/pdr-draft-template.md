@@ -1,6 +1,6 @@
 ---
 # Lightweight PDR draft — written by team-boot continuous capture.
-# Enriched to full PDR format by /product-clarify before promotion to .adlc/memory/.
+# Enriched to full PDR format by /product-clarify before promotion to docs/adlc/memory/.
 status: proposed
 date: YYYY-MM-DD
 owner: []
