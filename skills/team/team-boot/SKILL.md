@@ -37,7 +37,7 @@ the event hook already ran — do nothing.
 | `architect-boot` | ADR index (`docs/adlc/memory/adr/` + legacy `.adlc/memory/adr/`) | architecture work; tech-stack/pattern choice | direct write to `.adlc/drafts/adr/` |
 | `product-boot` | PDR index (`docs/adlc/memory/pdr/` + legacy `.adlc/memory/pdr/`) | product/feature scope, personas, monetization | direct write to `.adlc/drafts/pdr/` |
 | `change-boot` | ChDR index (`docs/adlc/memory/chdr.md` + legacy `.adlc/memory/chdr.md`) | change-history rationale, reverts, issue-linked commits | direct write to `.adlc/drafts/chdr/` |
-| `team-learn` | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch `drafts/cdr/` |
+| `team-levelup` | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch `drafts/cdr/` |
 | `tech-radar-boot` | Tikal Tech Radar context | choosing/evaluating technology | radar context + direct write to `.adlc/drafts/adr/` |
 
 Invoke a class boot when a task or decision matches its row. Each boot
@@ -81,7 +81,7 @@ The only gate is clarify at session end.
 |---------|------|-----------|-------------|
 | Tech stack choice, pattern selection, "we chose X over Y" | decision | drafts/adr/ | /architect-clarify |
 | Feature scope, persona, monetization | product | drafts/pdr/ | /product-clarify |
-| Reusable team rule, "we always do X" | pattern | drafts/cdr/ | /team-learn |
+| Reusable team rule, "we always do X" | pattern | drafts/cdr/ | /team-levelup |
 | Revert/hotfix rationale, issue-linked commit, git command w/ human-authored message, authored PR title/body, CHANGELOG edit | incident | drafts/chdr/ | /change-clarify |
 | Workaround adopted, "X for now because Y" | workaround | drafts/chdr/ | /change-clarify |
 | Operational constraint, "only works because Z" | constraint | drafts/adr/ | /architect-clarify |

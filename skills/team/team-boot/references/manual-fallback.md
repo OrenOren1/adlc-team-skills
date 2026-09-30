@@ -19,5 +19,5 @@ Decision Capture ledger contract) lives in `SKILL.md`.
    above and follow it: invoke the matching class boot when a task or
    decision matches a row.
 4. The CDR index is your catalog — read full module bodies on demand
-   when a task matches a CDR descriptor (or invoke `team-learn` to do
+   when a task matches a CDR descriptor (or invoke `team-levelup` to do
    it as a structured deep-dive).
