@@ -24,7 +24,7 @@ elif [ -f "$_pd_dir/../../../workspace/scripts/bash/paths.sh" ]; then
 fi
 REPO_ROOT="${REPO_ROOT:-$(_get_project_root)}"
 PDR_DRAFTS_DIR="$REPO_ROOT/.adlc/drafts/pdr"
-PRD_FILE="$REPO_ROOT/PRD.md"
+PRD_FILE="$REPO_ROOT/docs/adlc/product/PRD.md"
 
 mkdir -p "$PDR_DRAFTS_DIR"
 

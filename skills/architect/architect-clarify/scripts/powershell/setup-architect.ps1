@@ -386,7 +386,7 @@ function Scan-ExistingDocs {
     $findings = @()
     
     # Check for existing architecture docs
-    if (Test-Path "$RepoRoot\AD.md") {
+    if (Test-Path "$RepoRoot\docs/adlc/architect/AD.md") -or (Test-Path "$RepoRoot\AD.md") {
         $findings += "EXISTING_AD: $RepoRoot\AD.md"
     }
     
@@ -679,7 +679,7 @@ function Invoke-Implement {
     param($repoRoot, $contextArgs)
     
     $adrDir = Join-Path $repoRoot ".adlc\memory\adr"
-    $adFile = Join-Path $repoRoot "AD.md"
+    $adFile = Join-Path $repoRoot "docs/adlc/architect/AD.md"
     $adTemplate = Join-Path $repoRoot ".adlc\templates\AD-template.md"
     
     if (-not (Test-Path $adrDir)) {
@@ -693,6 +693,7 @@ function Invoke-Implement {
     if (-not (Test-Path $adFile)) {
         if (Test-Path $adTemplate) {
             Write-Host "Creating AD.md from template..." -ForegroundColor Cyan
+            New-Item -ItemType Directory -Force -Path (Split-Path $adFile -Parent) | Out-Null
             Copy-Item $adTemplate $adFile
             Write-Host "✅ Created: $adFile" -ForegroundColor Green
         } else {
@@ -713,7 +714,7 @@ function Invoke-Implement {
     Write-Host "  2. Generate 7 Rozanski & Woods viewpoints"
     Write-Host "  3. Apply Security and Performance perspectives"
     Write-Host "  4. Create Mermaid diagrams for each view"
-    Write-Host "  5. Write complete AD.md to project root"
+    Write-Host "  5. Write complete AD.md to docs/adlc/architect/"
     Write-Host "  6. Move Accepted ADRs to canonical location"
     Write-Host "  7. Clean up drafts if all ADRs are Accepted"
     
@@ -1017,7 +1018,9 @@ function Invoke-Analyze {
     Write-Host "🔍 Architecture Analysis Mode" -ForegroundColor Cyan
     Write-Host ""
     
-    $adFile = Join-Path $repoRoot "AD.md"
+    # ADR-401 dual-read: compiled AD at docs/adlc/architect/AD.md, legacy repo-root AD.md fallback.
+    $adFile = Join-Path $repoRoot "docs/adlc/architect/AD.md"
+    if (-not (Test-Path $adFile)) { $adFile = Join-Path $repoRoot "AD.md" }
     $adrDir = Join-Path $repoRoot ".adlc\memory\adr"
     $constitutionFile = Join-Path $repoRoot ".adlc\memory\constitution.md"
     
@@ -1126,7 +1129,7 @@ function Invoke-PlanDag {
     
     $adrDir = Join-Path $repoRoot ".adlc\drafts\adr"
     $stateFile = Join-Path $repoRoot ".adlc\architect\state.json"
-    $viewsDir = Join-Path $repoRoot ".adlc\architect\views"
+    $viewsDir = Join-Path $repoRoot "docs/adlc/architect/views"
     
     Write-Host "📐 DAG Planning Phase" -ForegroundColor Cyan
     Write-Host ""
@@ -1207,7 +1210,7 @@ function Invoke-ExecuteDag {
     param($repoRoot, $contextArgs)
     
     $stateFile = Join-Path $repoRoot ".adlc\architect\state.json"
-    $viewsDir = Join-Path $repoRoot ".adlc\architect\views"
+    $viewsDir = Join-Path $repoRoot "docs/adlc/architect/views"
     
     Write-Host "🔧 DAG Execution Phase" -ForegroundColor Cyan
     Write-Host ""
@@ -1231,7 +1234,7 @@ function Invoke-ExecuteDag {
     Write-Host "  1. Read execution plan from state.json"
     Write-Host "  2. Identify next view(s) to generate"
     Write-Host "  3. Generate view with dependency context"
-    Write-Host "  4. Write to .adlc/architect/views/{subsystem}/{view}.md"
+    Write-Host "  4. Write to docs/adlc/architect/views/{subsystem}/{view}.md"
     Write-Host "  5. Update progress in state.json"
     
     if ($Json) {
@@ -1251,8 +1254,8 @@ function Invoke-Summarize {
     param($repoRoot, $contextArgs)
     
     $stateFile = Join-Path $repoRoot ".adlc\architect\state.json"
-    $viewsDir = Join-Path $repoRoot ".adlc\architect\views"
-    $adFile = Join-Path $repoRoot "AD.md"
+    $viewsDir = Join-Path $repoRoot "docs/adlc/architect/views"
+    $adFile = Join-Path $repoRoot "docs/adlc/architect/AD.md"
     $adrDir = Join-Path $repoRoot ".adlc\drafts\adr"
     
     Write-Host "📝 Summarization Phase" -ForegroundColor Cyan
@@ -1283,7 +1286,7 @@ function Invoke-Summarize {
     
     Write-Host "Ready for summarization."
     Write-Host "The AI agent will:"
-    Write-Host "  1. Read all view files from .adlc/architect/views/"
+    Write-Host "  1. Read all view files from docs/adlc/architect/views/"
     Write-Host "  2. Detect cross-subsystem conflicts"
     Write-Host "  3. Resolve conflicts using ADRs as source of truth"
     Write-Host "  4. Aggregate into unified AD.md"
@@ -1322,7 +1325,7 @@ try {
     }
     
     # Architecture files (new structure: AD.md at root, ADRs in memory/)
-    $adFile = Join-Path $repoRoot "AD.md"
+    $adFile = Join-Path $repoRoot "docs/adlc/architect/AD.md"
     $adrDir = Join-Path $repoRoot ".adlc\memory\adr"
     $templateFile = Join-Path $repoRoot ".adlc\templates\architecture-template.md"
     $adTemplateFile = Join-Path $repoRoot ".adlc\templates\AD-template.md"

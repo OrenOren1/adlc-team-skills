@@ -18,7 +18,7 @@ $RepoRoot = $(git rev-parse --show-toplevel 2>$null)
 if (-not $RepoRoot) { $RepoRoot = Get-Location }
 
 $PdrDraftsDir = Join-Path $RepoRoot ".adlc/drafts/pdr"
-$PrdFile = Join-Path $RepoRoot "PRD.md"
+$PrdFile = Join-Path $RepoRoot "docs/adlc/product/PRD.md"
 
 New-Item -ItemType Directory -Force -Path $PdrDraftsDir | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $RepoRoot ".adlc/product") | Out-Null

@@ -147,19 +147,20 @@ done
 
 # Default action if not specified
 if [[ -z "$ACTION" ]]; then
-    if [[ -f "$REPO_ROOT/AD.md" ]]; then
+    if [[ -f "$REPO_ROOT/docs/adlc/architect/AD.md" || -f "$REPO_ROOT/AD.md" ]]; then
         ACTION="update"
     else
         ACTION="init"
     fi
 fi
 
-# Ensure directories exist
+# Ensure directories exist (ADR-401: compiled AD lives under docs/adlc/architect)
 mkdir -p "$REPO_ROOT/.adlc/memory"
 mkdir -p "$REPO_ROOT/.adlc/drafts"
+mkdir -p "$REPO_ROOT/docs/adlc/architect"
 
 # Architecture files (ADR Lifecycle)
-AD_FILE="$REPO_ROOT/AD.md"
+AD_FILE="$REPO_ROOT/docs/adlc/architect/AD.md"
 TEMPLATE_FILE="$REPO_ROOT/.adlc/templates/architecture-template.md"
 AD_TEMPLATE_FILE="$REPO_ROOT/.adlc/templates/AD-template.md"
 
@@ -990,7 +991,7 @@ action_clarify() {
 # Action: Implement (generate full AD.md from ADRs)
 action_implement() {
     local adr_dir="$REPO_ROOT/.adlc/drafts/adr"
-    local ad_file="$REPO_ROOT/AD.md"
+    local ad_file="$REPO_ROOT/docs/adlc/architect/AD.md"
     local ad_template="$REPO_ROOT/.adlc/templates/AD-template.md"
     
     # Auto-migrate before checking
@@ -1010,6 +1011,7 @@ action_implement() {
     if [[ ! -f "$ad_file" ]]; then
         if [[ -f "$ad_template" ]]; then
             echo "Creating AD.md from template..." >&2
+            mkdir -p "$(dirname "$ad_file")"
             cp "$ad_template" "$ad_file"
             echo "✅ Created: $ad_file" >&2
         else
@@ -1027,7 +1029,7 @@ action_implement() {
     echo "  2. Generate 7 Rozanski & Woods viewpoints" >&2
     echo "  3. Apply Security and Performance perspectives" >&2
     echo "  4. Create Mermaid diagrams for each view" >&2
-    echo "  5. Write complete AD.md to project root" >&2
+    echo "  5. Write complete AD.md to docs/adlc/architect/" >&2
     echo "  6. Move Accepted ADRs to canonical location (docs/adlc/memory/adr/)" >&2
     echo "  7. Regenerate adr.md index for both scopes" >&2
     echo "  8. Clean up drafts if all ADRs are Accepted" >&2
@@ -1322,7 +1324,10 @@ action_analyze() {
     # Auto-migrate before analysis
 
 
-    local ad_file="$REPO_ROOT/AD.md"
+    # ADR-401 dual-read: compiled AD at docs/adlc/architect/AD.md, legacy
+    # repo-root AD.md fallback.
+    local ad_file="$REPO_ROOT/docs/adlc/architect/AD.md"
+    if [[ ! -f "$ad_file" ]]; then ad_file="$REPO_ROOT/AD.md"; fi
     # ADR-401 dual-read: canonical docs/adlc/memory first, legacy fallback.
     local adr_dir
     adr_dir=$(_adlc_memory_path "adr")
@@ -1404,7 +1409,7 @@ action_plan_dag() {
     local adr_dir="$REPO_ROOT/.adlc/drafts/adr"
     local adr_dir="$REPO_ROOT/.adlc/drafts/adr"
     local state_file="$REPO_ROOT/.adlc/architect/state.json"
-    local views_dir="$REPO_ROOT/.adlc/architect/views"
+    local views_dir="$REPO_ROOT/docs/adlc/architect/views"
 
     echo "📐 DAG Planning Phase" >&2
     echo "" >&2
@@ -1420,7 +1425,8 @@ action_plan_dag() {
         exit 1
     fi
 
-    # Ensure directories exist
+    # Ensure directories exist (state stays under .adlc/architect; views are
+    # published under docs/adlc/architect/views per ADR-401).
     mkdir -p "$REPO_ROOT/.adlc/architect"
     mkdir -p "$views_dir"
 
@@ -1502,8 +1508,8 @@ action_plan_dag() {
 # Action: Execute DAG (Phase 2 of implement - generate views based on state)
 action_execute_dag() {
     local state_file="$REPO_ROOT/.adlc/architect/state.json"
-    local views_dir="$REPO_ROOT/.adlc/architect/views"
-    
+    local views_dir="$REPO_ROOT/docs/adlc/architect/views"
+
     echo "🔧 DAG Execution Phase" >&2
     echo "" >&2
     
@@ -1525,7 +1531,7 @@ action_execute_dag() {
     echo "  1. Read execution plan from state.json" >&2
     echo "  2. Identify next view(s) to generate" >&2
     echo "  3. Generate view with dependency context" >&2
-    echo "  4. Write to .adlc/architect/views/{subsystem}/{view}.md" >&2
+    echo "  4. Write to docs/adlc/architect/views/{subsystem}/{view}.md" >&2
     echo "  5. Update progress in state.json" >&2
     
     if $JSON_MODE; then
@@ -1543,8 +1549,8 @@ action_execute_dag() {
 # Action: Summarize (Phase 3 of implement - aggregate views into AD.md)
 action_summarize() {
     local state_file="$REPO_ROOT/.adlc/architect/state.json"
-    local views_dir="$REPO_ROOT/.adlc/architect/views"
-    local ad_file="$REPO_ROOT/AD.md"
+    local views_dir="$REPO_ROOT/docs/adlc/architect/views"
+    local ad_file="$REPO_ROOT/docs/adlc/architect/AD.md"
     local adr_dir="$REPO_ROOT/.adlc/drafts/adr"
     
     echo "📝 Summarization Phase" >&2
@@ -1577,7 +1583,7 @@ action_summarize() {
     
     echo "Ready for summarization." >&2
     echo "The AI agent will:" >&2
-    echo "  1. Read all view files from .adlc/architect/views/" >&2
+    echo "  1. Read all view files from docs/adlc/architect/views/" >&2
     echo "  2. Detect cross-subsystem conflicts" >&2
     echo "  3. Resolve conflicts using ADRs as source of truth" >&2
     echo "  4. Aggregate into unified AD.md" >&2

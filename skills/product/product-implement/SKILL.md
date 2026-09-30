@@ -15,7 +15,7 @@ Transforms **accepted PDRs** into a comprehensive, self-contained `PRD.md` using
 3. **Summarize Agent**: Aggregate sections, resolve conflicts, produce unified `PRD.md`
 
 **Output**:
-- `PRD.md` (repo root) — self-contained product requirements
+- `docs/adlc/product/PRD.md` — self-contained product requirements (ADR-401; legacy repo-root `PRD.md` stays read-compatible)
 - `{REPO_ROOT}/.adlc/product/sections/{feature-area}/{section}.md` — intermediate section files
 - Accepted PDRs **moved** to `{REPO_ROOT}/.adlc/memory/pdr/`
 
@@ -391,7 +391,7 @@ Before marking complete, verify ALL checks:
 
 - `PDR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/pdr`
 - `PDR_MEMORY_DIR` — `{REPO_ROOT}/.adlc/memory/pdr`
-- `PRD_FILE` — `{REPO_ROOT}/PRD.md`
+- `PRD_FILE` — `{REPO_ROOT}/docs/adlc/product/PRD.md`
 - `SECTIONS_DIR` — `{REPO_ROOT}/.adlc/product/sections`
 - `STATE_FILE` — `{REPO_ROOT}/.adlc/product/state.json`
 

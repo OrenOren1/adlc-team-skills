@@ -15,9 +15,12 @@ elif [ -f "$_pd_dir/../../../workspace/scripts/bash/paths.sh" ]; then
   . "$_pd_dir/../../../workspace/scripts/bash/paths.sh"
 fi
 PDR_DRAFTS_DIR="$REPO_ROOT/.adlc/drafts/pdr"
-PRD_FILE="$REPO_ROOT/PRD.md"
+PRD_FILE="$REPO_ROOT/docs/adlc/product/PRD.md"
 PDR_COUNT=$(find "$PDR_DRAFTS_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l)
-PRD_EXISTS=$([ -f "$PRD_FILE" ] && echo "true" || echo "false")
+# ADR-401 dual-read: compiled PRD at docs/adlc/product/PRD.md, legacy repo-root
+# PRD.md fallback (either counts as present).
+PRD_EXISTS=false
+if [ -f "$PRD_FILE" ] || [ -f "$REPO_ROOT/PRD.md" ]; then PRD_EXISTS=true; fi
 if $JSON_MODE; then
   cat <<EOF
 {"REPO_ROOT":"$REPO_ROOT","PDR_DRAFTS_DIR":"$PDR_DRAFTS_DIR","PRD_FILE":"$PRD_FILE","pdr_count":$PDR_COUNT,"prd_exists":$PRD_EXISTS}

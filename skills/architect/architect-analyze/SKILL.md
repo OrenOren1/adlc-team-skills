@@ -249,7 +249,7 @@ For each ADR:
 
 5. **View File Consistency** (DAG State Validation):
    - Check if `.adlc/architect/state.json` exists and reports views as "completed"
-   - Check if `.adlc/architect/views/` directory exists
+   - Check if `docs/adlc/architect/views/` (legacy `.adlc/architect/views/` fallback) directory exists
    - Verify that for each "completed" view in state.json, a corresponding file exists on disk
    - **Flag as HIGH severity if**:
      - state.json reports views "completed" but views/ directory is empty

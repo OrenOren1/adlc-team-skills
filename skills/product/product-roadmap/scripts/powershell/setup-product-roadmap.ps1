@@ -14,7 +14,7 @@ $PdrDraftsDir = Join-Path $RepoRoot ".adlc/drafts/pdr"
 # stays read-compatible — memory counts sum both roots (dual-read R8).
 $PdrMemoryDir = Join-Path $RepoRoot "docs/adlc/memory/pdr"
 $LegacyPdrMemoryDir = Join-Path $RepoRoot ".adlc/memory/pdr"
-$PrdFile = Join-Path $RepoRoot "PRD.md"
+$PrdFile = Join-Path $RepoRoot "docs/adlc/product/PRD.md"
 New-Item -ItemType Directory -Force -Path $PdrDraftsDir | Out-Null
 $draftCount = if (Test-Path $PdrDraftsDir) { (Get-ChildItem -Path $PdrDraftsDir -Filter 'PDR-*.md').Count } else { 0 }
 $memCount = ( @(Get-ChildItem -Path $PdrMemoryDir -Filter 'PDR-*.md' -ErrorAction SilentlyContinue).Count + @(Get-ChildItem -Path $LegacyPdrMemoryDir -Filter 'PDR-*.md' -ErrorAction SilentlyContinue).Count )

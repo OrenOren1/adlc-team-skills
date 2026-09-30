@@ -10,7 +10,7 @@ if (-not (Test-Path $AdlcPathsPs1)) {
 if (Test-Path $AdlcPathsPs1) { . $AdlcPathsPs1 }
 $RepoRoot = $(git rev-parse --show-toplevel 2>$null); if (-not $RepoRoot) { $RepoRoot = Get-Location }
 $PdrDraftsDir = Join-Path $RepoRoot ".adlc/drafts/pdr"
-$PrdFile = Join-Path $RepoRoot "PRD.md"
+$PrdFile = Join-Path $RepoRoot "docs/adlc/product/PRD.md"
 New-Item -ItemType Directory -Force -Path $PdrDraftsDir | Out-Null
 
 $max = 0

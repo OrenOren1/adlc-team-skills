@@ -22,7 +22,7 @@ REPO_ROOT="${REPO_ROOT:-$(_get_project_root)}"
 PDR_DRAFTS_DIR="$REPO_ROOT/.adlc/drafts/pdr"
 # ADR-401: canonical PDR memory root (legacy .adlc/memory stays read-compatible).
 PDR_MEMORY_DIR="$REPO_ROOT/docs/adlc/memory/pdr"
-PRD_FILE="$REPO_ROOT/PRD.md"
+PRD_FILE="$REPO_ROOT/docs/adlc/product/PRD.md"
 SECTIONS_DIR="$REPO_ROOT/.adlc/product/sections"
 STATE_FILE="$REPO_ROOT/.adlc/product/state.json"
 
@@ -30,6 +30,8 @@ mkdir -p "$PDR_DRAFTS_DIR"
 mkdir -p "$PDR_MEMORY_DIR"
 mkdir -p "$SECTIONS_DIR"
 mkdir -p "$REPO_ROOT/.adlc/product"
+# ADR-401: compiled PRD lives under docs/adlc/product/ — ensure the parent exists.
+mkdir -p "$REPO_ROOT/docs/adlc/product"
 
 ACCEPTED_COUNT=0
 if [[ -d "$PDR_DRAFTS_DIR" ]]; then

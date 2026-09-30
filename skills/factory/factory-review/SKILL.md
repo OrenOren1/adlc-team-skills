@@ -34,7 +34,7 @@ In `--self-heal` mode, it enters a **three-sub-agent converge loop** mirroring `
 
 1. Read the `REVIEW.md` file from the repository root. If absent, create a default template (see `references/review-policy.md`).
 2. The policy defines:
-   - **Review passes**: Bugs & logical errors, security vulnerabilities, and compliance against design documents (`PRD.md`/`AD.md`).
+   - **Review passes**: Bugs & logical errors, security vulnerabilities, and compliance against design documents (`docs/adlc/product/PRD.md`/`docs/adlc/architect/AD.md`).
    - **Severity weights**: What constitutes an *Important* block (e.g., memory leak, security risk, spec deviation) vs. a *Nit* (formatting, style).
    - **Skip lists**: Generated paths, vendor files, and CI-validated paths.
 

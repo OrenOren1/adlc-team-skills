@@ -37,8 +37,8 @@
 **Description:** Compliance against design documents
 **Severity:** Important
 **Checks:**
-- PRD.md requirement coverage
-- AD.md architecture compliance
+- PRD requirement coverage (`docs/adlc/product/PRD.md`)
+- AD architecture compliance (`docs/adlc/architect/AD.md`)
 - ADR deviation detection
 - API contract conformance
 
@@ -84,7 +84,7 @@ Each pass is executed by the Review Agent (in `--self-heal` mode) or by factory-
 
 1. **Read the PR diff** — changed files and their surrounding context.
 2. **Read the governing ticket** — linked issues, acceptance criteria, constraints.
-3. **Read design documents** — `PRD.md`, `AD.md`, relevant ADRs.
+3. **Read design documents** — `docs/adlc/product/PRD.md`, `docs/adlc/architect/AD.md`, relevant ADRs (`docs/adlc/memory/{adr,pdr}/`).
 4. **Run the pass's checks** — evaluate the diff against each check item.
 5. **Record findings** — each finding states:
    - The reproducible scenario or violated criterion.
@@ -159,8 +159,8 @@ Checks:
 Description: Compliance against design documents
 Severity: Important
 Checks:
-- PRD.md requirement coverage
-- AD.md architecture compliance
+- PRD requirement coverage (docs/adlc/product/PRD.md)
+- AD architecture compliance (docs/adlc/architect/AD.md)
 
 ### pass: quality
 Description: Code quality

@@ -62,10 +62,10 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 |--|--|--|--|--|
 | 1 | `product-init` | product-init | generate | draft (`.adlc/drafts/pdr/`) |
 | 2 | `product-clarify`⭐ | product-clarify | clarify | decision |
-| 3 | `product-implement` | product-implement | build | artifact-ref (`PRD.md`) |
+| 3 | `product-implement` | product-implement | build | artifact-ref (`docs/adlc/product/PRD.md`) |
 | 4 | `architect-init` | architect-init | generate | draft (`.adlc/drafts/adr/`) |
 | 5 | `architect-clarify`⭐ | architect-clarify (reads accepted PDR list) | clarify | decision |
-| 6 | `architect-implement` | architect-implement | build | artifact-ref (`AD.md`) |
+| 6 | `architect-implement` | architect-implement | build | artifact-ref (`docs/adlc/architect/AD.md`) |
 | 7 | `change-init` | change-init | generate | draft (`.adlc/drafts/chdr/`) |
 | 8 | `change-clarify`⭐ | change-clarify | clarify | decision |
 | 9 | `change-publish` | change-publish | build | artifact-ref (`.adlc/memory/chdr/`) |
@@ -96,7 +96,7 @@ The sweep is executed by this orchestrator (step `skill: factory-init`, prompt =
 |--|
 | `product-init` + `architect-init` setup scripts (re-run; idempotent JSON scanners) | sub-systems, feature-areas, tech stack |
 | `docs/adlc/memory/{pdr,adr,chdr}/` (legacy `.adlc/memory/` fallback, + indexes) | accepted decisions per layer |
-| `PRD.md`, `AD.md` | compiled artifacts |
+| `docs/adlc/product/PRD.md`, `docs/adlc/architect/AD.md` | compiled artifacts |
 | `.adlc/coverage/coverage.md` (if exists) | previous matrix → drift diff |
 
 ### Output: `.adlc/coverage/coverage.md` (+ `history/<date>-<run_id>.md`)
@@ -140,7 +140,7 @@ Every gap line uses the form:
 
 `factory-init` overrides the shared executor engine primitives as follows:
 
-1. **Publish Target**: Fixed to `local`. Outputs are written to `.adlc/` (drafts, memory, coverage) and `PRD.md` / `AD.md` at project root. If tracker-integrated, a `tracker` completion summary comment is also posted.
+1. **Publish Target**: Fixed to `local`. Outputs are written to `.adlc/` (drafts, coverage) and `docs/adlc/` (memory records, `docs/adlc/product/PRD.md`, `docs/adlc/architect/AD.md`). If tracker-integrated, a `tracker` completion summary comment is also posted.
 2. **Output Types** (per PDR-050): init steps → `draft`; clarify⭐ → `decision`; implement/publish → `artifact-ref`; analyze + sweep → `findings`.
 3. **Supervision Default**: `hybrid`. Human gates hard-enforced at the three clarify⭐ steps (PDR, ADR, ChDR approvals) and at final coverage-matrix review.
 4. **Pre-flight Check**: Verifies that the `product-*`, `architect-*`, and `change-*` lifecycle skills are installed. Team AI directives configuration is NOT required (CDR excluded); `architect-init`'s team-directives dedup degrades gracefully if unconfigured.
@@ -183,7 +183,7 @@ Every gap line uses the form:
 - `ADR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/adr`
 - `CHDR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/chdr`
 - `COVERAGE_DIR` — `{REPO_ROOT}/.adlc/coverage` (`coverage.md` + `history/`)
-- `PRD_FILE` — `{REPO_ROOT}/PRD.md` | `AD_FILE` — `{REPO_ROOT}/AD.md`
+- `PRD_FILE` — `{REPO_ROOT}/docs/adlc/product/PRD.md` | `AD_FILE` — `{REPO_ROOT}/docs/adlc/architect/AD.md`
 - Shared run state — `{REPO_ROOT}/.adlc/workflows/runs/<run_id>/state.json` via `adlc-cli workflow state` helpers (ADR-395; lease/resume)
 
 ## References

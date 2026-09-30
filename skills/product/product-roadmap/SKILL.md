@@ -236,7 +236,7 @@ When querying issue states, detect available tools in this order:
 
 - `PDR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/pdr`
 - `PDR_MEMORY_DIR` — `{REPO_ROOT}/docs/adlc/memory/pdr` (legacy `.adlc/memory/pdr` read-compatible; counts sum both roots)
-- `PRD_FILE` — `{REPO_ROOT}/PRD.md`
+- `PRD_FILE` — `{REPO_ROOT}/docs/adlc/product/PRD.md`
 - MCP servers — GitHub, GitLab, Jira, Linear (auto-detected)
 - CLI tools — `gh`, `glab`, `jira`, `linear` (fallback)
 

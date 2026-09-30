@@ -40,7 +40,7 @@ ps: scripts/powershell/setup-product-analyze.ps1
 ```
 
 **Read**:
-- `PRD.md` (project root)
+- `docs/adlc/product/PRD.md` (legacy repo-root `PRD.md` fallback — ADR-401 dual-read)
 - `{REPO_ROOT}/.adlc/drafts/pdr/PDR-*.md` (individual PDR files)
 - `{REPO_ROOT}/docs/adlc/memory/constitution.md`, falling back to legacy `{REPO_ROOT}/.adlc/memory/constitution.md` (ADR-401 dual-read; if either exists)
 
@@ -48,7 +48,7 @@ ps: scripts/powershell/setup-product-analyze.ps1
 ```markdown
 | Artifact | Path | Status |
 |----------|------|--------|
-| Product PRD | PRD.md | Found/Missing |
+| Product PRD | docs/adlc/product/PRD.md (legacy PRD.md fallback) | Found/Missing |
 | Product PDRs | .adlc/drafts/pdr/ | [N] files |
 | Constitution | docs/adlc/memory/constitution.md (legacy .adlc/memory fallback) | Found/Missing |
 ```
@@ -174,7 +174,7 @@ For each PDR, check if decision appears in PRD:
 ## Configuration
 
 - `PDR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/pdr`
-- `PRD_FILE` — `{REPO_ROOT}/PRD.md`
+- `PRD_FILE` — `{REPO_ROOT}/docs/adlc/product/PRD.md`
 - `CONSTITUTION` — `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `.adlc/memory/constitution.md` fallback)
 
 ## 12-Factor Alignment

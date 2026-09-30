@@ -12,12 +12,14 @@ $RepoRoot = $(git rev-parse --show-toplevel 2>$null); if (-not $RepoRoot) { $Rep
 $PdrDraftsDir = Join-Path $RepoRoot ".adlc/drafts/pdr"
 # ADR-401: canonical PDR memory root (legacy .adlc/memory stays read-compatible).
 $PdrMemoryDir = Join-Path $RepoRoot "docs/adlc/memory/pdr"
-$PrdFile = Join-Path $RepoRoot "PRD.md"
+$PrdFile = Join-Path $RepoRoot "docs/adlc/product/PRD.md"
 $SectionsDir = Join-Path $RepoRoot ".adlc/product/sections"
 $StateFile = Join-Path $RepoRoot ".adlc/product/state.json"
 New-Item -ItemType Directory -Force -Path $PdrDraftsDir | Out-Null
 New-Item -ItemType Directory -Force -Path $PdrMemoryDir | Out-Null
 New-Item -ItemType Directory -Force -Path $SectionsDir | Out-Null
+# ADR-401: compiled PRD lives under docs/adlc/product/ — ensure the parent exists.
+New-Item -ItemType Directory -Force -Path (Join-Path $RepoRoot "docs/adlc/product") | Out-Null
 
 $acceptedCount = 0
 if (Test-Path $PdrDraftsDir) {

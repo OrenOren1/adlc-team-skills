@@ -266,7 +266,7 @@ title: [Decision Title]
 
 - `PDR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/pdr`
 - `PDR_INDEX` — `{REPO_ROOT}/.adlc/drafts/pdr/pdr.md`
-- `PRD_FILE` — `{REPO_ROOT}/PRD.md`
+- `PRD_FILE` — `{REPO_ROOT}/docs/adlc/product/PRD.md`
 - `CONSTITUTION` — `{REPO_ROOT}/.adlc/memory/constitution.md`
 
 ## 12-Factor Alignment

@@ -22,7 +22,7 @@ NC='\033[0m' # No Color
 # Configuration
 STRICT_MODE=false
 WARN_MODE=true
-PRD_FILE="${1:-PRD.md}"
+PRD_FILE="${1:-docs/adlc/product/PRD.md}"
 WARNINGS=0
 ERRORS=0
 

@@ -19,7 +19,7 @@ PDR_DRAFTS_DIR="$REPO_ROOT/.adlc/drafts/pdr"
 # stays read-compatible — memory counts sum both roots (dual-read R8).
 PDR_MEMORY_DIR="$REPO_ROOT/docs/adlc/memory/pdr"
 LEGACY_PDR_MEMORY_DIR="$REPO_ROOT/.adlc/memory/pdr"
-PRD_FILE="$REPO_ROOT/PRD.md"
+PRD_FILE="$REPO_ROOT/docs/adlc/product/PRD.md"
 mkdir -p "$PDR_DRAFTS_DIR"
 DRAFT_COUNT=$(find "$PDR_DRAFTS_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l)
 MEM_COUNT=$(( $(find "$PDR_MEMORY_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l) + $(find "$LEGACY_PDR_MEMORY_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l) ))
