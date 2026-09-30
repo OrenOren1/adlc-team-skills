@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# helpers.sh — Shared utilities for team-learn skill
+# helpers.sh — Shared utilities for team-levelup skill
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 1. PATH RESOLUTION
 ###############################################################################
 
-resolve_team_learn_paths() {
+resolve_team_levelup_paths() {
   PROJECT_ROOT="${PROJECT_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
   BRANCH="${BRANCH:-$(git branch --show-current 2>/dev/null || echo 'unknown')}"
 
@@ -43,7 +43,7 @@ resolve_team_learn_paths() {
 }
 
 output_json() {
-  resolve_team_learn_paths >/dev/null
+  resolve_team_levelup_paths >/dev/null
   cat << JSON
 {"REPO_ROOT":"$PROJECT_ROOT","TEAM_AI_DIRECTIVES":"$TEAM_AI_DIRECTIVES","BRANCH":"$BRANCH","ADLC_BRANCH":"$ADLC_BRANCH","ADLC_WORKTREE":"$ADLC_WORKTREE"}
 JSON
@@ -100,7 +100,7 @@ write_adlc_file() {
   mkdir -p "$(dirname "$ADLC_WORKTREE/$path")"
   echo "$content" > "$ADLC_WORKTREE/$path"
   git -C "$ADLC_WORKTREE" add "$path"
-  git -C "$ADLC_WORKTREE" commit -m "team-learn: update $path"
+  git -C "$ADLC_WORKTREE" commit -m "team-levelup: update $path"
   git -C "$ADLC_WORKTREE" push origin "$ADLC_BRANCH" 2>/dev/null || true
   git -C "$td" worktree remove "$ADLC_WORKTREE" 2>/dev/null || true
 }

@@ -1,13 +1,13 @@
 ---
-name: team-learn
+name: team-levelup
 description: Use when a session ends to extract CDRs, score confidence, batch review, and publish accepted CDRs to team-ai-directives. Auto-triggers on session_end event. Also invoked from team-boot's Class Boots catalog for CDR descriptor matches.
 disable-model-invocation: true
 scripts:
-  sh: scripts/team-learn.sh
-  ps: scripts/team-learn.ps1
+  sh: scripts/team-levelup.sh
+  ps: scripts/team-levelup.ps1
 ---
 
-# team-learn
+# team-levelup
 
 ## What this skill does
 
@@ -23,7 +23,7 @@ _Searched N CDRs, K matched._
 ## When to use
 
 - **Session end (automatic)**: `.events.json` maps `session_end` → this skill
-- **Manual invocation**: `/team-learn` after completing work
+- **Manual invocation**: `/team-levelup` after completing work
 - **Before closing a branch**: Extract team-wide learnings
 
 ### When NOT to use
@@ -55,7 +55,7 @@ Main branch has NO drafts directory — only accepted CDRs in `context_modules/`
 Run the setup script:
 
 ```bash
-scripts/team-learn.sh --setup
+scripts/team-levelup.sh --setup
 ```
 
 Parse JSON for `REPO_ROOT`, `TEAM_AI_DIRECTIVES`, `NEXT_CDR`, `ADLC_BRANCH_EXISTS`.
@@ -102,7 +102,7 @@ For each extracted CDR, calculate confidence:
 
 ### Phase 3: Batch Review
 
-Present CDRs one at a time (same as former team-learn logic):
+Present CDRs one at a time (same as former team-levelup logic):
 
 ```markdown
 ## CDR-{ID}: {Title}
@@ -149,7 +149,7 @@ Write to `adlc` branch:
 
 ### Phase 6: Notify
 
-Write report to `.adlc/team-learn-report.md` (local, not committed):
+Write report to `.adlc/team-levelup-report.md` (local, not committed):
 
 ```markdown
 ## Team-Learn Report
@@ -177,10 +177,10 @@ When two projects draft the same pattern:
 
 ## Session Decision Ledger
 
-team-learn integrates with the Session Decision Ledger maintained by team-boot.
+team-levelup integrates with the Session Decision Ledger maintained by team-boot.
 CDR-class decisions detected during the session are captured as drafts and
 tracked in the ledger. Mirror each CDR-class decision as a task-list todo
-(draft → `/team-learn` at session end); after code-modifying tasks, add a
+(draft → `/team-levelup` at session end); after code-modifying tasks, add a
 trailing todo to sweep the ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill). At session end, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off. Do not fabricate
 ledger rows — only record decisions that actually emerged from the session.
 
@@ -190,5 +190,5 @@ ledger rows — only record decisions that actually emerged from the session.
 - [ ] Session summary written to `adlc` branch `reports/sessions/`
 - [ ] Usage counts written to `adlc` branch `reports/projects/`
 - [ ] Accepted CDRs published as draft PR to main branch
-- [ ] team-learn-report.md written locally
+- [ ] team-levelup-report.md written locally
 - [ ] No drafts in main branch
