@@ -3,6 +3,13 @@
 # Pure shell (grep/sed), no runtime dependencies.
 set -euo pipefail
 
+# ADR-401 shared layout constants (single definition in paths.sh).
+_boot_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$_boot_dir/../../workspace/scripts/bash/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_boot_dir/../../workspace/scripts/bash/paths.sh"
+fi
+
 # file_edited payload mode (event-driven, not session-start).
 # The dispatcher sets ADLC_EVENT and forwards the event payload on stdin.
 # When a decision draft lands in .adlc/drafts/{type}/, suggest the matching
@@ -106,9 +113,9 @@ echo "## Class Boots"
 echo ""
 echo "| Boot | Injects | Invoke When | Capture Via |"
 echo "|--|--|--|--|"
-echo "| architect-boot | ADR index (.adlc/memory/adr/) | architecture work; tech-stack/pattern choice | direct write to .adlc/drafts/adr/ |"
-echo "| product-boot | PDR index (.adlc/memory/pdr/) | product/feature scope, personas, monetization | direct write to .adlc/drafts/pdr/ |"
-echo "| change-boot | ChDR index (.adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits, git commands w/ human-authored messages, authored PRs, CHANGELOG edits | direct write to .adlc/drafts/chdr/ |"
+echo "| architect-boot | ADR index (docs/adlc/memory/adr/ + legacy .adlc/memory/adr/) | architecture work; tech-stack/pattern choice | direct write to .adlc/drafts/adr/ |"
+echo "| product-boot | PDR index (docs/adlc/memory/pdr/ + legacy .adlc/memory/pdr/) | product/feature scope, personas, monetization | direct write to .adlc/drafts/pdr/ |"
+echo "| change-boot | ChDR index (docs/adlc/memory/chdr.md + legacy .adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits, git commands w/ human-authored messages, authored PRs, CHANGELOG edits | direct write to .adlc/drafts/chdr/ |"
 echo "| team-learn | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch drafts/cdr/ |"
 echo "| tech-radar-boot | Tikal Tech Radar context | choosing/evaluating technology | radar context + direct write to .adlc/drafts/adr/ |"
 echo ""
@@ -134,19 +141,23 @@ echo ""
 # content is ever read (progressive disclosure intact): published indexes are
 # counted, never loaded into context. Arithmetic normalization strips wc -l
 # padding (a regex guard would zero real counts — wc pads with spaces).
-ADR_COUNT=$(ls .adlc/memory/adr/ADR-*.md 2>/dev/null | wc -l || true); ADR_COUNT=$((ADR_COUNT))
-PDR_COUNT=$(ls .adlc/memory/pdr/PDR-*.md 2>/dev/null | wc -l || true); PDR_COUNT=$((PDR_COUNT))
+# ADR-401 dual-read (R8): read docs/adlc/memory first, then legacy
+# .adlc/memory; counts sum both roots (migration overlap tolerated).
+ADR_COUNT=$(ls "${DOCS_ADLC_MEMORY:-docs/adlc/memory}"/adr/ADR-*.md .adlc/memory/adr/ADR-*.md 2>/dev/null | wc -l || true); ADR_COUNT=$((ADR_COUNT))
+PDR_COUNT=$(ls "${DOCS_ADLC_MEMORY:-docs/adlc/memory}"/pdr/PDR-*.md .adlc/memory/pdr/PDR-*.md 2>/dev/null | wc -l || true); PDR_COUNT=$((PDR_COUNT))
 _CHDR_FILE=0
-if [ -f .adlc/memory/chdr.md ]; then
-  # grep -c prints the count even on exit 1 (no match) — capture it, and map
-  # every other failure shape (empty, multi-line) to 0 via case validation.
-  _CHDR_FILE=$(grep -c '^\| ChDR' .adlc/memory/chdr.md 2>/dev/null || true)
-  case "$_CHDR_FILE" in ''|*[!0-9]*) _CHDR_FILE=0 ;; esac
-  _CHDR_FILE=$((_CHDR_FILE))
-fi
-_CHDR_DIR=$(ls .adlc/memory/chdr/ChDR-*.md 2>/dev/null | wc -l || true); _CHDR_DIR=$((_CHDR_DIR))
+for _chdr_index in "${DOCS_ADLC_MEMORY:-docs/adlc/memory}/chdr.md" ".adlc/memory/chdr.md"; do
+  if [ -f "$_chdr_index" ]; then
+    # grep -c prints the count even on exit 1 (no match) — capture it, and map
+    # every other failure shape (empty, multi-line) to 0 via case validation.
+    _chdr_rows=$(grep -c '^\| ChDR' "$_chdr_index" 2>/dev/null || true)
+    case "$_chdr_rows" in ''|*[!0-9]*) _chdr_rows=0 ;; esac
+    _CHDR_FILE=$((_CHDR_FILE + _chdr_rows))
+  fi
+done
+_CHDR_DIR=$(ls "${DOCS_ADLC_MEMORY:-docs/adlc/memory}"/chdr/ChDR-*.md .adlc/memory/chdr/ChDR-*.md 2>/dev/null | wc -l || true); _CHDR_DIR=$((_CHDR_DIR))
 CHDR_COUNT=$((_CHDR_FILE + _CHDR_DIR))
-EVAL_COUNT=$(ls .adlc/memory/evals/EVAL-*.md 2>/dev/null | wc -l || true); EVAL_COUNT=$((EVAL_COUNT))
+EVAL_COUNT=$(ls "${DOCS_ADLC_MEMORY:-docs/adlc/memory}"/evals/EVAL-*.md .adlc/memory/evals/EVAL-*.md 2>/dev/null | wc -l || true); EVAL_COUNT=$((EVAL_COUNT))
 # Normalized pending-status set — one dialect for every class. Previous
 # per-class greps drifted (ChDR matched Discovered, ADR/PDR did not) and all
 # missed real-world shapes (status: Proposed, Status:** Proposed). Case-
@@ -255,9 +266,9 @@ PENDING_ROWS=""
 PENDING_CLASSES=0
 _add_pending_row() { # $1=class-dir $2=glob $3=type $4=clarify
   _count=0
-  if [ -d ".adlc/drafts/$1" ]; then
+  if [ -d "${ADLC_DRAFTS:-.adlc/drafts}/$1" ]; then
     # shellcheck disable=SC2086
-    _count=$(grep -ril "$PENDING_STATUS" .adlc/drafts/$1/$2 2>/dev/null | wc -l || true); _count=$((_count))
+    _count=$(grep -ril "$PENDING_STATUS" ${ADLC_DRAFTS:-.adlc/drafts}/$1/$2 2>/dev/null | wc -l || true); _count=$((_count))
     if [ "$_count" -gt 0 ]; then
       PENDING_ROWS="${PENDING_ROWS}| — | ${_count} $3 draft(s) | $3 | .adlc/drafts/$1/ | pending | $4 |"$'\n'
       PENDING_CLASSES=$((PENDING_CLASSES + 1))
@@ -273,9 +284,9 @@ _add_pending_row evals "*.md" Eval /evals-clarify
 # Pending CDRs — local drafts PLUS adlc orphan branch in team-ai-directives
 # (git storage, not files). Row emits whenever either source is non-zero.
 PENDING_CDRS=0
-if [ -d ".adlc/drafts/cdr" ]; then
+if [ -d "${ADLC_DRAFTS:-.adlc/drafts}/cdr" ]; then
   # shellcheck disable=SC2086
-  _local_cdrs=$(grep -ril "$PENDING_STATUS" .adlc/drafts/cdr/*.md 2>/dev/null | wc -l || true); _local_cdrs=$((_local_cdrs))
+  _local_cdrs=$(grep -ril "$PENDING_STATUS" ${ADLC_DRAFTS:-.adlc/drafts}/cdr/*.md 2>/dev/null | wc -l || true); _local_cdrs=$((_local_cdrs))
   PENDING_CDRS=$((_local_cdrs))
 fi
 if [ -n "$TEAM_AI_DIRECTIVES" ] && [ -d "$TEAM_AI_DIRECTIVES/.git" ]; then
@@ -319,7 +330,7 @@ if [ "$CONTRIBUTE_HINT" = "true" ]; then
   echo "3. **PDR violation** — work contradicts an accepted PDR → suggest \`/product-clarify\`"
   echo "4. **Clarify backlog** — pending drafts in .adlc/drafts/ → suggest running clarify skills"
   echo ""
-  echo "Guardrail: Before assessing ADR/PDR alignment, read relevant ADR/PDR files from \`.adlc/memory/adr/\` and \`.adlc/memory/pdr/\` if not already loaded."
+  echo "Guardrail: Before assessing ADR/PDR alignment, read relevant ADR/PDR files from \`docs/adlc/memory/adr/\` and \`docs/adlc/memory/pdr/\` (legacy \`.adlc/memory/\` fallback) if not already loaded."
   echo "Do NOT suggest for routine work. At most one suggestion per task completion."
 fi
 

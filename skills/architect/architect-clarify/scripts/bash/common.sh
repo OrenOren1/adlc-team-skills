@@ -3,6 +3,16 @@
 # Minimal common helpers for adlc-skills architect-* skills.
 # Bundled with the skill so it works standalone, outside the Spec Kit extension system.
 
+# ADR-401 shared layout constants (single definition in paths.sh).
+_common_sh_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$_common_sh_dir/../../../../team/workspace/scripts/bash/paths.sh" ]; then
+    # shellcheck disable=SC1091
+    . "$_common_sh_dir/../../../../team/workspace/scripts/bash/paths.sh"
+elif [ -f "$_common_sh_dir/../../../workspace/scripts/bash/paths.sh" ]; then
+    # shellcheck disable=SC1091
+    . "$_common_sh_dir/../../../workspace/scripts/bash/paths.sh"
+fi
+
 # Locate the project root by walking up from CWD until we find .adlc or .git.
 _get_project_root() {
     local dir
@@ -25,7 +35,7 @@ _seed_templates() {
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     local src_dir="$script_dir/../../templates"
-    local dest_dir="$repo_root/.adlc/templates"
+    local dest_dir="$repo_root/${ADLC_DIR:-.adlc}/templates"
 
     [ -d "$src_dir" ] || return 0
 

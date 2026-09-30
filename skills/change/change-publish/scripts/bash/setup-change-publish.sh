@@ -2,6 +2,16 @@
 # setup-change-publish.sh — Setup for change-publish (self-contained)
 set -euo pipefail
 
+# ADR-401 shared layout constants (single definition in paths.sh).
+_ch_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$_ch_dir/../../../../team/workspace/scripts/bash/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_ch_dir/../../../../team/workspace/scripts/bash/paths.sh"
+elif [ -f "$_ch_dir/../../../workspace/scripts/bash/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_ch_dir/../../../workspace/scripts/bash/paths.sh"
+fi
+
 resolve_project_root() {
   local dir
   dir="$(pwd)"
@@ -16,9 +26,12 @@ resolve_project_root() {
 }
 
 PROJECT_ROOT=$(resolve_project_root)
-CHDR_DRAFTS_DIR="${PROJECT_ROOT}/.adlc/drafts/chdr"
-MEMORY_DIR="${PROJECT_ROOT}/.adlc/memory/chdr"
-MEMORY_INDEX="${PROJECT_ROOT}/.adlc/memory/chdr.md"
+CHDR_DRAFTS_DIR="${PROJECT_ROOT}/${ADLC_DRAFTS:-.adlc/drafts}/chdr"
+# ADR-401: published ChDRs live under docs/adlc/memory — promotion writes the
+# new path only; legacy .adlc/memory/chdr stays read-compatible (dual-read).
+MEMORY_DIR="${PROJECT_ROOT}/docs/adlc/memory/chdr"
+MEMORY_INDEX="${PROJECT_ROOT}/docs/adlc/memory/chdr.md"
+LEGACY_MEMORY_DIR="${PROJECT_ROOT}/.adlc/memory/chdr"
 
 mkdir -p "$MEMORY_DIR" 2>/dev/null || true
 
@@ -26,7 +39,8 @@ mkdir -p "$MEMORY_DIR" 2>/dev/null || true
 ACCEPTED_CHDRS=$( { grep -l '^### Status: \*\*Accepted\*\*' "$CHDR_DRAFTS_DIR"/ChDR-*.md 2>/dev/null || true; } | xargs -r -n1 basename 2>/dev/null | tr '\n' ' ' | sed 's/ *$//')
 ACCEPTED_COUNT=$( { grep -l '^### Status: \*\*Accepted\*\*' "$CHDR_DRAFTS_DIR"/ChDR-*.md 2>/dev/null || true; } | wc -l | tr -d ' ')
 PUBLISHED_COUNT=$( { grep -l '^### Status: \*\*Published\*\*' "$CHDR_DRAFTS_DIR"/ChDR-*.md 2>/dev/null || true; } | wc -l | tr -d ' ')
-MEMORY_COUNT=$( { ls -1 "$MEMORY_DIR"/ChDR-*.md 2>/dev/null || true; } | wc -l | tr -d ' ')
+# Dual-read (ADR-401 R8): count records in both the new and the legacy root.
+MEMORY_COUNT=$(( $( { ls -1 "$MEMORY_DIR"/ChDR-*.md 2>/dev/null || true; } | wc -l | tr -d ' ') + $( { ls -1 "$LEGACY_MEMORY_DIR"/ChDR-*.md 2>/dev/null || true; } | wc -l | tr -d ' ') ))
 MEMORY_INDEX_EXISTS=$([[ -f "$MEMORY_INDEX" ]] && echo "true" || echo "false")
 
 python3 - "$PROJECT_ROOT" "$CHDR_DRAFTS_DIR" "$MEMORY_DIR" "$MEMORY_INDEX" "$ACCEPTED_CHDRS" "$ACCEPTED_COUNT" "$PUBLISHED_COUNT" "$MEMORY_COUNT" "$MEMORY_INDEX_EXISTS" << 'PY'

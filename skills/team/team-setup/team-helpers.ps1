@@ -360,9 +360,9 @@ Invoke the matching class boot when a task or decision matches a row:
 
 | Boot | Injects | Invoke When | Capture Via |
 |--|--|--|--|
-| architect-boot | ADR index (.adlc/memory/adr/) | architecture work; tech-stack/pattern choice | /architect-specify |
-| product-boot | PDR index (.adlc/memory/pdr/) | product/feature scope, personas, monetization | /product-specify |
-| change-boot | ChDR index (.adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits, git commands w/ human-authored messages, authored PRs, CHANGELOG edits | /change-init |
+| architect-boot | ADR index (docs/adlc/memory/adr/ + legacy .adlc/memory/adr/) | architecture work; tech-stack/pattern choice | /architect-specify |
+| product-boot | PDR index (docs/adlc/memory/pdr/ + legacy .adlc/memory/pdr/) | product/feature scope, personas, monetization | /product-specify |
+| change-boot | ChDR index (docs/adlc/memory/chdr.md + legacy .adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits, git commands w/ human-authored messages, authored PRs, CHANGELOG edits | /change-init |
 | team-boot | CDR module bodies (team-ai-directives) | CDR descriptor match; reusable team pattern | /team-learn |
 | tech-radar-boot | Tikal Tech Radar context | choosing/evaluating technology | radar context + /architect-specify |
 

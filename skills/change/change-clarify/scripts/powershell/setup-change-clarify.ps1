@@ -2,6 +2,13 @@
 # setup-change-clarify.ps1 — Setup for change-clarify (self-contained)
 $ErrorActionPreference = "Stop"
 
+# ADR-401 shared layout constants (single definition in paths.ps1).
+$AdlcPathsPs1 = "$PSScriptRoot/../../../../team/workspace/scripts/powershell/paths.ps1"
+if (-not (Test-Path $AdlcPathsPs1)) {
+    $AdlcPathsPs1 = "$PSScriptRoot/../../../workspace/scripts/powershell/paths.ps1"
+}
+if (Test-Path $AdlcPathsPs1) { . $AdlcPathsPs1 }
+
 function Resolve-ProjectRoot {
     $dir = $PSScriptRoot
     while ($dir -ne "") {
@@ -17,7 +24,9 @@ function Resolve-ProjectRoot {
 
 $ProjectRoot = Resolve-ProjectRoot
 $ChdrDraftsDir = Join-Path $projectRoot ".adlc/drafts/chdr"
-$MemoryDir = Join-Path $projectRoot ".adlc/memory/chdr"
+# ADR-401: published ChDRs live under docs/adlc/memory (legacy .adlc/memory/chdr
+# stays read-compatible — dual-read).
+$MemoryDir = Join-Path $projectRoot "docs/adlc/memory/chdr"
 
 if (-not (Test-Path $ChdrDraftsDir)) { New-Item -ItemType Directory -Path $ChdrDraftsDir -Force | Out-Null }
 

@@ -126,7 +126,7 @@ Given the PRD input, execute this workflow:
 
 1. **Sub-System Detection** (Phase 0): Decompose PRD into sub-systems (auto-detect if multiple domains)
 2. **Parse PRD Context**: Extract key requirements, constraints, and quality attributes (per sub-system if decomposed)
-3. **Load Governance**: Check `{REPO_ROOT}/.adlc/memory/constitution.md` for architectural constraints
+3. **Load Governance**: Check `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `{REPO_ROOT}/.adlc/memory/constitution.md` fallback — ADR-401 dual-read) for architectural constraints
 4. **Exploration Phase**: Interactive discussion to surface trade-offs and options (per sub-system)
 5. **Decision Phase**: Document decisions as ADRs with full rationale (organized by sub-system)
 6. **Output**: Write ADRs to `{REPO_ROOT}/.adlc/drafts/adr/ADR-{NNN}.md` with sub-system organization
@@ -290,7 +290,7 @@ After confirmation, output structured sub-system data:
    - Regulatory or compliance requirements
 
 4. **Load Constitution**:
-   - Read `{REPO_ROOT}/.adlc/memory/constitution.md` if it exists
+   - Read `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `{REPO_ROOT}/.adlc/memory/constitution.md` fallback) if either exists
    - Extract architectural principles that must be honored
    - Note any constraints that limit architectural choices
 

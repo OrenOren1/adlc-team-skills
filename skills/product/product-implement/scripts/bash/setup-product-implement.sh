@@ -7,10 +7,22 @@ source "$(dirname "${BASH_SOURCE[0]}")/../../../product-clarify/scripts/bash/pdr
 # Fail fast when the canonical helper is absent (selective install without
 # product-clarify) instead of dying later on a missing function.
 command -v generate_pdr_index >/dev/null 2>&1 || { echo "ERROR: pdr-lib.sh not loaded — install the product-clarify skill: adlc-cli skills add tikalk/adlc-team-skills --skill product-clarify" >&2; return 1 2>/dev/null || exit 1; }
+
+# ADR-401 shared layout constants (single definition in paths.sh; pdr-lib.sh
+# sources it too — this block keeps the script correct standalone).
+_pd_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$_pd_dir/../../../../team/workspace/scripts/bash/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_pd_dir/../../../../team/workspace/scripts/bash/paths.sh"
+elif [ -f "$_pd_dir/../../../workspace/scripts/bash/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_pd_dir/../../../workspace/scripts/bash/paths.sh"
+fi
 REPO_ROOT="${REPO_ROOT:-$(_get_project_root)}"
-PDR_DRAFTS_DIR="$REPO_ROOT/.adlc/drafts/pdr"
-PDR_MEMORY_DIR="$REPO_ROOT/.adlc/memory/pdr"
-PRD_FILE="$REPO_ROOT/PRD.md"
+PDR_DRAFTS_DIR="$REPO_ROOT/${ADLC_DRAFTS:-.adlc/drafts}/pdr"
+# ADR-401: canonical PDR memory root (legacy .adlc/memory stays read-compatible).
+PDR_MEMORY_DIR="$REPO_ROOT/docs/adlc/memory/pdr"
+PRD_FILE="$REPO_ROOT/docs/adlc/product/PRD.md"
 SECTIONS_DIR="$REPO_ROOT/.adlc/product/sections"
 STATE_FILE="$REPO_ROOT/.adlc/product/state.json"
 
@@ -18,6 +30,8 @@ mkdir -p "$PDR_DRAFTS_DIR"
 mkdir -p "$PDR_MEMORY_DIR"
 mkdir -p "$SECTIONS_DIR"
 mkdir -p "$REPO_ROOT/.adlc/product"
+# ADR-401: compiled PRD lives under docs/adlc/product/ — ensure the parent exists.
+mkdir -p "$REPO_ROOT/${DOCS_ADLC_PRODUCT:-docs/adlc/product}"
 
 ACCEPTED_COUNT=0
 if [[ -d "$PDR_DRAFTS_DIR" ]]; then

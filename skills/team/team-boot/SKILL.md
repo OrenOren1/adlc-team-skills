@@ -34,9 +34,9 @@ the event hook already ran — do nothing.
 
 | Boot | Injects | Invoke When | Capture Via |
 |------|---------|-------------|-------------|
-| `architect-boot` | ADR index (`.adlc/memory/adr/`) | architecture work; tech-stack/pattern choice | direct write to `.adlc/drafts/adr/` |
-| `product-boot` | PDR index (`.adlc/memory/pdr/`) | product/feature scope, personas, monetization | direct write to `.adlc/drafts/pdr/` |
-| `change-boot` | ChDR index (`.adlc/memory/chdr.md`) | change-history rationale, reverts, issue-linked commits | direct write to `.adlc/drafts/chdr/` |
+| `architect-boot` | ADR index (`docs/adlc/memory/adr/` + legacy `.adlc/memory/adr/`) | architecture work; tech-stack/pattern choice | direct write to `.adlc/drafts/adr/` |
+| `product-boot` | PDR index (`docs/adlc/memory/pdr/` + legacy `.adlc/memory/pdr/`) | product/feature scope, personas, monetization | direct write to `.adlc/drafts/pdr/` |
+| `change-boot` | ChDR index (`docs/adlc/memory/chdr.md` + legacy `.adlc/memory/chdr.md`) | change-history rationale, reverts, issue-linked commits | direct write to `.adlc/drafts/chdr/` |
 | `team-learn` | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch `drafts/cdr/` |
 | `tech-radar-boot` | Tikal Tech Radar context | choosing/evaluating technology | radar context + direct write to `.adlc/drafts/adr/` |
 

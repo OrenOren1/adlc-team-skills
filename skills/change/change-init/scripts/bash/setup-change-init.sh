@@ -2,6 +2,16 @@
 # setup-change-init.sh — Setup for change-init (self-contained)
 set -euo pipefail
 
+# ADR-401 shared layout constants (single definition in paths.sh).
+_ch_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$_ch_dir/../../../../team/workspace/scripts/bash/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_ch_dir/../../../../team/workspace/scripts/bash/paths.sh"
+elif [ -f "$_ch_dir/../../../workspace/scripts/bash/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_ch_dir/../../../workspace/scripts/bash/paths.sh"
+fi
+
 ###############################################################################
 # Inline path resolution (no external helper dependency)
 ###############################################################################
@@ -80,7 +90,7 @@ TEAM_AI_DIRECTIVES=$(resolve_team_ai_directives "$PROJECT_ROOT")
 BRANCH=$(resolve_branch)
 GIT_AVAILABLE=$(git_available)
 DEFAULT_BRANCH=$(default_branch)
-CHDR_DRAFTS_DIR="${PROJECT_ROOT}/.adlc/drafts/chdr"
+CHDR_DRAFTS_DIR="${PROJECT_ROOT}/${ADLC_DRAFTS:-.adlc/drafts}/chdr"
 CHANGE_STATE_FILE="${PROJECT_ROOT}/.adlc/change/state.json"
 
 mkdir -p "$CHDR_DRAFTS_DIR" "$(dirname "$CHANGE_STATE_FILE")" 2>/dev/null || true
