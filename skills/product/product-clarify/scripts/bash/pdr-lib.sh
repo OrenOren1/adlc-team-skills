@@ -22,6 +22,19 @@
 set -euo pipefail
 
 # ============================================================================
+# ADR-401 shared layout constants (single definition in paths.sh)
+# ============================================================================
+
+_pdr_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$_pdr_lib_dir/../../../../team/workspace/scripts/bash/paths.sh" ]; then
+    # shellcheck disable=SC1091
+    . "$_pdr_lib_dir/../../../../team/workspace/scripts/bash/paths.sh"
+elif [ -f "$_pdr_lib_dir/../../../workspace/scripts/bash/paths.sh" ]; then
+    # shellcheck disable=SC1091
+    . "$_pdr_lib_dir/../../../workspace/scripts/bash/paths.sh"
+fi
+
+# ============================================================================
 # Project root resolution (mirror of common.sh _get_project_root)
 # ============================================================================
 

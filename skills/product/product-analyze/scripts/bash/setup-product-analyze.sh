@@ -4,6 +4,16 @@ set -euo pipefail
 JSON_MODE=false
 for arg in "$@"; do case "$arg" in --json) JSON_MODE=true ;; esac; done
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+
+# ADR-401 shared layout constants (single definition in paths.sh).
+_pd_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$_pd_dir/../../../../team/workspace/scripts/bash/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_pd_dir/../../../../team/workspace/scripts/bash/paths.sh"
+elif [ -f "$_pd_dir/../../../workspace/scripts/bash/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_pd_dir/../../../workspace/scripts/bash/paths.sh"
+fi
 PDR_DRAFTS_DIR="$REPO_ROOT/.adlc/drafts/pdr"
 PRD_FILE="$REPO_ROOT/PRD.md"
 PDR_COUNT=$(find "$PDR_DRAFTS_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l)

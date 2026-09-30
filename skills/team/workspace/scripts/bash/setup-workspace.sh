@@ -14,6 +14,16 @@ for arg in "$@"; do
 done
 
 ###############################################################################
+# ADR-401 shared layout constants (single definition in paths.sh)
+###############################################################################
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$SCRIPT_DIR/paths.sh"
+fi
+
+###############################################################################
 # Path resolution (inline — no external helper dependency)
 ###############################################################################
 

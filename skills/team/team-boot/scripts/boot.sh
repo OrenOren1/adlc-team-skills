@@ -3,6 +3,13 @@
 # Pure shell (grep/sed), no runtime dependencies.
 set -euo pipefail
 
+# ADR-401 shared layout constants (single definition in paths.sh).
+_boot_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$_boot_dir/../../workspace/scripts/bash/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_boot_dir/../../workspace/scripts/bash/paths.sh"
+fi
+
 # file_edited payload mode (event-driven, not session-start).
 # The dispatcher sets ADLC_EVENT and forwards the event payload on stdin.
 # When a decision draft lands in .adlc/drafts/{type}/, suggest the matching

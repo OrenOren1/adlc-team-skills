@@ -40,6 +40,16 @@ fi
 # Get all paths and variables from common functions
 eval "$(get_feature_paths)"
 
+# ADR-401 shared layout constants (single definition in paths.sh; common.sh
+# already sources it — this block keeps the script correct standalone).
+if [ -f "$SCRIPT_DIR/../../../../team/workspace/scripts/bash/paths.sh" ]; then
+    # shellcheck disable=SC1091
+    . "$SCRIPT_DIR/../../../../team/workspace/scripts/bash/paths.sh"
+elif [ -f "$SCRIPT_DIR/../../../workspace/scripts/bash/paths.sh" ]; then
+    # shellcheck disable=SC1091
+    . "$SCRIPT_DIR/../../../workspace/scripts/bash/paths.sh"
+fi
+
 # Parse arguments (run after common.sh to have REPO_ROOT defined)
 while [[ $# -gt 0 ]]; do
     case "$1" in

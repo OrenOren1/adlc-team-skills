@@ -6,6 +6,17 @@ for arg in "$@"; do case "$arg" in --json) JSON_MODE=true ;; esac; done
 
 # Source pdr-lib.sh for _get_project_root (walks up to find .adlc, not just .git)
 source "$(dirname "${BASH_SOURCE[0]}")/pdr-lib.sh" 2>/dev/null || true
+
+# ADR-401 shared layout constants (single definition in paths.sh; pdr-lib.sh
+# sources it too — this block keeps the script correct standalone).
+_pd_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$_pd_dir/../../../../team/workspace/scripts/bash/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_pd_dir/../../../../team/workspace/scripts/bash/paths.sh"
+elif [ -f "$_pd_dir/../../../workspace/scripts/bash/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$_pd_dir/../../../workspace/scripts/bash/paths.sh"
+fi
 REPO_ROOT="${REPO_ROOT:-$(_get_project_root)}"
 PDR_DRAFTS_DIR="$REPO_ROOT/.adlc/drafts/pdr"
 PDR_MEMORY_DIR="$REPO_ROOT/.adlc/memory/pdr"

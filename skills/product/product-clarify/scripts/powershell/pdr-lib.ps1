@@ -13,6 +13,13 @@
 #   Migrate-PdrToFrontmatter .adlc\memory\pdr\PDR-001.md   # one-time legacy migration
 $ErrorActionPreference = "Stop"
 
+# ADR-401 shared layout constants (single definition in paths.ps1).
+$PdrLibPathsPs1 = "$PSScriptRoot/../../../../team/workspace/scripts/powershell/paths.ps1"
+if (-not (Test-Path $PdrLibPathsPs1)) {
+    $PdrLibPathsPs1 = "$PSScriptRoot/../../../workspace/scripts/powershell/paths.ps1"
+}
+if (Test-Path $PdrLibPathsPs1) { . $PdrLibPathsPs1 }
+
 # ============================================================================
 # Project root resolution
 # ============================================================================

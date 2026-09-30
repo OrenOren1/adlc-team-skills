@@ -2,6 +2,10 @@
 # PowerShell native (ConvertFrom-Json).
 $ErrorActionPreference = "Stop"
 
+# ADR-401 shared layout constants (single definition in paths.ps1).
+$BootPathsPs1 = "$PSScriptRoot/../../workspace/scripts/powershell/paths.ps1"
+if (Test-Path $BootPathsPs1) { . $BootPathsPs1 }
+
 # file_edited payload mode (event-driven, not session-start).
 # The dispatcher sets ADLC_EVENT and forwards the event payload on stdin.
 # When a decision draft lands in .adlc/drafts/{type}/, suggest the matching

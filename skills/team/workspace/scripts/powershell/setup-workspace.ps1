@@ -6,6 +6,14 @@
 $ErrorActionPreference = "Stop"
 
 ###############################################################################
+# ADR-401 shared layout constants (single definition in paths.ps1)
+###############################################################################
+
+$PathsPs1 = Join-Path $PSScriptRoot "paths.ps1"
+if (Test-Path $PathsPs1) { . $PathsPs1 }
+
+
+###############################################################################
 # Path resolution (inline — no external helper dependency)
 ###############################################################################
 

@@ -17,6 +17,14 @@ $Decompose = -not $NoDecompose
 
 $ErrorActionPreference = 'Stop'
 
+# ADR-401 shared layout constants (single definition in paths.ps1).
+$ArchitectPathsPs1 = "$PSScriptRoot/../../../../team/workspace/scripts/powershell/paths.ps1"
+if (-not (Test-Path $ArchitectPathsPs1)) {
+    $ArchitectPathsPs1 = "$PSScriptRoot/../../../workspace/scripts/powershell/paths.ps1"
+}
+if (Test-Path $ArchitectPathsPs1) { . $ArchitectPathsPs1 }
+
+
 if ($Help) {
     Write-Output "Usage: ./setup-architect.ps1 [action] [context] [-Views VIEWS] [-AdrHeuristic HEURISTIC] [-Json] [-Help]"
     Write-Output ""
