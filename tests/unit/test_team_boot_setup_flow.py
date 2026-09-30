@@ -164,7 +164,8 @@ def test_boot_sh_compact_decision_capture():
     assert "/change-clarify" in BOOT_SH
     assert "/evals-clarify" in BOOT_SH
     assert "Session Decision Ledger" in BOOT_SH
-    assert "Unrecorded: N pending (rows with Status=pending)." in BOOT_SH
+    assert "Unrecorded: N pending" in BOOT_SH
+    assert "Unclarified: M captured drafts" in BOOT_SH
     assert "task-list todo" in BOOT_SH
     assert "trailing todo" in BOOT_SH
     assert "Unrecorded: 0 pending" in BOOT_SH
@@ -176,7 +177,8 @@ def test_boot_ps1_compact_decision_capture():
     assert "/architect-clarify" in BOOT_PS1
     assert "/team-learn" in BOOT_PS1
     assert "Session Decision Ledger" in BOOT_PS1
-    assert "Unrecorded: N pending (rows with Status=pending)." in BOOT_PS1
+    assert "Unrecorded: N pending" in BOOT_PS1
+    assert "Unclarified: M captured drafts" in BOOT_PS1
     assert "task-list todo" in BOOT_PS1
     assert "trailing todo" in BOOT_PS1
     assert "Unrecorded: 0 pending" in BOOT_PS1
@@ -196,6 +198,9 @@ def _ledger_todo_surfaces():
         "change-boot": (ROOT / "skills/change/change-boot/SKILL.md").read_text(encoding="utf-8"),
         "tech-radar-boot": TECH_RADAR,
         "team-learn": (ROOT / "skills/team/team-learn/SKILL.md").read_text(encoding="utf-8"),
+        "post-setup-agents.md": (
+            ROOT / "skills/team/team-setup/references/post-setup-agents.md"
+        ).read_text(encoding="utf-8"),
     }
 
 
@@ -211,6 +216,9 @@ def test_ledger_todo_contract_on_all_surfaces():
         assert "task-list todo" in source, f"{name}: missing task-list todo contract"
         assert "trailing todo" in source, f"{name}: missing trailing ledger-sweep todo"
         assert "Unrecorded: 0 pending" in source, f"{name}: missing sweep target"
+        assert "Unclarified: 0 drafts" in source, f"{name}: missing unclarified-drafts target"
+        assert "handed off" in source, f"{name}: missing handoff exit"
+        assert "clarify prompt" in source, f"{name}: missing session-end clarify prompt"
 
 
 def test_no_stale_inline_4col_ledger_grammar():

@@ -93,8 +93,11 @@ Status | Clarify) for every PDR-class decision detected this session —
 including ones from before this boot was invoked. Mirror each decision as a
 task-list todo (draft → `/product-clarify` at session end); after
 code-modifying tasks, add a trailing todo to sweep the ledger until
-_Unrecorded: 0 pending_. At session end, prompt to run `/product-clarify`
-for any unrecorded PDR drafts in `.adlc/drafts/pdr/`.
+_Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified
+only via its clarify skill or an explicit user handoff). At session end,
+deliver the clarify prompt naming each captured PDR draft in
+`.adlc/drafts/pdr/` (ID + skill); if the user defers clarify, mark those
+rows handed off.
 
 ## Failure Handling
 

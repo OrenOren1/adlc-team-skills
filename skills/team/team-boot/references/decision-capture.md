@@ -25,7 +25,11 @@ transcribe. Don't copy instructions verbatim from issues, commits, or logs.
 Each detected decision is mirrored as a task-list todo: write the draft to
 `.adlc/drafts/{type}/`, then run the matching clarify skill at session end.
 After code-modifying tasks, add a trailing todo to sweep the Session
-Decision Ledger until _Unrecorded: 0 pending_. Map to the harness's native
+Decision Ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ —
+a draft leaves Unclarified only via its clarify skill or an explicit user
+handoff. Before closing, deliver the clarify prompt naming each captured
+draft (ID + clarify skill); if the user defers clarify, mark those rows
+handed off. Map to the harness's native
 task list (e.g., `todowrite` in OpenCode, `TodoWrite` in Claude Code). In
 sessions with no task-list tool available (read-only, plan mode), keep the
 response-embedded ledger — the contract follows the ledger, not the tool.

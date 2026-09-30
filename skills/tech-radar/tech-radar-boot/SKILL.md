@@ -202,10 +202,11 @@ A technology selection is an **ADR-class decision**:
 Add/refresh rows in the **Session Decision Ledger** (ID | Name | Type | Rel |
 Status | Clarify) for the selection, mirrored as a task-list todo (draft →
 `/architect-specify` at session end); after code-modifying tasks, add a
-trailing todo to sweep the ledger until _Unrecorded: 0 pending_. If
+trailing todo to sweep the ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff). If
 `architect-boot` was already invoked this session, extend its ledger rows
-with the radar evidence; at session end, prompt to run `/architect-specify`
-for any unrecorded tech selections.
+with the radar evidence; at session end, deliver the clarify prompt naming
+each captured tech-selection draft (ID + skill); if the user defers clarify,
+mark those rows handed off.
 
 ## Failure Handling
 

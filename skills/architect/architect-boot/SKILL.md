@@ -95,8 +95,11 @@ Status | Clarify) for every ADR-class decision detected this session —
 including ones from before this boot was invoked. Mirror each decision as a
 task-list todo (draft → `/architect-clarify` at session end); after
 code-modifying tasks, add a trailing todo to sweep the ledger until
-_Unrecorded: 0 pending_. At session end, prompt to run `/architect-clarify`
-for any unrecorded ADR drafts in `.adlc/drafts/adr/`.
+_Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified
+only via its clarify skill or an explicit user handoff). At session end,
+deliver the clarify prompt naming each captured ADR draft in
+`.adlc/drafts/adr/` (ID + skill); if the user defers clarify, mark those
+rows handed off.
 
 ## Failure Handling
 
