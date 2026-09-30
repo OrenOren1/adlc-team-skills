@@ -108,9 +108,9 @@ echo "## Class Boots"
 echo ""
 echo "| Boot | Injects | Invoke When | Capture Via |"
 echo "|--|--|--|--|"
-echo "| architect-boot | ADR index (.adlc/memory/adr/) | architecture work; tech-stack/pattern choice | direct write to .adlc/drafts/adr/ |"
-echo "| product-boot | PDR index (.adlc/memory/pdr/) | product/feature scope, personas, monetization | direct write to .adlc/drafts/pdr/ |"
-echo "| change-boot | ChDR index (.adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits, git commands w/ human-authored messages, authored PRs, CHANGELOG edits | direct write to .adlc/drafts/chdr/ |"
+echo "| architect-boot | ADR index (docs/adlc/memory/adr/ + legacy .adlc/memory/adr/) | architecture work; tech-stack/pattern choice | direct write to .adlc/drafts/adr/ |"
+echo "| product-boot | PDR index (docs/adlc/memory/pdr/ + legacy .adlc/memory/pdr/) | product/feature scope, personas, monetization | direct write to .adlc/drafts/pdr/ |"
+echo "| change-boot | ChDR index (docs/adlc/memory/chdr.md + legacy .adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits, git commands w/ human-authored messages, authored PRs, CHANGELOG edits | direct write to .adlc/drafts/chdr/ |"
 echo "| team-learn | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch drafts/cdr/ |"
 echo "| tech-radar-boot | Tikal Tech Radar context | choosing/evaluating technology | radar context + direct write to .adlc/drafts/adr/ |"
 echo ""
@@ -136,19 +136,23 @@ echo ""
 # content is ever read (progressive disclosure intact): published indexes are
 # counted, never loaded into context. Arithmetic normalization strips wc -l
 # padding (a regex guard would zero real counts — wc pads with spaces).
-ADR_COUNT=$(ls .adlc/memory/adr/ADR-*.md 2>/dev/null | wc -l || true); ADR_COUNT=$((ADR_COUNT))
-PDR_COUNT=$(ls .adlc/memory/pdr/PDR-*.md 2>/dev/null | wc -l || true); PDR_COUNT=$((PDR_COUNT))
+# ADR-401 dual-read (R8): read docs/adlc/memory first, then legacy
+# .adlc/memory; counts sum both roots (migration overlap tolerated).
+ADR_COUNT=$(ls "${DOCS_ADLC_MEMORY:-docs/adlc/memory}"/adr/ADR-*.md .adlc/memory/adr/ADR-*.md 2>/dev/null | wc -l || true); ADR_COUNT=$((ADR_COUNT))
+PDR_COUNT=$(ls "${DOCS_ADLC_MEMORY:-docs/adlc/memory}"/pdr/PDR-*.md .adlc/memory/pdr/PDR-*.md 2>/dev/null | wc -l || true); PDR_COUNT=$((PDR_COUNT))
 _CHDR_FILE=0
-if [ -f .adlc/memory/chdr.md ]; then
-  # grep -c prints the count even on exit 1 (no match) — capture it, and map
-  # every other failure shape (empty, multi-line) to 0 via case validation.
-  _CHDR_FILE=$(grep -c '^\| ChDR' .adlc/memory/chdr.md 2>/dev/null || true)
-  case "$_CHDR_FILE" in ''|*[!0-9]*) _CHDR_FILE=0 ;; esac
-  _CHDR_FILE=$((_CHDR_FILE))
-fi
-_CHDR_DIR=$(ls .adlc/memory/chdr/ChDR-*.md 2>/dev/null | wc -l || true); _CHDR_DIR=$((_CHDR_DIR))
+for _chdr_index in "${DOCS_ADLC_MEMORY:-docs/adlc/memory}/chdr.md" ".adlc/memory/chdr.md"; do
+  if [ -f "$_chdr_index" ]; then
+    # grep -c prints the count even on exit 1 (no match) — capture it, and map
+    # every other failure shape (empty, multi-line) to 0 via case validation.
+    _chdr_rows=$(grep -c '^\| ChDR' "$_chdr_index" 2>/dev/null || true)
+    case "$_chdr_rows" in ''|*[!0-9]*) _chdr_rows=0 ;; esac
+    _CHDR_FILE=$((_CHDR_FILE + _chdr_rows))
+  fi
+done
+_CHDR_DIR=$(ls "${DOCS_ADLC_MEMORY:-docs/adlc/memory}"/chdr/ChDR-*.md .adlc/memory/chdr/ChDR-*.md 2>/dev/null | wc -l || true); _CHDR_DIR=$((_CHDR_DIR))
 CHDR_COUNT=$((_CHDR_FILE + _CHDR_DIR))
-EVAL_COUNT=$(ls .adlc/memory/evals/EVAL-*.md 2>/dev/null | wc -l || true); EVAL_COUNT=$((EVAL_COUNT))
+EVAL_COUNT=$(ls "${DOCS_ADLC_MEMORY:-docs/adlc/memory}"/evals/EVAL-*.md .adlc/memory/evals/EVAL-*.md 2>/dev/null | wc -l || true); EVAL_COUNT=$((EVAL_COUNT))
 # Normalized pending-status set — one dialect for every class. Previous
 # per-class greps drifted (ChDR matched Discovered, ADR/PDR did not) and all
 # missed real-world shapes (status: Proposed, Status:** Proposed). Case-

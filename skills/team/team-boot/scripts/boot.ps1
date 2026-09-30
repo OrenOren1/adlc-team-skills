@@ -117,9 +117,9 @@ Write-Output "## Class Boots"
 Write-Output ""
 Write-Output "| Boot | Injects | Invoke When | Capture Via |"
 Write-Output "|--|--|--|--|"
-Write-Output "| architect-boot | ADR index (.adlc/memory/adr/) | architecture work; tech-stack/pattern choice | direct write to .adlc/drafts/adr/ |"
-Write-Output "| product-boot | PDR index (.adlc/memory/pdr/) | product/feature scope, personas, monetization | direct write to .adlc/drafts/pdr/ |"
-Write-Output "| change-boot | ChDR index (.adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits, git commands w/ human-authored messages, authored PRs, CHANGELOG edits | direct write to .adlc/drafts/chdr/ |"
+Write-Output "| architect-boot | ADR index (docs/adlc/memory/adr/ + legacy .adlc/memory/adr/) | architecture work; tech-stack/pattern choice | direct write to .adlc/drafts/adr/ |"
+Write-Output "| product-boot | PDR index (docs/adlc/memory/pdr/ + legacy .adlc/memory/pdr/) | product/feature scope, personas, monetization | direct write to .adlc/drafts/pdr/ |"
+Write-Output "| change-boot | ChDR index (docs/adlc/memory/chdr.md + legacy .adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits, git commands w/ human-authored messages, authored PRs, CHANGELOG edits | direct write to .adlc/drafts/chdr/ |"
 Write-Output "| team-learn | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch drafts/cdr/ |"
 Write-Output "| tech-radar-boot | Tikal Tech Radar context | choosing/evaluating technology | radar context + direct write to .adlc/drafts/adr/ |"
 Write-Output ""
@@ -143,14 +143,19 @@ Write-Output "_Total: $SkillTotal skills available._"
 Write-Output ""
 
 # Scope counts — accepted-record inventory per class (cheap globs, no content).
-$AdrCount = @(Get-ChildItem ".adlc/memory/adr/ADR-*.md" -ErrorAction SilentlyContinue).Count
-$PdrCount = @(Get-ChildItem ".adlc/memory/pdr/PDR-*.md" -ErrorAction SilentlyContinue).Count
+# ADR-401 dual-read (R8): count docs/adlc/memory first, then legacy
+# .adlc/memory; counts sum both roots (migration overlap tolerated).
+$AdrCount = @(Get-ChildItem "docs/adlc/memory/adr/ADR-*.md" -ErrorAction SilentlyContinue).Count + @(Get-ChildItem ".adlc/memory/adr/ADR-*.md" -ErrorAction SilentlyContinue).Count
+$PdrCount = @(Get-ChildItem "docs/adlc/memory/pdr/PDR-*.md" -ErrorAction SilentlyContinue).Count + @(Get-ChildItem ".adlc/memory/pdr/PDR-*.md" -ErrorAction SilentlyContinue).Count
 $ChdrCount = 0
-if (Test-Path ".adlc/memory/chdr.md") {
-    $ChdrCount = @(Select-String -Path ".adlc/memory/chdr.md" -Pattern '^\| ChDR' -ErrorAction SilentlyContinue).Count
+foreach ($chdrIndex in @("docs/adlc/memory/chdr.md", ".adlc/memory/chdr.md")) {
+    if (Test-Path $chdrIndex) {
+        $ChdrCount += @(Select-String -Path $chdrIndex -Pattern '^\| ChDR' -ErrorAction SilentlyContinue).Count
+    }
 }
+$ChdrCount += @(Get-ChildItem "docs/adlc/memory/chdr/ChDR-*.md" -ErrorAction SilentlyContinue).Count
 $ChdrCount += @(Get-ChildItem ".adlc/memory/chdr/ChDR-*.md" -ErrorAction SilentlyContinue).Count
-$EvalCount = @(Get-ChildItem ".adlc/memory/evals/EVAL-*.md" -ErrorAction SilentlyContinue).Count
+$EvalCount = @(Get-ChildItem "docs/adlc/memory/evals/EVAL-*.md" -ErrorAction SilentlyContinue).Count + @(Get-ChildItem ".adlc/memory/evals/EVAL-*.md" -ErrorAction SilentlyContinue).Count
 # Normalized pending-status set — one dialect for every class (-match is
 # case-insensitive; [ *]* tolerates "Status:** Proposed" shapes).
 $PendingStatus = 'status:[ *]*proposed|status:[ *]*discovered|status:[ *]*draft'

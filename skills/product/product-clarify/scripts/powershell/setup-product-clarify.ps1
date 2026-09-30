@@ -10,7 +10,8 @@ if (-not (Test-Path $AdlcPathsPs1)) {
 if (Test-Path $AdlcPathsPs1) { . $AdlcPathsPs1 }
 $RepoRoot = $(git rev-parse --show-toplevel 2>$null); if (-not $RepoRoot) { $RepoRoot = Get-Location }
 $PdrDraftsDir = Join-Path $RepoRoot ".adlc/drafts/pdr"
-$PdrMemoryDir = Join-Path $RepoRoot ".adlc/memory/pdr"
+# ADR-401: canonical PDR memory root (legacy .adlc/memory stays read-compatible).
+$PdrMemoryDir = Join-Path $RepoRoot "docs/adlc/memory/pdr"
 $PrdFile = Join-Path $RepoRoot "PRD.md"
 New-Item -ItemType Directory -Force -Path $PdrDraftsDir | Out-Null
 $pdrCount = if (Test-Path $PdrDraftsDir) { (Get-ChildItem -Path $PdrDraftsDir -Filter 'PDR-*.md').Count } else { 0 }

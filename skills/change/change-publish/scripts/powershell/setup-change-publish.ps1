@@ -24,8 +24,11 @@ function Resolve-ProjectRoot {
 
 $ProjectRoot = Resolve-ProjectRoot
 $ChdrDraftsDir = Join-Path $projectRoot ".adlc/drafts/chdr"
-$MemoryDir = Join-Path $projectRoot ".adlc/memory/chdr"
-$MemoryIndex = Join-Path $projectRoot ".adlc/memory/chdr.md"
+# ADR-401: published ChDRs live under docs/adlc/memory — promotion writes the
+# new path only; legacy .adlc/memory/chdr stays read-compatible (dual-read).
+$MemoryDir = Join-Path $projectRoot "docs/adlc/memory/chdr"
+$MemoryIndex = Join-Path $projectRoot "docs/adlc/memory/chdr.md"
+$LegacyMemoryDir = Join-Path $projectRoot ".adlc/memory/chdr"
 
 if (-not (Test-Path $MemoryDir)) { New-Item -ItemType Directory -Path $MemoryDir -Force | Out-Null }
 
@@ -42,7 +45,8 @@ foreach ($f in $draftFiles) {
         $PublishedCount++
     }
 }
-$MemoryCount = @(Get-ChildItem -Path $MemoryDir -Filter "ChDR-*.md" -ErrorAction SilentlyContinue).Count
+# Dual-read (ADR-401 R8): count records in both the new and the legacy root.
+$MemoryCount = @(Get-ChildItem -Path $MemoryDir -Filter "ChDR-*.md" -ErrorAction SilentlyContinue).Count + @(Get-ChildItem -Path $LegacyMemoryDir -Filter "ChDR-*.md" -ErrorAction SilentlyContinue).Count
 $MemoryIndexExists = Test-Path $MemoryIndex
 
 $output = @{

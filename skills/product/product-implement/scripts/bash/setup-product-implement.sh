@@ -20,7 +20,8 @@ elif [ -f "$_pd_dir/../../../workspace/scripts/bash/paths.sh" ]; then
 fi
 REPO_ROOT="${REPO_ROOT:-$(_get_project_root)}"
 PDR_DRAFTS_DIR="$REPO_ROOT/.adlc/drafts/pdr"
-PDR_MEMORY_DIR="$REPO_ROOT/.adlc/memory/pdr"
+# ADR-401: canonical PDR memory root (legacy .adlc/memory stays read-compatible).
+PDR_MEMORY_DIR="$REPO_ROOT/docs/adlc/memory/pdr"
 PRD_FILE="$REPO_ROOT/PRD.md"
 SECTIONS_DIR="$REPO_ROOT/.adlc/product/sections"
 STATE_FILE="$REPO_ROOT/.adlc/product/state.json"

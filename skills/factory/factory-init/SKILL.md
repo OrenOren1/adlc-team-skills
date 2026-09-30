@@ -46,9 +46,9 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 
 | Layer | Skip init/implement when | Always runs |
 |--|--|--|
-| product | `.adlc/memory/pdr/` non-empty AND `PRD.md` exists | product-analyze |
-| architecture | `.adlc/memory/adr/` non-empty AND `AD.md` exists | architect-analyze |
-| change | `.adlc/memory/chdr/` non-empty AND `.adlc/memory/chdr.md` exists | (ChDRs feed the sweep directly) |
+| product | `docs/adlc/memory/pdr/` (legacy `.adlc/memory/pdr/` fallback — either non-empty) AND `docs/adlc/product/PRD.md` exists | product-analyze |
+| architecture | `docs/adlc/memory/adr/` (legacy `.adlc/memory/adr/` fallback — either non-empty) AND `docs/adlc/architect/AD.md` exists | architect-analyze |
+| change | `docs/adlc/memory/chdr/` (legacy `.adlc/memory/chdr/` fallback — either non-empty) AND `docs/adlc/memory/chdr.md` exists | (ChDRs feed the sweep directly) |
 
 ---
 
@@ -95,7 +95,7 @@ The sweep is executed by this orchestrator (step `skill: factory-init`, prompt =
 | Source | Yields |
 |--|
 | `product-init` + `architect-init` setup scripts (re-run; idempotent JSON scanners) | sub-systems, feature-areas, tech stack |
-| `.adlc/memory/pdr/`, `.adlc/memory/adr/`, `.adlc/memory/chdr/` (+ indexes) | accepted decisions per layer |
+| `docs/adlc/memory/{pdr,adr,chdr}/` (legacy `.adlc/memory/` fallback, + indexes) | accepted decisions per layer |
 | `PRD.md`, `AD.md` | compiled artifacts |
 | `.adlc/coverage/coverage.md` (if exists) | previous matrix → drift diff |
 
@@ -169,7 +169,7 @@ Every gap line uses the form:
 ## Verification
 
 - [ ] All 12 bootstrap steps completed (or per-layer skip applied with reason recorded in state)
-- [ ] `PRD.md`, `AD.md`, `.adlc/memory/pdr/`, `.adlc/memory/adr/`, `.adlc/memory/chdr/` populated per track
+- [ ] `docs/adlc/product/PRD.md`, `docs/adlc/architect/AD.md`, `docs/adlc/memory/{pdr,adr,chdr}/` populated per track
 - [ ] `.adlc/coverage/coverage.md` written with Pivot (all layer columns), four relations each with `Coverage: N%`, layer-tagged + cited gap lines, and Drift/Baseline section
 - [ ] Prior matrix archived to `.adlc/coverage/history/<date>-<run_id>.md`
 - [ ] Every sweep finding tagged `[layer: ...]`; CRITICAL/HIGH routed to the matching track's clarify (bounded `max_corrections`)
