@@ -1,6 +1,6 @@
 ---
 name: change-boot
-description: Use when past-change rationale matters (refactoring unfamiliar code, revert or hotfix analysis, issue-linked commit archaeology) — injects the published ChDR index (.adlc/memory/chdr.md) as session context and pairs mining with capture via /change-init; invoked from team-boot's Class Boots catalog.
+description: Use when past-change rationale matters (refactoring unfamiliar code, revert or hotfix analysis, issue-linked commit archaeology, session authors git changes with human-authored messages) — injects the published ChDR index (.adlc/memory/chdr.md) as session context; pairs history mining (/change-init) with routine capture (direct-write drafts clarified via /change-clarify); invoked from team-boot's Class Boots catalog.
 ---
 
 # change-boot
@@ -25,6 +25,11 @@ Invoke when:
 - Refactoring or modifying unfamiliar code — check whether a ChDR explains
   the current shape before changing it.
 - Analyzing reverts, hotfixes, or fix chains ("why was this reverted?").
+- The session authors git changes with human-authored messages (commit/merge/
+  revert/rebase/cherry-pick/tag with an authored message, authored PR
+  title/body, CHANGELOG edit) — evaluate at session end whether the rationale
+  is non-obvious enough for a ChDR; routine ops with generated or empty
+  messages are not ChDRs (proportionality gate).
 - The session produces change rationale: a revert/hotfix explanation, or a
   commit that links to an issue tracker (the `/change-init` mining signal).
 
@@ -45,7 +50,9 @@ frontmatter or first heading). If nothing exists, report `0 ChDRs` — never fab
 
 Check `.adlc/drafts/chdr/` for `ChDR-*.md` files with `status: proposed` or
 `status: discovered` in frontmatter. These are draft ChDRs pending
-clarification. Collect ID / Title / Type / Status / Date from each file.
+clarification — frontmatter `proposed`/`discovered` maps to ledger Status
+`captured`, and both feed the `Unclarified` count. Collect ID / Title /
+Type / Status / Date from each file.
 If the directory is empty or absent, report `0 pending drafts`.
 
 ### Step 2: Inject ChDR Context (Output Contract)
@@ -67,7 +74,7 @@ _Searched N ChDRs, K matched._
 |----|-------|------|--------|------|
 | (from .adlc/drafts/chdr/) |
 
-_N pending drafts — run /change-clarify to review._
+_Unclarified: N ChDR drafts — run /change-clarify to review._
 ```
 
 - Render ID / Title / Status / Date from the index (the full index also
@@ -82,6 +89,7 @@ _N pending drafts — run /change-clarify to review._
 |---------|--------|
 | Revert or hotfix performed/analyzed with rationale | ChDR → direct write to `.adlc/drafts/chdr/` |
 | Commit authored that links to an issue tracker | ChDR → direct write to `.adlc/drafts/chdr/` post-merge |
+| Git command authored in-session with a human-authored message, authored PR title/body, or CHANGELOG edit | evaluate at session end: non-obvious rationale → ChDR direct write to `.adlc/drafts/chdr/`; routine ops skipped (proportionality gate) |
 | Fix chain discovered in history | ChDR → direct write to `.adlc/drafts/chdr/` |
 | ChDR-class decision already in the ledger | verify capture happened; if not, re-surface |
 
@@ -90,8 +98,11 @@ Status | Clarify) for every ChDR-class decision detected this session —
 including ones from before this boot was invoked. Mirror each decision as a
 task-list todo (draft → `/change-clarify` at session end); after
 code-modifying tasks, add a trailing todo to sweep the ledger until
-_Unrecorded: 0 pending_. At session end, prompt to run `/change-clarify`
-for any unrecorded ChDR drafts in `.adlc/drafts/chdr/`.
+_Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified
+only via its clarify skill or an explicit user handoff to a named clarify or execute skill). At session end,
+deliver the clarify prompt naming each captured ChDR draft in
+`.adlc/drafts/chdr/` (ID + skill), covering post-merge issue-linked commits
+too; if the user defers clarify, mark those rows handed off.
 
 ## Failure Handling
 

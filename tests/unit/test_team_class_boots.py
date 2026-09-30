@@ -81,6 +81,29 @@ def test_class_boot_descriptions_pair_capture():
         assert "team-boot" in desc, f"{name}: description must reference team-boot's catalog"
 
 
+def test_change_boot_git_command_trigger():
+    """change-boot must fire on in-session git commands with human-authored
+    messages (plus authored PRs and CHANGELOG edits) — the trigger belongs in
+    its description and in the Invoke When cell on all four catalog surfaces.
+    The description must also name the /change-clarify clarify gate alongside
+    the pinned /change-init mining pairing."""
+    change_desc = (CLASS_BOOTS["change-boot"]["dir"] / "SKILL.md").read_text(
+        encoding="utf-8"
+    ).split("description:", 1)[1].split("\n---", 1)[0]
+    assert "human-authored messages" in change_desc
+    assert "/change-clarify" in change_desc
+    catalog_sources = {
+        "boot.sh": BOOT_SH,
+        "boot.ps1": BOOT_PS1,
+        "team-helpers.sh": HELPER_TEMPLATES["team-setup sh"].read_text(encoding="utf-8"),
+        "team-helpers.ps1": HELPER_TEMPLATES["team-setup ps1"].read_text(encoding="utf-8"),
+    }
+    for name, source in catalog_sources.items():
+        assert "human-authored messages" in source, (
+            f"{name}: change-boot catalog cell lacks git-command trigger"
+        )
+
+
 def test_class_boot_index_sources():
     """Each class boot body must name its index source path."""
     for name, spec in CLASS_BOOTS.items():

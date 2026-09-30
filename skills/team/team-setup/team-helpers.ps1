@@ -362,7 +362,7 @@ Invoke the matching class boot when a task or decision matches a row:
 |--|--|--|--|
 | architect-boot | ADR index (.adlc/memory/adr/) | architecture work; tech-stack/pattern choice | /architect-specify |
 | product-boot | PDR index (.adlc/memory/pdr/) | product/feature scope, personas, monetization | /product-specify |
-| change-boot | ChDR index (.adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits | /change-init |
+| change-boot | ChDR index (.adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits, git commands w/ human-authored messages, authored PRs, CHANGELOG edits | /change-init |
 | team-boot | CDR module bodies (team-ai-directives) | CDR descriptor match; reusable team pattern | /team-learn |
 | tech-radar-boot | Tikal Tech Radar context | choosing/evaluating technology | radar context + /architect-specify |
 
@@ -395,11 +395,11 @@ Maintain a running Session Decision Ledger in every response (after the Team Con
 |--|--|--|--|--|--|
 | — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |
 
-_Unrecorded: N pending (rows with Status=pending)._
+_Unrecorded: N pending · Unclarified: M captured drafts._
 
-At session end, prompt to invoke the capture skills for any unrecorded decisions. Only suggest capture when genuinely warranted.
+At session end, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off. Only suggest capture when genuinely warranted.
 
-Surface each detected decision as a task-list todo (write the draft to ``.adlc/drafts/{type}/``, then run the matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the Session Decision Ledger until _Unrecorded: 0 pending_.
+Surface each detected decision as a task-list todo (write the draft to ``.adlc/drafts/{type}/``, then run the matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the Session Decision Ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill).
 $MarkerEnd
 "@
 

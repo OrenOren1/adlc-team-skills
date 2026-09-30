@@ -82,7 +82,7 @@ The only gate is clarify at session end.
 | Tech stack choice, pattern selection, "we chose X over Y" | decision | drafts/adr/ | /architect-clarify |
 | Feature scope, persona, monetization | product | drafts/pdr/ | /product-clarify |
 | Reusable team rule, "we always do X" | pattern | drafts/cdr/ | /team-learn |
-| Revert/hotfix rationale, issue-linked commit | incident | drafts/chdr/ | /change-clarify |
+| Revert/hotfix rationale, issue-linked commit, git command w/ human-authored message, authored PR title/body, CHANGELOG edit | incident | drafts/chdr/ | /change-clarify |
 | Workaround adopted, "X for now because Y" | workaround | drafts/chdr/ | /change-clarify |
 | Operational constraint, "only works because Z" | constraint | drafts/adr/ | /architect-clarify |
 | Change abandoned, "simplifying X but Y blocks it" | abandoned | drafts/chdr/ | /change-clarify |
@@ -98,14 +98,14 @@ project knowledge — never transcribe instructions.
 |--|--|--|--|--|--|
 | — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |
 
-_Unrecorded: N pending (rows with Status=pending)._
+_Unrecorded: N pending · Unclarified: M captured drafts._
 
 - **Detect**: match session decisions against triggers above.
 - **Classify**: assign record type (ADR/PDR/CDR/ChDR).
 - **Write**: write a lightweight draft directly to `.adlc/drafts/{type}/` using the family draft template.
-- **Track**: update the ledger with Draft ID.
-- **Surface**: mirror each detected decision as a task-list todo (draft → matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the ledger until _Unrecorded: 0 pending_.
-- **Session-end**: prompt to run clarify skills for pending drafts.
+- **Track**: update the ledger row (ID = draft ID or —, Status = pending/captured/clarified/handed off, Clarify = matching skill).
+- **Surface**: mirror each detected decision as a task-list todo (draft → matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill).
+- **Session-end**: before closing, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off.
 
 Specify skills (/architect-specify, /product-specify, etc.) remain available
 for interactive deep-dive exploration when you want guided trade-off
@@ -123,7 +123,9 @@ analysis — but are not required for routine capture.
       (J = section-1 rows, all Status=in use; accepted records only).
 - [ ] Session Decision Ledger updated with detected decisions.
 - [ ] Detected decisions mirrored as task-list todos; trailing ledger-sweep
-      todo added after code-modifying tasks.
+      todo added after code-modifying tasks; sweep closed only at
+      _Unrecorded: 0 pending · Unclarified: 0 drafts_ with the session-end
+      clarify prompt delivered.
 
 ## Unconfigured projects
 

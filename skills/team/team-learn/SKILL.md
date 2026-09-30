@@ -181,7 +181,7 @@ team-learn integrates with the Session Decision Ledger maintained by team-boot.
 CDR-class decisions detected during the session are captured as drafts and
 tracked in the ledger. Mirror each CDR-class decision as a task-list todo
 (draft → `/team-learn` at session end); after code-modifying tasks, add a
-trailing todo to sweep the ledger until _Unrecorded: 0 pending_. Do not fabricate
+trailing todo to sweep the ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill). At session end, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off. Do not fabricate
 ledger rows — only record decisions that actually emerged from the session.
 
 ## Verification
