@@ -92,7 +92,7 @@ log "scratch project: $SCRATCH"
 log "installing via adlc-cli (this runs npx — may take a moment)"
 (
   cd "$SCRATCH"
-  npx -y adlc-cli skill add "$REPO_ROOT" -a opencode -y >/dev/null 2>&1 \
+  npx -y adlc-cli skills add "$REPO_ROOT" -a opencode -y >/dev/null 2>&1 \
     || fail "adlc-cli install failed"
 )
 
