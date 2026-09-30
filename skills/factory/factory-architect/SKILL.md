@@ -32,7 +32,7 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 ### Greenfield Route (default on empty project)
 1. **`specify`** (`generate` phase) -> Invoke `architect-specify` to collaboratively capture ADR drafts in `.adlc/drafts/adr/`.
 2. **`clarify`⭐** (`clarify` phase) -> Invoke `architect-clarify` to run interactive quality checks and mark ADRs Accepted (human sign-off gate).
-3. **`implement`** (`build` phase) -> Invoke `architect-implement` to compile accepted ADRs into `AD.md` (by sub-systems) and promote them to `.adlc/memory/adr/`.
+3. **`implement`** (`build` phase) -> Invoke `architect-implement` to compile accepted ADRs into `AD.md` (by sub-systems) and promote them to `docs/adlc/memory/adr/`.
 4. **`analyze`** (`analyze` phase) -> Invoke `architect-analyze` to verify AD/ADR consistency and output a severity-ranked report.
 
 ### Brownfield Route (default if code exists but no ADRs)
@@ -49,7 +49,7 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 
 `factory-architect` overrides the shared executor engine primitives as follows:
 
-1. **Publish Target**: Fixed to `local`. Outputs are written to `.adlc/memory/adr/` and `AD.md`. If tracker-integrated, a `tracker` completion summary comment is also posted.
+1. **Publish Target**: Fixed to `local`. Outputs are written to `docs/adlc/memory/adr/` and `docs/adlc/architect/AD.md`. If tracker-integrated, a `tracker` completion summary comment is also posted.
 2. **Output Types**: Steps use the following `output_type` assignments:
    - `specify`/`init` → `draft` (ADR drafts stay in `.adlc/drafts/adr/`, not published to comment bus)
    - `clarify`⭐ → `decision` (accepted/rejected ADR list published to comment bus)

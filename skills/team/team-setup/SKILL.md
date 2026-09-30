@@ -120,8 +120,33 @@ After any mode completes successfully, update the project configuration:
 2. Verify the team AI directives is accessible by running a quick health check:
    - `{TEAM_AI_DIRECTIVES}/context_modules/constitution.md` exists
    - `{TEAM_AI_DIRECTIVES}/.skills.json` exists and is valid JSON
-3. Inject the project-level `AGENTS.md` directive — full command and managed-section contract in `references/post-setup-agents.md`.
-4. Install MCP config — merge details in `references/post-setup-mcp.md`.
+3. Check the `.gitignore` convention (ADR-401 R7 allowlist — see the Gitignore Convention Check step below).
+4. Inject the project-level `AGENTS.md` directive — full command and managed-section contract in `references/post-setup-agents.md`.
+5. Install MCP config — merge details in `references/post-setup-mcp.md`.
+
+#### Gitignore Convention Check (ADR-401 R7)
+
+Verify `.gitignore` follows the ADLC allowlist — a fresh `team setup` must
+never leave a wholesale `.adlc/` ignore in place (it would hide the tracked
+`.adlc/` artifacts the team model relies on):
+
+1. If `.gitignore` contains a bare `.adlc/` rule, replace it (and any
+   `.adlc/*` + `!.adlc/...` lines that conflict) with the R7 allowlist:
+   ignore `.adlc/*`, `.adlc/evals/results/`, `.adlc/memory/*`,
+   `.adlc/team-learn-report.md`, `.adlc/team-levelup-report.md`, and
+   `graphify-out/`, while re-including `!.adlc/init-options.json`,
+   `!.adlc/workspace.yml`, `!.adlc/drafts/`, `!.adlc/evals/`,
+   `!.adlc/memory/`, `!.adlc/memory/evals/`, and
+   `!.adlc/memory/evals/holdout.json`. The canonical rule list lives in the
+   workspace skill's `scripts/bash/paths.sh` (`GITIGNORE_RULES_ALLOWLIST`,
+   mirrored in `scripts/powershell/paths.ps1`).
+2. Also verify the agent-install surface rules are ignored (`.agents/`,
+   `.opencode/`, `.claude/`, `.cursor/`, `.codex/`, `.gemini/`, `.qwen/`,
+   `.devin/`, `.tabnine/`, `skills-lock.json`, `.skills.json`, `.mcp.json`,
+   `.events.json`, `.pytest_cache/`, `.ruff_cache/`).
+3. Never remove unrelated (non-ADLC) rules; only add missing allowlist rules.
+4. Tracked legacy files keep working — the allowlist gates only untracked
+   files, so no migration is required before the switch.
 
 ## Common Rationalizations
 
@@ -159,6 +184,7 @@ After any mode completes successfully, update the project configuration:
 - [ ] `{TEAM_AI_DIRECTIVES}/CDR.md` exists.
 - [ ] `{TEAM_AI_DIRECTIVES}/.skills.json` exists and is valid JSON.
 - [ ] `.adlc/init-options.json` contains a `team_ai_directives` field with the absolute path.
+- [ ] `.gitignore` follows the ADR-401 R7 allowlist (no wholesale `.adlc/` ignore; tracked exceptions `!.adlc/init-options.json`, `!.adlc/workspace.yml`, `!.adlc/drafts/`, `!.adlc/evals/`, `!.adlc/memory/evals/holdout.json` present).
 - [ ] Project-level `AGENTS.md` exists and contains the `<!-- TEAM_AI_DIRECTIVES START -->` managed section with the event-hook awareness note, fallback `team-boot` invocation, and the Team Context in Use output contract.
 - [ ] (Mode 3 only) `git rev-parse --is-inside-work-tree` succeeds inside `{TEAM_AI_DIRECTIVES}`.
 - [ ] Running `team-verify` (Phase 0 of team-repair) passes all 7 checks.

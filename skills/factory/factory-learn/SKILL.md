@@ -39,7 +39,7 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 ### Historical Mining Route (brownfield)
 1. **`init`** (`generate` phase) -> Invoke `change-init` to mine git history and issue trackers for Change Decision Records (ChDRs).
 2. **`clarify`⭐** (`clarify` phase) -> Invoke `change-clarify` to run interactive provenance reviews on mined claims.
-3. **`publish`** (`build` phase) -> Invoke `change-publish` to promote accepted ChDRs into `.adlc/memory/chdr/` and regenerate indices.
+3. **`publish`** (`build` phase) -> Invoke `change-publish` to promote accepted ChDRs into `docs/adlc/memory/chdr/` and regenerate indices.
 
 ### Maintenance & Build-to-Delete Route (periodic)
 1. **`verify`** (`verify` phase) -> Run `team-repair --build-to-delete`. Re-runs goldset evals with rules temporarily disabled. Two questions per rule:

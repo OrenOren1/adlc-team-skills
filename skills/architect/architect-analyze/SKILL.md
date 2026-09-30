@@ -71,8 +71,8 @@ Architecture document hierarchy:
 | Document | Location | Purpose |
 |----------|----------|---------|
 | `AD.md` | Project root | Full Architecture Description (Rozanski & Woods) |
-| `adr/` | `{REPO_ROOT}/.adlc/memory/` | System-level ADRs (individual files) |
-| `constitution.md` | `{REPO_ROOT}/.adlc/memory/` | Governance principles and constraints |
+| `adr/` | `{REPO_ROOT}/docs/adlc/memory/` (legacy `.adlc/memory/` fallback) | System-level ADRs (individual files) |
+| `constitution.md` | `{REPO_ROOT}/docs/adlc/memory/` (legacy `.adlc/memory/` fallback) | Governance principles and constraints |
 
 ### Outline
 
@@ -94,9 +94,9 @@ Architecture document hierarchy:
 2. **Load System-Level Artifacts**:
    - Read `AD.md` (project root) if exists
    - Read ADRs from all locations (priority order):
-     1. `{REPO_ROOT}/.adlc/memory/adr/adr.md` (canonical — Accepted ADRs)
+     1. `{REPO_ROOT}/docs/adlc/memory/adr/adr.md` (canonical — Accepted ADRs; legacy `{REPO_ROOT}/.adlc/memory/adr/adr.md` fallback per ADR-401 dual-read)
      2. `{REPO_ROOT}/.adlc/drafts/adr/` (working copy — Proposed/Discovered, individual file format)
-   - Read `{REPO_ROOT}/.adlc/memory/constitution.md` if exists
+   - Read `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `{REPO_ROOT}/.adlc/memory/constitution.md` fallback) if either exists
 
 3. **Load Feature-Level Artifacts** (if analyzing features):
    - Scan `specs/*/AD.md` for feature architectures
@@ -107,9 +107,9 @@ Architecture document hierarchy:
    | Artifact | Path | Status |
    |----------|------|--------|
    | System AD | `AD.md` | Found/Missing |
-   | System ADRs (canonical) | `{REPO_ROOT}/.adlc/memory/adr/adr.md` | Found/Missing |
+   | System ADRs (canonical) | `{REPO_ROOT}/docs/adlc/memory/adr/adr.md` (legacy `.adlc/memory/adr/adr.md` fallback) | Found/Missing |
    | System ADRs (drafts) | `{REPO_ROOT}/.adlc/drafts/adr/` | Found/Missing |
-   | Constitution | `{REPO_ROOT}/.adlc/memory/constitution.md` | Found/Missing |
+   | Constitution | `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `.adlc/memory/constitution.md` fallback) | Found/Missing |
    | Feature ADs | `specs/*/AD.md` | Count: N |
    | Feature ADRs | `specs/*/adr/` | Count: N |
 
@@ -249,7 +249,7 @@ For each ADR:
 
 5. **View File Consistency** (DAG State Validation):
    - Check if `.adlc/architect/state.json` exists and reports views as "completed"
-   - Check if `.adlc/architect/views/` directory exists
+   - Check if `docs/adlc/architect/views/` (legacy `.adlc/architect/views/` fallback) directory exists
    - Verify that for each "completed" view in state.json, a corresponding file exists on disk
    - **Flag as HIGH severity if**:
      - state.json reports views "completed" but views/ directory is empty

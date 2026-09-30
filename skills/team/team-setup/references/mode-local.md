@@ -54,4 +54,4 @@ git -C "$ABSOLUTE_PATH" show-ref --verify --quiet refs/heads/adlc || {
 }
 ```
 
-*On success: complete Post-Setup Configuration — write `team_ai_directives` to `.adlc/init-options.json`, run the health check (`SKILL.md`), inject `AGENTS.md` (`references/post-setup-agents.md`), install MCP config (`references/post-setup-mcp.md`).*
+*On success: complete Post-Setup Configuration — write `team_ai_directives` to `.adlc/init-options.json`, run the health check (`SKILL.md`), check the `.gitignore` convention (Gitignore Convention Check, `SKILL.md`), inject `AGENTS.md` (`references/post-setup-agents.md`), install MCP config (`references/post-setup-mcp.md`).*

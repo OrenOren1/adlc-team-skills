@@ -306,7 +306,7 @@ Regenerate `{REPO_ROOT}/.adlc/drafts/chdr/chdr.md` by listing all `ChDR-*.md` fi
 
 ### Next Steps
 
-1. **Accepted**: Run `/change-publish` to promote to `.adlc/memory/chdr/`
+1. **Accepted**: Run `/change-publish` to promote to `docs/adlc/memory/chdr/`
 2. **Deferred**: will appear in next clarify session
 3. **Remaining**: run `/change-clarify` again to continue
 ```
@@ -358,7 +358,7 @@ If any ChDRs were **Accepted**, handoff to `/change-publish`:
     ↓
 [One ChDR at a time] → Accept / Reject / Defer
     ↓
-[Run /change-publish] → Promote accepted ChDRs to .adlc/memory/chdr/
+[Run /change-publish] → Promote accepted ChDRs to docs/adlc/memory/chdr/
 ```
 
 ## Next Steps

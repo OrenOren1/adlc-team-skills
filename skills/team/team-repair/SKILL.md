@@ -129,7 +129,7 @@ Output: `[OK]` or `[FAIL]` with reason
 #### Check 5: Constitution Alignment
 
 1. Read team constitution from `{TEAM_AI_DIRECTIVES}/context_modules/constitution.md`
-2. Locate project constitution: the project root (where `.adlc/` lives) → `{REPO_ROOT}/.adlc/memory/constitution.md`
+2. Locate project constitution: the project root (where `.adlc/` lives) → `{REPO_ROOT}/docs/adlc/memory/constitution.md`, falling back to legacy `{REPO_ROOT}/.adlc/memory/constitution.md` (ADR-401 dual-read)
 3. If project constitution exists:
    - Check if it references team-ai-directives (e.g., "Based on team-ai-directives", "Inherits from")
    - Check if team principles are present in project constitution (compare principle titles)
