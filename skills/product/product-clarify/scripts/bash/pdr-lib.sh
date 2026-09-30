@@ -11,10 +11,11 @@
 # Bundled with each product-* skill so it works standalone.
 # Sourced by setup-product-*.sh scripts and callable directly.
 #
-# ADR-401 note: scope-addressed helpers keep the legacy .adlc/memory root for
-# the memory scope (back-compat); generate_pdr_index memory additionally
-# indexes docs/adlc/memory/pdr/ (the canonical promotion target) and writes
-# the index there whenever that root holds records.
+# ADR-401 note: memory-scope readers dual-read the legacy .adlc/memory root
+# (back-compat); generate_pdr_index memory additionally indexes
+# docs/adlc/memory/pdr/ (the canonical promotion target) and writes the index
+# there whenever that root holds records; move_pdr promotes INTO
+# docs/adlc/memory/pdr/ (R8: writers write the new path only).
 
 # Usage:
 #   source pdr-lib.sh                          # load functions
@@ -317,6 +318,11 @@ move_pdr() {
 
     local from_dir="$REPO_ROOT/.adlc/$from_scope/pdr"
     local to_dir="$REPO_ROOT/.adlc/$to_scope/pdr"
+    # ADR-401 R8: promotion writers write the NEW path only — the memory
+    # scope targets docs/adlc/memory (readers dual-read the legacy root).
+    if [ "$to_scope" = "memory" ]; then
+        to_dir="$REPO_ROOT/${DOCS_ADLC_MEMORY:-docs/adlc/memory}/pdr"
+    fi
 
     # Resolve exact stems first (PDR-<given>.md verbatim); numeric fallback
     # only for bare IDs. Never strip suffixes (010-amendment-2 is not 0102).

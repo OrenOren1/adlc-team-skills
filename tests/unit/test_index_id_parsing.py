@@ -108,7 +108,7 @@ def test_adr_move_and_list_preserve_stems(adlc_tree):
     r = _run_bash(f'source "{harness}"; move_adr "386-amendment-2" drafts memory; '
                   'list_adrs memory; echo "---"; list_adrs drafts', adlc_tree)
     assert r.returncode == 0, r.stderr
-    assert (adlc_tree / ".adlc/memory/adr/ADR-386-amendment-2.md").exists()
+    assert (adlc_tree / "docs/adlc/memory/adr/ADR-386-amendment-2.md").exists()
     assert not (adlc_tree / ".adlc/drafts/adr/ADR-386-amendment-2.md").exists()
     assert "386-amendment-2" in r.stdout
     assert "3862" not in r.stdout  # the old strip-digits corruption
@@ -124,7 +124,7 @@ def test_pdr_render_and_move_preserve_suffixed_ids(adlc_tree):
     assert "10#PDR" not in r.stdout + r.stderr
     r2 = _run_bash(f'source "{PDR_LIB}"; move_pdr "010-amendment-2" drafts memory', adlc_tree)
     assert r2.returncode == 0, r2.stderr
-    assert (adlc_tree / ".adlc/memory/pdr/PDR-010-amendment-2.md").exists()
+    assert (adlc_tree / "docs/adlc/memory/pdr/PDR-010-amendment-2.md").exists()
 
 
 def _bare_fixture(base: Path):

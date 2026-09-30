@@ -795,6 +795,11 @@ move_adr() {
 
     local from_dir="$REPO_ROOT/.adlc/$from_scope/adr"
     local to_dir="$REPO_ROOT/.adlc/$to_scope/adr"
+    # ADR-401 R8: promotion writers write the NEW path only — the memory
+    # scope targets docs/adlc/memory (readers dual-read the legacy root).
+    if [[ "$to_scope" == "memory" ]]; then
+        to_dir="$REPO_ROOT/${DOCS_ADLC_MEMORY:-docs/adlc/memory}/adr"
+    fi
 
     case "$adr_id" in *"/"*|.*) echo "move_adr: invalid id: $adr_id" >&2; return 1;; esac
 

@@ -7,10 +7,11 @@
 #
 # Usage:
 #   . .\pdr-lib.ps1                        # load functions
-# ADR-401 note: scope-addressed helpers keep the legacy .adlc/memory root for
-# the memory scope (back-compat); Generate-PdrIndex memory additionally
-# indexes docs/adlc/memory/pdr/ (the canonical promotion target) and writes
-# the index there whenever that root holds records.
+# ADR-401 note: memory-scope readers dual-read the legacy .adlc/memory root
+# (back-compat); Generate-PdrIndex memory additionally indexes
+# docs/adlc/memory/pdr/ (the canonical promotion target) and writes the index
+# there whenever that root holds records; Move-Pdr promotes INTO
+# docs/adlc/memory/pdr/ (R8: writers write the new path only).
 #
 #   Generate-PdrIndex memory              # regenerate the memory pdr.md (docs root preferred)
 #   Generate-PdrIndex drafts               # regenerate .adlc/drafts/pdr/pdr.md
@@ -216,6 +217,10 @@ function Move-Pdr {
     if ($PdrId -match '[\\/]|^\.') { Write-Error "Move-Pdr: invalid id: $PdrId"; return $false }
     $fromDir = Join-Path $REPO_ROOT ".adlc/$FromScope/pdr"
     $toDir = Join-Path $REPO_ROOT ".adlc/$ToScope/pdr"
+    if ($ToScope -eq "memory") {
+        # ADR-401 R8: promotion writers write the NEW path only.
+        $toDir = Join-Path $REPO_ROOT "docs/adlc/memory/pdr"
+    }
     New-Item -ItemType Directory -Force -Path $toDir | Out-Null
     $srcFile = Join-Path $fromDir "PDR-$PdrId.md"
     if ((-not (Test-Path $srcFile)) -and ($PdrId -match '^[0-9]+$')) {
