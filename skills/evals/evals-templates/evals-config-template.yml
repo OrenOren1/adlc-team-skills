@@ -136,7 +136,7 @@ cross_functional:
   # PMs, domain experts, and AI engineers collaborate
   enabled: true
 
-  # Target for team-learn PRs
+  # Target for team-levelup PRs
   team_directives_target: "team-ai-directives/AGENTS.md"
 
   # Stakeholder groups

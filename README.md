@@ -38,7 +38,7 @@ When you ask the agent to build something, it doesn't jump to code.
 `factory-mission` forces a contract first — goal, constraints, non-goals,
 success criteria (the mission-brief format) — then walks `specify → plan → implement ↔ converge`, with
 gates, a circuit breaker, resume, and an audit trail. When a session
-surfaces a hard-won fix, `team-learn` extracts it as a Context
+surfaces a hard-won fix, `team-levelup` extracts it as a Context
 Directive Record (CDR), scores it by confidence, and publishes accepted
 CDRs back to the team repo. Usage data and confidence scores live in
 the `adlc` orphan branch — the next session starts smarter and CDRs
@@ -115,7 +115,7 @@ skills trigger when the task matches.
 
 ### 4. Session end — learnings become records
 
-`team-learn` fires on `session_end`: it extracts hard-won fixes as CDRs +
+`team-levelup` fires on `session_end`: it extracts hard-won fixes as CDRs +
 paired eval CDRs, scores confidence, batch-reviews them, and publishes
 accepted CDRs as a draft PR to team-ai-directives. Drafts and usage reports
 live in the `adlc` orphan branch (`drafts/cdr/` + `reports/`).
@@ -127,7 +127,7 @@ Each record class has its own skill loop you invoke explicitly:
 ```
 Product:     product-specify|init → product-clarify (accept + promote to memory) → product-implement → product-analyze
 Architecture: architect-specify|init → architect-clarify (accept + promote to memory) → architect-implement → architect-analyze
-Team:        team-init → team-learn (extract + review + publish) → team-repair (--update-confidence)
+Team:        team-init → team-levelup (extract + review + publish) → team-repair (--update-confidence)
 Change:      change-init → change-clarify → change-publish (change-boot injects the chdr.md index)
 Evals:       evals-init → evals-specify → evals-clarify → evals-implement → evals-validate
 ```
@@ -159,7 +159,7 @@ files in `.adlc/drafts/` without modifying them.
 | 1 | The agent doesn't know how your team works | **`team-*`** — session-start index + on-demand rules |
 | 2 | The agent guesses instead of asking | **`factory-mission`** — spec contract before code |
 | 3 | The maker grades its own work | **`evals-*`** — binary graders, holdout splits, nothing auto-merges |
-| 4 | Session learnings evaporate | **`team-learn`** — extract fixes as CDRs, publish to the team repo |
+| 4 | Session learnings evaporate | **`team-levelup`** — extract fixes as CDRs, publish to the team repo |
 | 5 | Product and architecture decisions are invisible | **`product-*`** / **`architect-*`** — PDR→PRD, ADR→AD traceability |
 | 6 | "Why was this changed?" is archaeology — rationale lives in nobody's head | **`change-*`** — ChDRs mined from git history's issue-linked commits |
 | 7 | The agent picks tech by vibes, not team opinion | **`tech-radar-boot`** — radar context (adoption ring, quadrant) before the ADR |
@@ -190,7 +190,7 @@ Claude Code, Codex, OpenCode, Cursor, Copilot, and others.
 [`adlc-cli`](https://github.com/tikalk/adlc-cli) wraps `npx skills add`
 and additionally generates `/name` slash commands and wires the four event
 hooks declared in this repo's `.events.json` — `session_start` and
-`session_compact` (team-boot), `session_end` (team-learn), and `file_edited`
+`session_compact` (team-boot), `session_end` (team-levelup), and `file_edited`
 (team-boot, draft-written nudges) — for the 9 coding agents with native
 hook support. `team setup` also runs the `/team-setup` skill via
 `agent run` to clone, link, or scaffold your team-ai-directives repo.
@@ -324,7 +324,7 @@ each step. Works alongside:
 | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | Exit-criteria checklists |
 | [superpowers](https://github.com/obra/superpowers) | Workflow skills |
 | spec-kit / [agentic-sdlc-spec-kit](https://github.com/tikalk/agentic-sdlc-spec-kit) / OpenSpec | SDD command frameworks |
-| This repo | `product-specify`, `architect-specify`, `evals-validate`, `team-learn` |
+| This repo | `product-specify`, `architect-specify`, `evals-validate`, `team-levelup` |
 | Your own | Anything following the `SKILL.md` standard |
 
 ## What's inside
@@ -358,8 +358,8 @@ each step. Works alongside:
 
 ### Learning loop (CDR lifecycle)
 
-- **`team-learn`** — session-end CDR lifecycle: extract patterns, score confidence, batch review (A/B/C/D/P), and publish accepted CDRs as a draft PR. Auto-triggers on `session_end` event. Drafts live in the `adlc` orphan branch of team-ai-directives (`drafts/cdr/` + `reports/` for usage data).
-- **`team-init`** — brownfield CDR discovery from an existing codebase. Writes to the `adlc` branch; handoff to `team-learn` for review/publish.
+- **`team-levelup`** — session-end CDR lifecycle: extract patterns, score confidence, batch review (A/B/C/D/P), and publish accepted CDRs as a draft PR. Auto-triggers on `session_end` event. Drafts live in the `adlc` orphan branch of team-ai-directives (`drafts/cdr/` + `reports/` for usage data).
+- **`team-init`** — brownfield CDR discovery from an existing codebase. Writes to the `adlc` branch; handoff to `team-levelup` for review/publish.
 - **`team-repair --update-confidence`** — aggregate usage data from the `adlc` branch into confidence scores, update OKF frontmatter, rebuild CDR.md with confidence column. `team-boot` ranks CDRs by confidence in the injected index.
 
 ### Evals — verification over vibes
@@ -517,7 +517,7 @@ All skills write to `.adlc/` (project root) and the team AI directives repo.
 - `skills/{name}/SKILL.md` + `.skills-entry.json` — published team skills
 - `evals/{directive-id}/goldset.md` + `goldset.json` — directive compliance goldensets
 
-**team-learn** (inside `.adlc/` of the target project):
+**team-levelup** (inside `.adlc/` of the target project):
 
 - `adlc branch drafts/cdr/CDR-{NNN}.md` — proposed/discovered CDRs (including eval CDRs)
 - `adlc branch drafts/cdr/cdr.md` — auto-generated CDR index
@@ -626,10 +626,10 @@ Greenfield: architect-specify → architect-clarify → architect-implement → 
 
 **CDR lifecycle:**
 ```
-Brownfield: team-init → team-learn (extract + review + publish) → team-repair
-Session:    team-learn (extract + review + publish) → team-repair
+Brownfield: team-init → team-levelup (extract + review + publish) → team-repair
+Session:    team-levelup (extract + review + publish) → team-repair
 History:    change-init → change-clarify → change-publish (change-boot injects chdr.md)
-Build to Delete: team-repair --build-to-delete → team-learn (review deletion CDRs)
+Build to Delete: team-repair --build-to-delete → team-levelup (review deletion CDRs)
 Confidence:   team-repair --update-confidence → team-boot (ranks CDRs by confidence)
 ```
 
@@ -663,12 +663,12 @@ This repo implements the [Twelve-Factor Agentic SDLC](https://github.com/tikalk/
 |--------|--------|-----|
 | **III — Mission Definition** | Product skills | PRD/PDR lifecycle ensures product decisions are documented, reviewed, and traceable before execution |
 | **IV — Structured Planning** | Architecture skills | ADRs and AD.md provide structured planning artifacts using Rozanski & Woods viewpoints |
-| **VII — Verification-First Evals** | team-learn + Evals skills | team-learn creates directive-compliance eval CDRs; evals skills build and run application-level evaluation suites (PromptFoo/DeepEval) with binary graders, holdout splits, and statistical validation |
-| **VIII — Ratchet Effect** | team-learn + Evals skills | Each session extracts eval CDRs alongside directive CDRs; each goldset publication adds criteria that monotonically increase quality — `evals-clarify` publishes, `evals-validate` enforces |
+| **VII — Verification-First Evals** | team-levelup + Evals skills | team-levelup creates directive-compliance eval CDRs; evals skills build and run application-level evaluation suites (PromptFoo/DeepEval) with binary graders, holdout splits, and statistical validation |
+| **VIII — Ratchet Effect** | team-levelup + Evals skills | Each session extracts eval CDRs alongside directive CDRs; each goldset publication adds criteria that monotonically increase quality — `evals-clarify` publishes, `evals-validate` enforces |
 | **IX — Traceability** | Product + Architecture | Every decision traces from PDR → PRD → feature and from ADR → AD → code |
 | **X — Context Engineering** | Team Directives | `team-boot` assembles constitution, CDR index (ranked by confidence), and the Class Boots catalog into the system prompt at session start; the class boots load ADR/PDR/ChDR/CDR/radar context on demand, each paired with decision capture; `team-discover` provides manual re-scan |
-| **XI — Directives as Code** | Team + team-learn + Product + Architecture | All directive lifecycles (CDR, PDR, ADR) live in version-controlled repos; CDR drafts and usage reports live in the `adlc` orphan branch of team-ai-directives (`drafts/cdr/` + `reports/`); each lifecycle has extract → review → publish → analyze stages |
-| **XII — Build to Delete** | team-repair + evals-analyze | `--build-to-delete` runs evals without directives via LLM calls; if model passes, proposes deletion (Harness Decay); `--update-confidence` aggregates usage data into OKF frontmatter confidence scores; `evals-analyze` routes spec failures to `team-learn` (rules) and generalization failures to the evaluator backlog — the feedback loop that makes build-to-delete verifiable |
+| **XI — Directives as Code** | Team + team-levelup + Product + Architecture | All directive lifecycles (CDR, PDR, ADR) live in version-controlled repos; CDR drafts and usage reports live in the `adlc` orphan branch of team-ai-directives (`drafts/cdr/` + `reports/`); each lifecycle has extract → review → publish → analyze stages |
+| **XII — Build to Delete** | team-repair + evals-analyze | `--build-to-delete` runs evals without directives via LLM calls; if model passes, proposes deletion (Harness Decay); `--update-confidence` aggregates usage data into OKF frontmatter confidence scores; `evals-analyze` routes spec failures to `team-levelup` (rules) and generalization failures to the evaluator backlog — the feedback loop that makes build-to-delete verifiable |
 
 </details>
 

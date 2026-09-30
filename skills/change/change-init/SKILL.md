@@ -19,15 +19,15 @@ A ChDR captures a decision that was *made in the past* and survives only in comm
 - Write `ChDR-{NNN}.md` to `{REPO_ROOT}/.adlc/drafts/chdr/` with status **Discovered**
 - Regenerate `{REPO_ROOT}/.adlc/drafts/chdr/chdr.md` index
 
-**Key differences from the team-learn family**:
+**Key differences from the team-levelup family**:
 
 | Skill | Source | Record | Question answered |
 |---|---|---|---|
 | `/team-init` | current code (what IS) | CDR (Context Directive) | what patterns are reusable |
-| `/team-learn` | current session | CDR | what was learned this session |
+| `/team-levelup` | current session | CDR | what was learned this session |
 | `/change-init` (this skill) | **git history** (why it BECAME) | **ChDR** (Change Decision) | **why this code exists / what was tried and reverted** |
 
-ChDRs are **project-local memory** (this repo's evolution), not team-wide context — they fail the team-learn "team-wide applicability" signal gate. They publish to `{REPO_ROOT}/docs/adlc/memory/chdr/` (see `/change-publish`), and their index is injected at session start by `team-boot`.
+ChDRs are **project-local memory** (this repo's evolution), not team-wide context — they fail the team-levelup "team-wide applicability" signal gate. They publish to `{REPO_ROOT}/docs/adlc/memory/chdr/` (see `/change-publish`), and their index is injected at session start by `team-boot`.
 
 ## When to use
 
@@ -46,7 +46,7 @@ ChDRs are **project-local memory** (this repo's evolution), not team-wide contex
 
 - **Greenfield / no history**: nothing to mine
 - **Documenting current patterns**: use `/team-init` (what IS)
-- **Capturing this session's learnings**: use `/team-learn`
+- **Capturing this session's learnings**: use `/team-levelup`
 - **Pending ChDRs already exist**: run `/change-clarify` to review them first
 
 ## Process
