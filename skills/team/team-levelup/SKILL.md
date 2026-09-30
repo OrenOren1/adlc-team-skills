@@ -102,7 +102,7 @@ For each extracted CDR, calculate confidence:
 
 ### Phase 3: Batch Review
 
-Present CDRs one at a time (same as former team-levelup logic):
+Present CDRs one at a time (same as former team-learn logic):
 
 ```markdown
 ## CDR-{ID}: {Title}
@@ -152,7 +152,7 @@ Write to `adlc` branch:
 Write report to `.adlc/team-levelup-report.md` (local, not committed):
 
 ```markdown
-## Team-Learn Report
+## Team-Levelup Report
 
 **Date**: {date}
 **CDRs Extracted**: N

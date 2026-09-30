@@ -4,11 +4,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source team-levelup helpers (shared utilities)
-LEARN_HELPERS="${SCRIPT_DIR}/../team-levelup/scripts/helpers.sh"
-if [[ -f "$LEARN_HELPERS" ]]; then
-  source "$LEARN_HELPERS"
+LEVELUP_HELPERS="${SCRIPT_DIR}/../team-levelup/scripts/helpers.sh"
+if [[ -f "$LEVELUP_HELPERS" ]]; then
+  source "$LEVELUP_HELPERS"
 else
-  echo "Error: team-levelup helpers not found at $LEARN_HELPERS"
+  echo "Error: team-levelup helpers not found at $LEVELUP_HELPERS"
   exit 1
 fi
 
