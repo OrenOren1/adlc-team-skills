@@ -670,6 +670,19 @@ This repo implements the [Twelve-Factor Agentic SDLC](https://github.com/tikalk/
 | **XI — Directives as Code** | Team + team-levelup + Product + Architecture | All directive lifecycles (CDR, PDR, ADR) live in version-controlled repos; CDR drafts and usage reports live in the `adlc` orphan branch of team-ai-directives (`drafts/cdr/` + `reports/`); each lifecycle has extract → review → publish → analyze stages |
 | **XII — Build to Delete** | team-repair + evals-analyze | `--build-to-delete` runs evals without directives via LLM calls; if model passes, proposes deletion (Harness Decay); `--update-confidence` aggregates usage data into OKF frontmatter confidence scores; `evals-analyze` routes spec failures to `team-levelup` (rules) and generalization failures to the evaluator backlog — the feedback loop that makes build-to-delete verifiable |
 
+### Deck ↔ code glossary (PDR-057)
+
+Canonical names live in code; deck terms map to them (code is ground truth, except Pair 1 where the concept itself is harness-agnostic):
+
+| Deck term | Code term | Resolution |
+|-----------|-----------|------------|
+| `plan.md` (approved before code) | `brief.md` + `workflow.yml` + step list (approved plan-of-record) | Agnostic concept — both are instances, valid for any SDD skills |
+| `evidence-chain.md` | Audit trail (comment bus + `runs/<id>/`) | Code wins — deck adopts "audit trail" |
+| Triage / Clarify Agents | `factory-queue` triage scoring + inline clarify gates | Code wins, no skill split (revisit if scoring grows independent owners/evals) |
+| "Lit Factory" / "Ratchet Effect" | Factory orchestrators / `team-levelup` + Twice-Mistake Threshold | Keep both — evocative deck names mapped to code refs |
+| `mission-brief` skill | `factory-mission` | Settled by history (renamed) |
+| `team-learn` | `team-levelup` | Settled by history (v0.30.0 hard rename) |
+
 </details>
 
 ## Release process
