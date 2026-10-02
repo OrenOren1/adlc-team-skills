@@ -20,6 +20,10 @@ during the work flows back into the same record system.
 
 ## When to Use
 
+Invoke at the START of a matching task — before planning the todo list and
+before implementation — so the ChDR context informs planning.
+Never defer to session end.
+
 Invoke when:
 
 - Refactoring or modifying unfamiliar code — check whether a ChDR explains
@@ -47,6 +51,12 @@ If the index is missing but `docs/adlc/memory/chdr/ChDR-*.md` or legacy
 `.adlc/memory/chdr/ChDR-*.md` files exist,
 synthesize a lean table from each file (ID from filename; Title/Status from
 frontmatter or first heading). If nothing exists, report `0 ChDRs` — never fabricate rows.
+
+When no local memory index exists in the current working directory and the
+directory sits inside a workspace (detected via a `.gitmodules` marker in an
+ancestor), read the workspace root's `docs/adlc/memory/` index instead
+(ADR-401 dual-read order applies: `docs/adlc/memory` first, legacy
+`.adlc/memory` fallback).
 
 ### Step 1b: Read the ChDR Drafts Index
 
@@ -83,7 +93,11 @@ _Unclarified: N ChDR drafts — run /change-clarify to review._
   carries Issue, Commit, Note — read the individual `ChDR-*.md` when a task
   matches a row).
 - `N` = total index rows; `K` = rows relevant to the current task. **K MUST
-  equal the table rows shown** — 0 matched → empty table, never inflate.
+  equal the table rows shown.** 0 rows matched → emit the section heading +
+  the `_Searched N ChDRs, K matched._` line only — no table. A 0-row table
+  header collapses into unrendered single-line markdown; never emit one.
+  Emit the section as markdown blocks — heading, table rows, and counts line
+  each on their own lines.
 
 ### Step 3: Capture Change Rationale
 
@@ -108,8 +122,9 @@ too; if the user defers clarify, mark those rows handed off.
 
 ## Failure Handling
 
-- Missing index + missing records → emit the empty table with
-  `_Searched 0 ChDRs, 0 matched._` and continue the user's task; never block.
+- Missing index + missing records → emit the section heading +
+  `_Searched 0 ChDRs, 0 matched._` only — no table — and continue the user's
+  task; never block.
 - Unparseable index rows → skip malformed rows, note the skip count.
 
 ## Red Flags

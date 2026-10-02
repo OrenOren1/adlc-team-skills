@@ -367,7 +367,14 @@ If the team AI directives context is NOT in your system prompt or first user mes
 
 If team AI directives are unconfigured, invoke the \`team-setup\` skill.
 
-Invoke the matching class boot when a task or decision matches a row:
+Invoke the matching class boot when a task or decision matches a row — invoke it
+at the START of the matching task, before planning the todo list and before
+implementation, so the class context informs planning; never defer to session end
+or post-hoc. When no local memory index exists in the current working directory
+and the directory sits inside a workspace (detected via a \`.gitmodules\` marker
+in an ancestor), the boot reads the workspace root's \`docs/adlc/memory/\` index
+instead (ADR-401 dual-read order applies: \`docs/adlc/memory\` first, legacy
+\`.adlc/memory\` fallback).
 
 ## Class Boots
 
@@ -389,9 +396,9 @@ Each class boot emits its class context section and its own searched line (_Sear
 |--|--|--|--|--|--|
 | CDR-YYYY-NNN | <name> | <type> | <relevance> | in use | — |
 
-Plus: \`_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown._\` — **J MUST equal the number of rows (any indexed type); every row Status=in use, Clarify=—. Empty table with 0 matched when nothing matches (do not copy a hard-coded row or inflate the count).** Scope names the always-available layer and class indexes (counts only, never content); class boots append their own scope line when fired.
+Plus: \`_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown._\` — **J MUST equal the number of rows (any indexed type); every row Status=in use, Clarify=—. 0 rows matched → emit the section heading + the scope line only — no table. A 0-row table header collapses into unrendered single-line markdown; never emit one (do not copy a hard-coded row or inflate the count).** Scope names the always-available layer and class indexes (counts only, never content); class boots append their own scope line when fired.
 
-Render the section as markdown blocks — heading, table, and counts line each on their own lines; never collapse the table into a single line.
+Render the section as markdown blocks — heading, table (when rows exist), and counts line each on their own lines; never collapse the table into a single line.
 
 ## Decision Capture
 
@@ -409,6 +416,8 @@ Maintain a running Session Decision Ledger in every response (after the Team Con
 | — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |
 
 _Unrecorded: N pending · Unclarified: M captured drafts._
+
+With no pending decisions, emit the ledger heading + the _Unrecorded_ line only — no table.
 
 At session end, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off. Only suggest capture when genuinely warranted.
 
