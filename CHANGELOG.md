@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Class-boot contract fix: early-fire, 0-rows rendering, radar re-emission, workspace fallback** (#50) — class boots now invoke at the START of a matching task (before todo planning/implementation, never deferred); 0 rows matched emits heading + counts/searched line only with no table (a 0-row table header collapsed into unrendered single-line markdown); `tech-radar-boot` re-emits tool-channel script findings in the visible response; `radar-search.sh`/`.ps1` 0-match output drops the empty table; boots in memory-less submodule CWDs fall back to the workspace root memory (`.gitmodules` marker, ADR-401 dual-read order). Pinned by 5 new class-boot contract tests + 2 radar 0-match tests (`tests/unit/test_team_class_boots.py`, `tests/unit/test_tech_radar.py`).
+- **Memory centralization migration** (#51, ADR-412) — workspace `docs/adlc/memory/` is the sole ADR/PDR tracker; the 18 ADRs + 14 PDRs of the legacy untracked `.adlc/memory/` verified row-by-row against workspace equivalents (30 duplicates/subsumed, unique PDR-030 → PDR-108 agent-authored stamp and PDR-057 → PDR-109 deck↔code terminology imported); `docs/decision-memory.md` tombstone carries the record map.
+- **Sync-test mirror staleness** (#54) — regenerated install artifacts (`team-learn` → `team-levelup`); `test_generated_artifacts_sync.py` green again. Single-canonical-script guard added (`test_single_canonical_radar_search_script_pair`) after a stale `tech-radar-context` alias copy of `radar-search.sh` was found emitting the old 0-match table.
+
 ## [0.30.0] - 2026-10-01
 
 ### Added

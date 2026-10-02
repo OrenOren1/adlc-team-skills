@@ -195,6 +195,31 @@ def test_radar_skill_canonical_ring_definitions():
   assert "Deprecated / anti-pattern" not in skill_md
 
 
+def _source_tree_scripts(pattern):
+  """radar helper scripts under skills/ only — generated mirrors excluded."""
+  return [
+      p
+      for p in ROOT.glob(f"**/{pattern}")
+      if ".agents" not in p.parts
+      and ".opencode" not in p.parts
+      and ".git" not in p.parts
+  ]
+
+
+def test_single_canonical_radar_search_script_pair():
+  """Source tree must carry exactly one radar-search.sh + one radar-search.ps1.
+
+  A second copy (observed live: a stale tech-radar-context alias copy
+  emitting the old 0-match table) silently diverges. The canonical pair
+  lives under tech-radar-boot/scripts/.
+  """
+  sh_scripts = _source_tree_scripts("radar-search.sh")
+  ps1_scripts = _source_tree_scripts("radar-search.ps1")
+  assert len(sh_scripts) == 1, f"expected 1 radar-search.sh, found: {sh_scripts}"
+  assert len(ps1_scripts) == 1, f"expected 1 radar-search.ps1, found: {ps1_scripts}"
+  assert sh_scripts[0].parent.parent.name == "tech-radar-boot"
+
+
 def test_radar_search_zero_match_has_no_table():
   """0-match markdown output = heading + source line only — no table.
 
