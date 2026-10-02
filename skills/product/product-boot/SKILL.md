@@ -103,11 +103,11 @@ _N pending drafts — run /product-clarify to review._
 | Monetization, pricing, target-market choice | PDR → direct write to `.adlc/drafts/pdr/` |
 | PDR-class decision already in the ledger | verify capture happened; if not, re-surface |
 
-Add/refresh rows in the **Session Decision Ledger** (ID | Name | Type | Rel |
+Add/refresh rows in **Team Context & Decisions** (ID | Name | Type | Rel |
 Status | Clarify) for every PDR-class decision detected this session —
 including ones from before this boot was invoked. Mirror each decision as a
 task-list todo (draft → `/product-clarify` at session end); after
-code-modifying tasks, add a trailing todo to sweep the ledger until
+code-modifying tasks, add a trailing todo to sweep Team Context & Decisions until
 _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified
 only via its clarify skill or an explicit user handoff to a named clarify or execute skill). At session end,
 deliver the clarify prompt naming each captured PDR draft in
@@ -131,4 +131,4 @@ rows handed off.
 
 - [ ] PDR Context table emitted with `_Searched N PDRs, K matched._`
       (K = table rows).
-- [ ] Session Decision Ledger updated with detected PDR-class decisions.
+- [ ] Detected PDR-class decisions added as Team Context & Decisions rows.

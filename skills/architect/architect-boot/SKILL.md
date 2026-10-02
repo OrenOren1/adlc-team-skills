@@ -105,11 +105,11 @@ _N pending drafts — run /architect-clarify to review._
 | Pattern selection, structural refactor | ADR → direct write to `.adlc/drafts/adr/` |
 | ADR-class decision already in the ledger | verify capture happened; if not, re-surface |
 
-Add/refresh rows in the **Session Decision Ledger** (ID | Name | Type | Rel |
+Add/refresh rows in **Team Context & Decisions** (ID | Name | Type | Rel |
 Status | Clarify) for every ADR-class decision detected this session —
 including ones from before this boot was invoked. Mirror each decision as a
 task-list todo (draft → `/architect-clarify` at session end); after
-code-modifying tasks, add a trailing todo to sweep the ledger until
+code-modifying tasks, add a trailing todo to sweep Team Context & Decisions until
 _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified
 only via its clarify skill or an explicit user handoff to a named clarify or execute skill). At session end,
 deliver the clarify prompt naming each captured ADR draft in
@@ -135,6 +135,6 @@ rows handed off.
 
 - [ ] ADR Context table emitted with `_Searched N ADRs, K matched._`
       (K = table rows).
-- [ ] Session Decision Ledger updated with detected ADR-class decisions.
+- [ ] Detected ADR-class decisions added as Team Context & Decisions rows.
 - [ ] Tech-selection decisions routed through `tech-radar-boot` →
       `/architect-specify`.

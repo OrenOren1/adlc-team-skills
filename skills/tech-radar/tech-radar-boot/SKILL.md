@@ -211,10 +211,10 @@ exists in the current working directory and the directory sits inside a workspac
 | "X vs Y" comparison resolved | ADR → suggest `/architect-specify` with the comparison outcome |
 | `Stop`-ring technology retained anyway | ADR → suggest `/architect-specify` documenting why the radar guidance was overridden |
 
-Add/refresh rows in the **Session Decision Ledger** (ID | Name | Type | Rel |
+Add/refresh rows in **Team Context & Decisions** (ID | Name | Type | Rel |
 Status | Clarify) for the selection, mirrored as a task-list todo (draft →
 `/architect-specify` at session end); after code-modifying tasks, add a
-trailing todo to sweep the ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill). If
+trailing todo to sweep Team Context & Decisions until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill). If
 `architect-boot` was already invoked this session, extend its ledger rows
 with the radar evidence; at session end, deliver the clarify prompt naming
 each captured tech-selection draft (ID + skill); if the user defers clarify,
@@ -265,7 +265,7 @@ mark those rows handed off.
   run yields no table (heading + source line only) rather than fabricated
   data. On fetch failure, an error is reported and the skill continues without
   radar context.
-- Tech selections made this session appear in the Session Decision Ledger with
+- Tech selections made this session appear in Team Context & Decisions with
   `/architect-specify` as the capture skill.
 ## Configuration
 

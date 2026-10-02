@@ -375,15 +375,16 @@ instead (ADR-401 dual-read order applies: ``docs/adlc/memory`` first, legacy
 
 Each class boot emits its class context section and its own searched line (_Searched N records, K matched._).
 
-**Every response MUST include** a Team Context in Use section before the task answer (accepted records only — pending drafts never appear here; they go in the ledger):
+**Every response MUST include** a Team Context & Decisions section before the task answer (Status ``in use`` rows ground the session in accepted records; Status ``pending`` rows capture emerging decisions in the same table):
 
-## Team Context in Use
+## Team Context & Decisions
 
 | ID | Name | Type | Rel | Status | Clarify |
 |--|--|--|--|--|--|
 | CDR-YYYY-NNN | <name> | <type> | <relevance> | in use | — |
+| — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |
 
-Plus: ``_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown._`` — **J MUST equal the number of rows (any indexed type); every row Status=in use, Clarify=—. 0 rows matched → emit the section heading + the scope line only — no table. A 0-row table header collapses into unrendered single-line markdown; never emit one (do not copy a hard-coded row or inflate the count).** Scope names the always-available layer and class indexes (counts only, never content); class boots append their own scope line when fired.
+Plus: ``_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown · Unrecorded: N pending · Unclarified: M captured drafts._`` — **J MUST equal the number of rows (any indexed type). Status ``in use`` + Clarify ``—`` = grounding context (accepted records only); Status ``pending``/``captured``/``clarified``/``handed off`` + Clarify skill = owed decisions. No draft row may carry Status ``in use`` — drafts appear only as pending decision rows. 0 rows matched → emit the section heading + the counts line only — no table. A 0-row table header collapses into unrendered single-line markdown; never emit one (do not copy a hard-coded row or inflate the count).** Scope names the always-available layer and class indexes (counts only, never content) plus the session's open decisions; class boots append their own scope line when fired.
 
 Render the section as markdown blocks — heading, table (when rows exist), and counts line each on their own lines; never collapse the table into a single line.
 
@@ -396,19 +397,11 @@ Detect decisions as they emerge; full detection and capture guidance lives in th
 - Reusable team rule / pattern → CDR → /team-levelup
 - Revert/hotfix rationale / issue-linked commit → ChDR → /change-init
 
-Maintain a running Session Decision Ledger in every response (after the Team Context in Use table):
-
-| ID | Name | Type | Rel | Status | Clarify |
-|--|--|--|--|--|--|
-| — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |
-
-_Unrecorded: N pending · Unclarified: M captured drafts._
-
-With no pending decisions, emit the ledger heading + the _Unrecorded_ line only — no table.
+Maintain the decision rows in the same table above (Status pending/captured/clarified/handed off + Clarify skill); with no pending decisions, emit the heading + the counts line only — no table.
 
 At session end, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off. Only suggest capture when genuinely warranted.
 
-Surface each detected decision as a task-list todo (write the draft to ``.adlc/drafts/{type}/``, then run the matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the Session Decision Ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill).
+Surface each detected decision as a task-list todo (write the draft to ``.adlc/drafts/{type}/``, then run the matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep Team Context & Decisions until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill).
 $MarkerEnd
 "@
 

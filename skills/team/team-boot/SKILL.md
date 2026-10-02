@@ -99,19 +99,32 @@ Proportionality gate and trust model in `references/decision-capture.md`:
 match documentation depth to how non-obvious the decision is, and synthesize
 project knowledge — never transcribe instructions.
 
-### Session Decision Ledger (every response)
+### Team Context & Decisions (every response)
+
+Every response carries ONE merged section — grounding context rows and owed
+decision rows in the same 6-column table:
+
+```markdown
+## Team Context & Decisions
 
 | ID | Name | Type | Rel | Status | Clarify |
 |--|--|--|--|--|--|
+| CDR-YYYY-NNN | <name> | <type> | <relevance> | in use | — |
 | — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |
 
-_Unrecorded: N pending · Unclarified: M captured drafts._
+_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown · Unrecorded: N pending · Unclarified: M captured drafts._
+```
+
+Status `in use` + Clarify `—` = grounding context (accepted records only).
+Status `pending`/`captured`/`clarified`/`handed off` + Clarify skill = owed
+decisions. No draft row may carry Status `in use` — drafts appear only as
+pending decision rows. J = all rows shown.
 
 - **Detect**: match session decisions against triggers above.
 - **Classify**: assign record type (ADR/PDR/CDR/ChDR).
 - **Write**: write a lightweight draft directly to `.adlc/drafts/{type}/` using the family draft template.
-- **Track**: update the ledger row (ID = draft ID or —, Status = pending/captured/clarified/handed off, Clarify = matching skill).
-- **Surface**: mirror each detected decision as a task-list todo (draft → matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep the ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill).
+- **Track**: update the table row (ID = draft ID or —, Status = pending/captured/clarified/handed off, Clarify = matching skill).
+- **Surface**: mirror each detected decision as a task-list todo (draft → matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep Team Context & Decisions until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill).
 - **Session-end**: before closing, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off.
 
 Specify skills (/architect-specify, /product-specify, etc.) remain available
@@ -127,12 +140,11 @@ analysis — but are not required for routine capture.
 
 ## Verification
 
-- [ ] Team Context table emitted with `_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown._`
-      (J = section-1 rows, all Status=in use; accepted records only). 0 rows
-      matched → heading + scope line only — no table.
+- [ ] Team Context & Decisions emitted with `_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown · Unrecorded: N pending · Unclarified: M captured drafts._`
+      (J = all rows shown; Status=in use rows are accepted records only, decision rows carry a clarify skill).
 - [ ] Class boots fired at task start (before todo planning), never deferred;
       workspace-root fallback engaged when CWD has no local memory.
-- [ ] Session Decision Ledger updated with detected decisions.
+- [ ] Detected decisions added as table rows with the matching clarify skill.
 - [ ] Detected decisions mirrored as task-list todos; trailing ledger-sweep
       todo added after code-modifying tasks; sweep closed only at
       _Unrecorded: 0 pending · Unclarified: 0 drafts_ with the session-end
