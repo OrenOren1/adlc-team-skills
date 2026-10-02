@@ -126,10 +126,50 @@ def test_class_boot_searched_line_contract():
 
 
 def test_class_boot_ledger_integration():
-    """Each class boot must integrate with the Session Decision Ledger."""
+    """Each class boot must integrate with the merged Team Context & Decisions table."""
     for name in CLASS_BOOTS:
         content = (CLASS_BOOTS[name]["dir"] / "SKILL.md").read_text(encoding="utf-8")
-        assert "Session Decision Ledger" in content, f"{name}: no ledger integration"
+        assert "Team Context & Decisions" in content, f"{name}: no merged-table integration"
+        assert "Session Decision Ledger" not in content, f"{name}: stale standalone ledger"
+
+
+# ── Single-table merge — ADR-417 (issue #56) ─────────────────────────────────
+# Team Context in Use + Session Decision Ledger merge into one
+# "Team Context & Decisions" section (shared 6-col grammar). Status carries
+# the accepted-vs-pending distinction; no draft row may carry `in use`.
+
+MERGED_SECTION_HEADING = "## Team Context & Decisions"
+
+
+def _emission_surfaces():
+    return {
+        "boot.sh": ROOT / "skills/team/team-boot/scripts/boot.sh",
+        "boot.ps1": ROOT / "skills/team/team-boot/scripts/boot.ps1",
+        "team-helpers.sh": ROOT / "skills/team/team-setup/team-helpers.sh",
+        "team-helpers.ps1": ROOT / "skills/team/team-setup/team-helpers.ps1",
+        "team-boot/SKILL.md": ROOT / "skills/team/team-boot/SKILL.md",
+    }
+
+
+def test_single_response_table_contract():
+    """One merged section per emission surface; stale two-table specs gone."""
+    for label, path in _emission_surfaces().items():
+        content = path.read_text(encoding="utf-8")
+        assert MERGED_SECTION_HEADING in content, f"{label}: missing merged heading"
+        assert "## Team Context in Use" not in content, f"{label}: stale context heading"
+        assert "### Session Decision Ledger" not in content, f"{label}: stale ledger heading"
+        merged_lines = [
+            ln for ln in content.splitlines()
+            if "rows shown" in ln and "Unrecorded:" in ln
+        ]
+        assert merged_lines, f"{label}: missing merged counts line (scope + ledger)"
+
+
+def test_status_semantics_rule():
+    """Status alone distinguishes context rows from decision rows."""
+    for label, path in _emission_surfaces().items():
+        lowered = path.read_text(encoding="utf-8").lower()
+        assert "no draft row may carry" in lowered, f"{label}: missing status rule"
 
 
 def test_class_boot_never_fabricate():
@@ -168,7 +208,7 @@ def test_tech_radar_boot_capture_pairing():
     """tech-radar-boot must pair tech selection with ADR capture."""
     content = (CLASS_BOOTS["tech-radar-boot"]["dir"] / "SKILL.md").read_text(encoding="utf-8")
     assert "architect-specify" in content
-    assert "Session Decision Ledger" in content
+    assert "Team Context & Decisions" in content
     assert "Capture the Selection" in content
 
 
@@ -178,7 +218,7 @@ def test_team_boot_skill_documents_catalog():
     for name in CLASS_BOOTS:
         assert name in BOOT, f"team-boot SKILL.md missing {name}"
     assert "## Decision Capture" in BOOT
-    assert "Session Decision Ledger" in BOOT
+    assert "Team Context & Decisions" in BOOT
 
 
 def test_boot_scripts_catalog_rows():
@@ -198,7 +238,7 @@ def test_helper_templates_carry_catalog():
         for name in CLASS_BOOTS:
             assert name in content, f"{label}: missing {name} row"
         assert "## Decision Capture" in content, f"{label}: no Decision Capture"
-        assert "Session Decision Ledger" in content, f"{label}: no ledger contract"
+        assert "Team Context & Decisions" in content, f"{label}: no merged-table contract"
 
 
 def test_helper_borrowers_reference_canonical():
@@ -300,15 +340,23 @@ BOOT_SH_PATH = ROOT / "skills/team/team-boot/scripts/boot.sh"
 
 
 def test_unified_header_at_every_emission_site():
-    """Both tables share one header in boot.sh, boot.ps1, and both helpers."""
-    for label, path in {
-        "boot.sh": ROOT / "skills/team/team-boot/scripts/boot.sh",
-        "boot.ps1": ROOT / "skills/team/team-boot/scripts/boot.ps1",
-        "team-helpers.sh": ROOT / "skills/team/team-setup/team-helpers.sh",
-        "team-helpers.ps1": ROOT / "skills/team/team-setup/team-helpers.ps1",
-    }.items():
+    """One 6-col response table + the Pending Decisions table share one header.
+
+    boot.sh/boot.ps1 carry two tables (merged Team Context & Decisions +
+    session-start Pending Decisions); the team-helpers templates carry only
+    the merged response table.
+    """
+    expected_counts = {
+        "boot.sh": (ROOT / "skills/team/team-boot/scripts/boot.sh", 2),
+        "boot.ps1": (ROOT / "skills/team/team-boot/scripts/boot.ps1", 2),
+        "team-helpers.sh": (ROOT / "skills/team/team-setup/team-helpers.sh", 1),
+        "team-helpers.ps1": (ROOT / "skills/team/team-setup/team-helpers.ps1", 1),
+    }
+    for label, (path, expected) in expected_counts.items():
         content = path.read_text(encoding="utf-8")
-        assert content.count(UNIFIED_HEADER) >= 2, f"{label}: need both tables in unified format"
+        assert content.count(UNIFIED_HEADER) == expected, (
+            f"{label}: expected {expected} unified tables, found {content.count(UNIFIED_HEADER)}"
+        )
     for stale in ("| Decision | Type | Captured? | Skill |",
                   "| Decision | Type | Captured? | Draft ID | Clarify |"):
         for label, path in {
@@ -353,7 +401,7 @@ def test_boot_pending_decisions_consolidated_table(tmp_path, monkeypatch):
     for old in ("## Pending ADRs", "## Pending PDRs", "## Pending ChDRs",
                 "## Pending CDRs", "## Pending EVALs"):
         assert old not in out, f"stale per-class block: {old}"
-    assert "_Scope: 0 CDRs · 1 ADRs · 0 PDRs · 0 ChDRs · 0 evals · 0 skills — J rows shown._" in out
+    assert "_Scope: 0 CDRs · 1 ADRs · 0 PDRs · 0 ChDRs · 0 evals · 0 skills — J rows shown · Unrecorded: N pending · Unclarified: M captured drafts._" in out
     assert UNIFIED_HEADER in out
 
 

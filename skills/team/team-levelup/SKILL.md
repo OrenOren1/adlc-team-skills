@@ -185,14 +185,14 @@ When two projects draft the same pattern:
    - Appends evidence section
    - Increments confidence (multi-project validation)
 
-## Session Decision Ledger
+## Team Context & Decisions
 
-team-levelup integrates with the Session Decision Ledger maintained by team-boot.
+team-levelup integrates with Team Context & Decisions maintained by team-boot.
 CDR-class decisions detected during the session are captured as drafts and
-tracked in the ledger. Mirror each CDR-class decision as a task-list todo
+tracked as table rows in the same section. Mirror each CDR-class decision as a task-list todo
 (draft → `/team-levelup` at session end); after code-modifying tasks, add a
-trailing todo to sweep the ledger until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill). At session end, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off. Do not fabricate
-ledger rows — only record decisions that actually emerged from the session.
+trailing todo to sweep Team Context & Decisions until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill). At session end, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off. Do not fabricate
+table rows — only record decisions that actually emerged from the session.
 
 ## Verification
 

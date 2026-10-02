@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Single merged Team Context & Decisions table** (#56) — the per-response Team Context in Use section and Session Decision Ledger merge into one 6-column table; Status carries the accepted-vs-pending distinction (`in use` + `—` = grounding context, never drafts; `pending`/`captured`/`clarified`/`handed off` + skill = owed decisions); one counts line (`_Scope: … — J rows shown · Unrecorded: N pending · Unclarified: M captured drafts._`). Pending Decisions session-start inventory unchanged. Pinned by `test_single_response_table_contract` + `test_status_semantics_rule` + reshaped header-count assertions.
+
 ### Fixed
 
 - **Class-boot contract fix: early-fire, 0-rows rendering, radar re-emission, workspace fallback** (#50) — class boots now invoke at the START of a matching task (before todo planning/implementation, never deferred); 0 rows matched emits heading + counts/searched line only with no table (a 0-row table header collapsed into unrendered single-line markdown); `tech-radar-boot` re-emits tool-channel script findings in the visible response; `radar-search.sh`/`.ps1` 0-match output drops the empty table; boots in memory-less submodule CWDs fall back to the workspace root memory (`.gitmodules` marker, ADR-401 dual-read order). Pinned by 5 new class-boot contract tests + 2 radar 0-match tests (`tests/unit/test_team_class_boots.py`, `tests/unit/test_tech_radar.py`).

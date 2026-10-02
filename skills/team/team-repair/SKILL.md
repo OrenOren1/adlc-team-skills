@@ -162,7 +162,7 @@ Output: `[OK]` or `[FAIL]` with reason
    - A `team-boot` invocation directive
    - A reference to team AI directives context (constitution, CDR index)
    - The Class Boots catalog (architect-boot / product-boot / change-boot / team-boot / tech-radar-boot)
-   - The compact Decision Capture triggers + Session Decision Ledger contract
+   - The compact Decision Capture triggers + Team Context & Decisions contract (single merged table; Status carries the accepted-vs-pending distinction)
 4. Output:
    - `[OK]` — Project AGENTS.md contains a valid team AI directives managed section
    - `[WARN]` — Project AGENTS.md exists but is missing the managed section (agents won't auto-invoke `team-boot`)

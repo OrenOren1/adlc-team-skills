@@ -56,7 +56,7 @@ def test_team_boot_sh_lean_orientation():
     assert "Available Skills" in BOOT_SH
     assert "MCP Servers" in BOOT_SH
     assert "Every response MUST include" in BOOT_SH
-    assert "Team Context in Use" in BOOT_SH
+    assert "Team Context & Decisions" in BOOT_SH
     # Should NOT cat full files
     assert "cat \"$TEAM_AI_DIRECTIVES/context_modules/constitution.md\"" not in BOOT_SH
     assert "cat \"$TEAM_AI_DIRECTIVES/.skills.json\"" not in BOOT_SH
@@ -85,7 +85,7 @@ def test_boot_sh_context_contract_integrity():
     # J must equal row count (prevents "1 matched" copy-paste with a 2-row table)
     assert "J MUST equal the number of rows" in BOOT_SH
     # Canonical heading standardizes the section across models
-    assert "## Team Context in Use" in BOOT_SH
+    assert "## Team Context & Decisions" in BOOT_SH
     # Exploration efficiency guidance
     assert "targeted file searches" in BOOT_SH
 
@@ -99,7 +99,7 @@ def test_boot_ps1_example_row_is_placeholder():
 def test_boot_ps1_context_contract_integrity():
     """boot.ps1 must enforce counts-line integrity, canonical heading, and exploration guidance."""
     assert "J MUST equal the number of rows" in BOOT_PS1
-    assert "## Team Context in Use" in BOOT_PS1
+    assert "## Team Context & Decisions" in BOOT_PS1
     assert "targeted file searches" in BOOT_PS1
 
 
@@ -163,7 +163,7 @@ def test_boot_sh_compact_decision_capture():
     assert "/team-levelup" in BOOT_SH
     assert "/change-clarify" in BOOT_SH
     assert "/evals-clarify" in BOOT_SH
-    assert "Session Decision Ledger" in BOOT_SH
+    assert "Team Context & Decisions" in BOOT_SH
     assert "Unrecorded: N pending" in BOOT_SH
     assert "Unclarified: M captured drafts" in BOOT_SH
     assert "task-list todo" in BOOT_SH
@@ -176,7 +176,7 @@ def test_boot_ps1_compact_decision_capture():
     assert "## Decision Capture" in BOOT_PS1
     assert "/architect-clarify" in BOOT_PS1
     assert "/team-levelup" in BOOT_PS1
-    assert "Session Decision Ledger" in BOOT_PS1
+    assert "Team Context & Decisions" in BOOT_PS1
     assert "Unrecorded: N pending" in BOOT_PS1
     assert "Unclarified: M captured drafts" in BOOT_PS1
     assert "task-list todo" in BOOT_PS1
@@ -389,7 +389,7 @@ def test_agents_md_simplified():
         return  # AGENTS.md is gitignored — skip in CI
     assert "team-boot" in AGENTS
     assert "CDR" in AGENTS
-    assert "Team Context in Use" in AGENTS
+    assert "Team Context & Decisions" in AGENTS
     assert "Every response MUST include" in AGENTS
     assert "_Searched" in AGENTS
     assert "Class Boots" in AGENTS
@@ -402,7 +402,7 @@ def test_agents_md_simplified():
     assert "First-Tool-Call Gate" not in AGENTS
     assert "CDR-2026-003 | Cloud-Native Platform Architect" not in AGENTS
     assert "CDR-YYYY-NNN" in AGENTS
-    assert "## Team Context in Use" in AGENTS
+    assert "## Team Context & Decisions" in AGENTS
     assert "J MUST equal the number of rows" in AGENTS
 
 
