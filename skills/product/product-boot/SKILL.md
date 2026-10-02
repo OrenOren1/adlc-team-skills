@@ -20,6 +20,10 @@ record system.
 
 ## When to Use
 
+Invoke at the START of a matching task — before planning the todo list and
+before implementation — so the PDR context informs planning.
+Never defer to session end.
+
 Invoke when:
 
 - Starting product work (PRD generation, feature definition, roadmap
@@ -44,6 +48,12 @@ If neither exists but `docs/adlc/memory/pdr/PDR-*.md` or legacy
 lean table from each file (ID from filename; Feature-Area/Status/Title
 from frontmatter or first heading). If the directory is empty or absent,
 report `0 PDRs` — never fabricate rows.
+
+When no local memory index exists in the current working directory and the
+directory sits inside a workspace (detected via a `.gitmodules` marker in an
+ancestor), read the workspace root's `docs/adlc/memory/` index instead
+(ADR-401 dual-read order applies: `docs/adlc/memory` first, legacy
+`.adlc/memory` fallback).
 
 ### Step 1b: Read the PDR Drafts Index
 
@@ -78,7 +88,11 @@ _N pending drafts — run /product-clarify to review._
   also carries Category, Date, Owner — read the individual `PDR-*.md` when
   a task matches a row).
 - `N` = total index rows; `K` = rows relevant to the current task. **K MUST
-  equal the table rows shown** — 0 matched → empty table, never inflate.
+  equal the table rows shown.** 0 rows matched → emit the section heading +
+  the `_Searched N PDRs, K matched._` line only — no table. A 0-row table
+  header collapses into unrendered single-line markdown; never emit one.
+  Emit the section as markdown blocks — heading, table rows, and counts line
+  each on their own lines.
 
 ### Step 3: Capture Product Decisions
 
@@ -102,8 +116,9 @@ rows handed off.
 
 ## Failure Handling
 
-- Missing index + missing records → emit the empty table with
-  `_Searched 0 PDRs, 0 matched._` and continue the user's task; never block.
+- Missing index + missing records → emit the section heading +
+  `_Searched 0 PDRs, 0 matched._` only — no table — and continue the user's
+  task; never block.
 - Unparseable index rows → skip malformed rows, note the skip count.
 
 ## Red Flags

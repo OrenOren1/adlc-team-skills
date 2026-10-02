@@ -355,3 +355,87 @@ def test_boot_pending_decisions_consolidated_table(tmp_path, monkeypatch):
         assert old not in out, f"stale per-class block: {old}"
     assert "_Scope: 0 CDRs · 1 ADRs · 0 PDRs · 0 ChDRs · 0 evals · 0 skills — J rows shown._" in out
     assert UNIFIED_HEADER in out
+
+
+# ── Class-boot contract v2 — ADR-412/413 (issue #50 + workspace-fallback scope) ─
+# Early-fire: class boots invoke at the START of matching work (before todo
+# planning/implementation), never deferred to session end.
+# 0-rows rendering: heading + counts/searched line only — NO table (a 0-row table
+# header collapses into unrendered single-line markdown).
+# Workspace fallback: boots in a memory-less submodule CWD fall back to the
+# workspace root memory (detected via .gitmodules marker).
+
+EARLY_FIRE_MARKERS = (
+    "before planning the todo list",
+    "never defer to session end",
+)
+
+TEAM_BOOT_CATALOG_SURFACES = {
+    "boot.sh": ROOT / "skills/team/team-boot/scripts/boot.sh",
+    "boot.ps1": ROOT / "skills/team/team-boot/scripts/boot.ps1",
+    "team-helpers.sh": ROOT / "skills/team/team-setup/team-helpers.sh",
+    "team-helpers.ps1": ROOT / "skills/team/team-setup/team-helpers.ps1",
+    "team-boot/SKILL.md": ROOT / "skills/team/team-boot/SKILL.md",
+    "manual-fallback.md": ROOT / "skills/team/team-boot/references/manual-fallback.md",
+}
+
+
+def _boot_skill_text(name):
+    return (CLASS_BOOTS[name]["dir"] / "SKILL.md").read_text(encoding="utf-8")
+
+
+def test_class_boot_early_fire_contract():
+    """All five class boots must carry the early-fire rule."""
+    for name in CLASS_BOOTS:
+        lowered = _boot_skill_text(name).lower()
+        for marker in EARLY_FIRE_MARKERS:
+            assert marker in lowered, f"{name}: missing early-fire marker '{marker}'"
+
+
+def test_catalog_surfaces_early_fire_contract():
+    """All four catalog surfaces + team-boot SKILL.md + manual-fallback carry early-fire."""
+    for label, path in TEAM_BOOT_CATALOG_SURFACES.items():
+        lowered = path.read_text(encoding="utf-8").lower()
+        for marker in EARLY_FIRE_MARKERS:
+            assert marker in lowered, f"{label}: missing early-fire marker '{marker}'"
+
+
+def test_zero_rows_drop_table_contract():
+    """0-rows rendering = heading + counts line only — no table anywhere.
+
+    The stale 'empty table' contract is the source of collapsed single-line
+    markdown; it must not appear on any contract surface.
+    """
+    for label, path in {
+        "boot.sh": ROOT / "skills/team/team-boot/scripts/boot.sh",
+        "boot.ps1": ROOT / "skills/team/team-boot/scripts/boot.ps1",
+        "team-helpers.sh": ROOT / "skills/team/team-setup/team-helpers.sh",
+        "team-helpers.ps1": ROOT / "skills/team/team-setup/team-helpers.ps1",
+    }.items():
+        content = path.read_text(encoding="utf-8")
+        lowered = content.lower()
+        assert "empty table" not in lowered, f"{label}: stale 'empty table' contract"
+        assert "no table" in lowered, f"{label}: missing drop-table rule"
+        assert "0 rows matched" in content, f"{label}: missing 0-rows contract"
+    for name in CLASS_BOOTS:
+        lowered = _boot_skill_text(name).lower()
+        assert "empty table" not in lowered, f"{name}: stale 'empty table' contract"
+        assert "no table" in lowered, f"{name}: missing drop-table rule"
+
+
+def test_workspace_fallback_contract():
+    """Class boots + catalog surfaces document the workspace-root fallback."""
+    for name in CLASS_BOOTS:
+        lowered = _boot_skill_text(name).lower()
+        assert ".gitmodules" in lowered, f"{name}: missing workspace-fallback marker"
+        assert "workspace root" in lowered, f"{name}: missing workspace-root rule"
+    for label, path in TEAM_BOOT_CATALOG_SURFACES.items():
+        lowered = path.read_text(encoding="utf-8").lower()
+        assert ".gitmodules" in lowered, f"{label}: missing workspace-fallback marker"
+
+
+def test_tech_radar_boot_reemit_contract():
+    """tech-radar-boot must mandate visible re-emission of tool-channel findings."""
+    lowered = _boot_skill_text("tech-radar-boot").lower()
+    for marker in ("tool channel", "re-emit", "visible response"):
+        assert marker in lowered, f"tech-radar-boot: missing re-emit marker '{marker}'"

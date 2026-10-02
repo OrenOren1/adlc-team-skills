@@ -125,12 +125,10 @@ if [ "$OUTPUT_JSON" = true ]; then
   exit 0
 fi
 
-# Format as markdown table
+# Format as markdown table. 0 matches → heading + source line only, no table:
+# a 0-row table header collapses into unrendered single-line markdown (ADR-413).
 if [ -z "$ALL_RESULTS" ]; then
   echo "## Tikal Tech Radar Context"
-  echo ""
-  echo "| Technology | Quadrant | Ring | Tikal's Opinion (Why?) |"
-  echo "|------------|----------|------|------------------------|"
   echo ""
   echo "_Source: Tikal Israeli Tech Radar (live: https://tikalk.com/radar.json) · 0 technologies matched._"
   exit 0

@@ -40,10 +40,17 @@ the event hook already ran — do nothing.
 | `team-levelup` | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch `drafts/cdr/` |
 | `tech-radar-boot` | Tikal Tech Radar context | choosing/evaluating technology | radar context + direct write to `.adlc/drafts/adr/` |
 
-Invoke a class boot when a task or decision matches its row. Each boot
+Invoke a class boot when a task or decision matches its row — invoke it at the
+START of the matching task, before planning the todo list and before
+implementation, so the class context informs planning.
+Never defer to session end. When no local memory index exists in the current working
+directory and the directory sits inside a workspace (detected via a
+`.gitmodules` marker in an ancestor), the boot reads the workspace root's
+`docs/adlc/memory/` index instead. Each boot
 emits its class context section and its own searched line
 (`_Searched N <class> records, K matched._`), and carries the full
-detection and capture guidance for its class.
+detection and capture guidance for its class. 0 rows matched → the boot emits
+its section heading + the searched line only — no table.
 
 ## Event hook (automatic)
 
@@ -113,14 +120,18 @@ analysis — but are not required for routine capture.
 
 ## Failure Handling
 
-- Missing index + missing records → emit the empty table with
-  `_Scope: 0 CDRs · 0 ADRs · 0 PDRs · 0 ChDRs · 0 evals · 0 skills — 0 rows shown._` and continue the user's task; never block.
+- Missing index + missing records → emit the section heading +
+  `_Scope: 0 CDRs · 0 ADRs · 0 PDRs · 0 ChDRs · 0 evals · 0 skills — 0 rows shown._`
+  only — no table — and continue the user's task; never block.
 - Unparseable index rows → skip malformed rows, note the skip count.
 
 ## Verification
 
 - [ ] Team Context table emitted with `_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown._`
-      (J = section-1 rows, all Status=in use; accepted records only).
+      (J = section-1 rows, all Status=in use; accepted records only). 0 rows
+      matched → heading + scope line only — no table.
+- [ ] Class boots fired at task start (before todo planning), never deferred;
+      workspace-root fallback engaged when CWD has no local memory.
 - [ ] Session Decision Ledger updated with detected decisions.
 - [ ] Detected decisions mirrored as task-list todos; trailing ledger-sweep
       todo added after code-modifying tasks; sweep closed only at

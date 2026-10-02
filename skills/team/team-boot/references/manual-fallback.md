@@ -16,8 +16,13 @@ Decision Capture ledger contract) lives in `SKILL.md`.
    `team-setup` skill.
 3. If configured: read and assemble the constitution, CDR.md index table,
    and `.skills.json` into your context. Present the Class Boots catalog
-   above and follow it: invoke the matching class boot when a task or
-   decision matches a row.
+   above and follow it: invoke the matching class boot at the START of a
+   matching task — before planning the todo list and before implementation —
+   so the class context informs planning; never defer to session end or
+   post-hoc. When no local memory index exists in the current working
+   directory and the directory sits inside a workspace (detected via a
+   `.gitmodules` marker in an ancestor), the boot reads the workspace root's
+   `docs/adlc/memory/` index instead.
 4. The CDR index is your catalog — read full module bodies on demand
    when a task matches a CDR descriptor (or invoke `team-levelup` to do
    it as a structured deep-dive).
