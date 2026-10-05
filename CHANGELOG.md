@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Single merged Team Context & Decisions table** (#56) — the per-response Team Context in Use section and Session Decision Ledger merge into one 6-column table; Status carries the accepted-vs-pending distinction (`in use` + `—` = grounding context, never drafts; `pending`/`captured`/`clarified`/`handed off` + skill = owed decisions); one counts line (`_Scope: … — J rows shown · Unrecorded: N pending · Unclarified: M captured drafts._`). Pending Decisions session-start inventory unchanged. Pinned by `test_single_response_table_contract` + `test_status_semantics_rule` + reshaped header-count assertions.
+
+### Fixed
+
+- **Class-boot contract fix: early-fire, 0-rows rendering, radar re-emission, workspace fallback** (#50) — class boots now invoke at the START of a matching task (before todo planning/implementation, never deferred); 0 rows matched emits heading + counts/searched line only with no table (a 0-row table header collapsed into unrendered single-line markdown); `tech-radar-boot` re-emits tool-channel script findings in the visible response; `radar-search.sh`/`.ps1` 0-match output drops the empty table; boots in memory-less submodule CWDs fall back to the workspace root memory (`.gitmodules` marker, ADR-401 dual-read order). Pinned by 5 new class-boot contract tests + 2 radar 0-match tests (`tests/unit/test_team_class_boots.py`, `tests/unit/test_tech_radar.py`).
+- **Memory centralization migration** (#51, ADR-412) — workspace `docs/adlc/memory/` is the sole ADR/PDR tracker; the 18 ADRs + 14 PDRs of the legacy untracked `.adlc/memory/` verified row-by-row against workspace equivalents (30 duplicates/subsumed, unique PDR-030 → PDR-108 agent-authored stamp and PDR-057 → PDR-109 deck↔code terminology imported); `docs/decision-memory.md` tombstone carries the record map.
+- **Sync-test mirror staleness** (#54) — regenerated install artifacts (`team-learn` → `team-levelup`); `test_generated_artifacts_sync.py` green again. Single-canonical-script guard added (`test_single_canonical_radar_search_script_pair`) after a stale `tech-radar-context` alias copy of `radar-search.sh` was found emitting the old 0-match table.
+
+## [0.30.0] - 2026-10-01
+
+### Added
+
+- **Ledger→todo contract alignment across all decision-capture surfaces** — the per-decision task-list todo + trailing ledger-sweep todo (shipped in #40 only in the injected `AGENTS.md` managed section) now also lives in `boot.sh`/`boot.ps1` session-start output (Surface ledger step rewritten), `team-boot` SKILL.md (Surface step + Verification line), `team-boot` `references/decision-capture.md` (new **Todo Surfacing** section with harness mapping and no-task-list-tool fallback), the four class boots and `team-levelup` (todo-mirroring sentences), and is documented in `team-setup`'s post-setup reference. Class-boot ledger paragraphs migrated from the stale inline 4-column grammar (Decision | Type | Captured? | Skill) to the unified 6-column grammar (ID | Name | Type | Rel | Status | Clarify). Pinned by `test_ledger_todo_contract_on_all_surfaces` + `test_no_stale_inline_4col_ledger_grammar` in `tests/unit/test_team_boot_setup_flow.py`.
+
+- **Ledger-sweep counts unclarified drafts; `change-boot` fires on git commands with human-authored messages** — the sweep target is now `_Unrecorded: 0 pending · Unclarified: 0 drafts_`: a captured row exits only via its clarify skill (`clarified`) or an explicit user handoff to a named clarify or execute skill (`handed off`), so writing drafts alone can no longer close the sweep. The session-end step delivers a clarify prompt naming each captured draft (ID + skill) instead of pointing at `pending` drafts. `change-boot` invocation now covers in-session git commands with human-authored messages (commit/merge/revert/rebase/cherry-pick/tag), authored PR title/body (at create and merge), and CHANGELOG edits — evaluated under the proportionality gate at session end; routine ops with generated or empty messages are not ChDRs. `change-boot` Step 2's draft scan is renamed to the `Unclarified` count with a `proposed/discovered` ↔ `captured` mapping note, and its description now names both `/change-init` (mining) and `/change-clarify` (clarify gate). `post-setup-agents.md` joins the pinned surface map (edited for #42 but never covered). Pinned by extended `test_ledger_todo_contract_on_all_surfaces` + new `test_change_boot_git_command_trigger`.
+
+### Changed
+
+- **Renamed `team-learn` → `team-levelup`** — skill dir, SKILL.md `name:`, scripts, all cross-refs (boot surfaces, events, helpers, README), and report file `.adlc/team-learn-report.md` → `.adlc/team-levelup-report.md`. Retires the stale legacy `levelup-*` family. Hard rename, no alias or compat shim.
+
 ## [0.29.0] - 2026-09-20
 
 ### Added

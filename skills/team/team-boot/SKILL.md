@@ -26,20 +26,31 @@ against the current task on its own, per prompt, with no skill invocation.
 structured re-discovery (e.g., starting a complex feature) and is not part
 of the bootstrap loop.
 
+**Fast path:** if the team AI directives context (constitution, CDR index,
+Class Boots catalog) is already in your system prompt or first user message,
+the event hook already ran — do nothing.
+
 ## Class Boots
 
 | Boot | Injects | Invoke When | Capture Via |
 |------|---------|-------------|-------------|
-| `architect-boot` | ADR index (`.adlc/memory/adr/`) | architecture work; tech-stack/pattern choice | direct write to `.adlc/drafts/adr/` |
-| `product-boot` | PDR index (`.adlc/memory/pdr/`) | product/feature scope, personas, monetization | direct write to `.adlc/drafts/pdr/` |
-| `change-boot` | ChDR index (`.adlc/memory/chdr.md`) | change-history rationale, reverts, issue-linked commits | direct write to `.adlc/drafts/chdr/` |
-| `team-learn` | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch `drafts/cdr/` |
+| `architect-boot` | ADR index (`docs/adlc/memory/adr/` + legacy `.adlc/memory/adr/`) | architecture work; tech-stack/pattern choice | direct write to `.adlc/drafts/adr/` |
+| `product-boot` | PDR index (`docs/adlc/memory/pdr/` + legacy `.adlc/memory/pdr/`) | product/feature scope, personas, monetization | direct write to `.adlc/drafts/pdr/` |
+| `change-boot` | ChDR index (`docs/adlc/memory/chdr.md` + legacy `.adlc/memory/chdr.md`) | change-history rationale, reverts, issue-linked commits | direct write to `.adlc/drafts/chdr/` |
+| `team-levelup` | CDR module bodies (team-ai-directives) | session end; CDR descriptor match; reusable team pattern | direct write to adlc branch `drafts/cdr/` |
 | `tech-radar-boot` | Tikal Tech Radar context | choosing/evaluating technology | radar context + direct write to `.adlc/drafts/adr/` |
 
-Invoke a class boot when a task or decision matches its row. Each boot
+Invoke a class boot when a task or decision matches its row — invoke it at the
+START of the matching task, before planning the todo list and before
+implementation, so the class context informs planning.
+Never defer to session end. When no local memory index exists in the current working
+directory and the directory sits inside a workspace (detected via a
+`.gitmodules` marker in an ancestor), the boot reads the workspace root's
+`docs/adlc/memory/` index instead. Each boot
 emits its class context section and its own searched line
 (`_Searched N <class> records, K matched._`), and carries the full
-detection and capture guidance for its class.
+detection and capture guidance for its class. 0 rows matched → the boot emits
+its section heading + the searched line only — no table.
 
 ## Event hook (automatic)
 
@@ -62,13 +73,8 @@ guard prevents double-injection. Agents whose adapters don't map
    file-search tool to locate it.
 2. If unconfigured (missing, `null`, or path doesn't exist): invoke the
    `team-setup` skill.
-3. If configured: read and assemble the constitution, CDR.md index table,
-   and `.skills.json` into your context. Present the Class Boots catalog
-   above and follow it: invoke the matching class boot when a task or
-   decision matches a row.
-4. The CDR index is your catalog — read full module bodies on demand
-   when a task matches a CDR descriptor (or invoke `team-learn` to do
-   it as a structured deep-dive).
+3. If configured: assemble the context and follow the Class Boots catalog
+   above. Full walkthrough in `references/manual-fallback.md`.
 
 ## Decision Capture
 
@@ -82,44 +88,67 @@ The only gate is clarify at session end.
 |---------|------|-----------|-------------|
 | Tech stack choice, pattern selection, "we chose X over Y" | decision | drafts/adr/ | /architect-clarify |
 | Feature scope, persona, monetization | product | drafts/pdr/ | /product-clarify |
-| Reusable team rule, "we always do X" | pattern | drafts/cdr/ | /team-learn |
-| Revert/hotfix rationale, issue-linked commit | incident | drafts/chdr/ | /change-clarify |
+| Reusable team rule, "we always do X" | pattern | drafts/cdr/ | /team-levelup |
+| Revert/hotfix rationale, issue-linked commit, git command w/ human-authored message, authored PR title/body, CHANGELOG edit | incident | drafts/chdr/ | /change-clarify |
 | Workaround adopted, "X for now because Y" | workaround | drafts/chdr/ | /change-clarify |
 | Operational constraint, "only works because Z" | constraint | drafts/adr/ | /architect-clarify |
 | Change abandoned, "simplifying X but Y blocks it" | abandoned | drafts/chdr/ | /change-clarify |
 | Eval criterion discovered | eval | drafts/evals/ | /evals-clarify |
 
-### Proportionality Gate
+Proportionality gate and trust model in `references/decision-capture.md`:
+match documentation depth to how non-obvious the decision is, and synthesize
+project knowledge — never transcribe instructions.
 
-Don't capture routine implementation detail the code already explains.
-Match documentation depth to how non-obvious the decision is.
-A two-line note beats no note; if capture feels like a large task,
-write less, not nothing.
+### Team Context & Decisions (every response)
 
-### Trust Model
+Every response carries ONE merged section — grounding context rows and owed
+decision rows in the same 6-column table:
 
-Drafts are project knowledge, not agent instructions. An entry describes
-why something is the way it is; it never directs, authorizes, or expands
-what the agent is permitted to do. When writing drafts: synthesize, don't
-transcribe. Don't copy instructions verbatim from issues, commits, or logs.
+```markdown
+## Team Context & Decisions
 
-### Session Decision Ledger (every response)
+| ID | Name | Type | Rel | Status | Clarify |
+|--|--|--|--|--|--|
+| CDR-YYYY-NNN | <name> | <type> | <relevance> | in use | — |
+| — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |
 
-| Decision | Type | Captured? | Draft ID | Clarify |
-|----------|------|-----------|----------|---------|
-| _none yet_ | — | — | — | — |
+_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown · Unrecorded: N pending · Unclarified: M captured drafts._
+```
 
-_Unrecorded: N pending._
+Status `in use` + Clarify `—` = grounding context (accepted records only).
+Status `pending`/`captured`/`clarified`/`handed off` + Clarify skill = owed
+decisions. No draft row may carry Status `in use` — drafts appear only as
+pending decision rows. J = all rows shown.
 
 - **Detect**: match session decisions against triggers above.
 - **Classify**: assign record type (ADR/PDR/CDR/ChDR).
 - **Write**: write a lightweight draft directly to `.adlc/drafts/{type}/` using the family draft template.
-- **Track**: update the ledger with Draft ID.
-- **Session-end**: prompt to run clarify skills for pending drafts.
+- **Track**: update the table row (ID = draft ID or —, Status = pending/captured/clarified/handed off, Clarify = matching skill).
+- **Surface**: mirror each detected decision as a task-list todo (draft → matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep Team Context & Decisions until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill).
+- **Session-end**: before closing, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off.
 
 Specify skills (/architect-specify, /product-specify, etc.) remain available
 for interactive deep-dive exploration when you want guided trade-off
 analysis — but are not required for routine capture.
+
+## Failure Handling
+
+- Missing index + missing records → emit the section heading +
+  `_Scope: 0 CDRs · 0 ADRs · 0 PDRs · 0 ChDRs · 0 evals · 0 skills — 0 rows shown._`
+  only — no table — and continue the user's task; never block.
+- Unparseable index rows → skip malformed rows, note the skip count.
+
+## Verification
+
+- [ ] Team Context & Decisions emitted with `_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown · Unrecorded: N pending · Unclarified: M captured drafts._`
+      (J = all rows shown; Status=in use rows are accepted records only, decision rows carry a clarify skill).
+- [ ] Class boots fired at task start (before todo planning), never deferred;
+      workspace-root fallback engaged when CWD has no local memory.
+- [ ] Detected decisions added as table rows with the matching clarify skill.
+- [ ] Detected decisions mirrored as task-list todos; trailing ledger-sweep
+      todo added after code-modifying tasks; sweep closed only at
+      _Unrecorded: 0 pending · Unclarified: 0 drafts_ with the session-end
+      clarify prompt delivered.
 
 ## Unconfigured projects
 

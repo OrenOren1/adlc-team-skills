@@ -36,7 +36,7 @@ ps: scripts/powershell/setup-product-clarify.ps1
 ```
 
 2. **Read all PDR files** from `{REPO_ROOT}/.adlc/drafts/pdr/PDR-*.md`
-3. **Read constitution** from `{REPO_ROOT}/.adlc/memory/constitution.md` if exists
+3. **Read constitution** from `{REPO_ROOT}/docs/adlc/memory/constitution.md`, falling back to legacy `{REPO_ROOT}/.adlc/memory/constitution.md` (ADR-401 dual-read), if either exists
 4. **Build inventory**:
 ```markdown
 | PDR | Title | Status | Category |
@@ -250,7 +250,7 @@ Run `/product-implement` to generate PRD.md.
 
 - `PDR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/pdr`
 - `PDR_INDEX` — `{REPO_ROOT}/.adlc/drafts/pdr/pdr.md`
-- `CONSTITUTION` — `{REPO_ROOT}/.adlc/memory/constitution.md`
+- `CONSTITUTION` — `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `.adlc/memory/constitution.md` fallback)
 
 ## 12-Factor Alignment
 

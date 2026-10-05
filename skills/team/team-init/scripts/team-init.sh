@@ -3,12 +3,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Source team-learn helpers (shared utilities)
-LEARN_HELPERS="${SCRIPT_DIR}/../team-learn/scripts/helpers.sh"
-if [[ -f "$LEARN_HELPERS" ]]; then
-  source "$LEARN_HELPERS"
+# Source team-levelup helpers (shared utilities)
+LEVELUP_HELPERS="${SCRIPT_DIR}/../team-levelup/scripts/helpers.sh"
+if [[ -f "$LEVELUP_HELPERS" ]]; then
+  source "$LEVELUP_HELPERS"
 else
-  echo "Error: team-learn helpers not found at $LEARN_HELPERS"
+  echo "Error: team-levelup helpers not found at $LEVELUP_HELPERS"
   exit 1
 fi
 
@@ -18,7 +18,7 @@ if [[ "${1:-}" == "--setup" ]]; then
 fi
 
 # Resolve paths
-eval "$(resolve_team_learn_paths)"
+eval "$(resolve_team_levelup_paths)"
 
 if [[ -z "$TEAM_AI_DIRECTIVES" ]] || [[ ! -d "$TEAM_AI_DIRECTIVES" ]]; then
   echo "Team AI directives repository not configured."

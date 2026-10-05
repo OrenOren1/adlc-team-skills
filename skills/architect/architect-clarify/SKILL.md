@@ -68,7 +68,7 @@ Each ADR should have:
 
 ### Outline
 
-1. **Load Current State**: Parse ADRs from `{REPO_ROOT}/.adlc/drafts/adr/` (individual file format) and `{REPO_ROOT}/.adlc/memory/constitution.md`
+1. **Load Current State**: Parse ADRs from `{REPO_ROOT}/.adlc/drafts/adr/` (individual file format) and `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `{REPO_ROOT}/.adlc/memory/constitution.md` fallback — ADR-401 dual-read)
 
 **IMPORTANT - Path Resolution**:
 
@@ -100,7 +100,7 @@ Each ADR should have:
    - Count total ADRs and identify status distribution
 
 3. **Load Constitution**:
-   - Read `{REPO_ROOT}/.adlc/memory/constitution.md` if it exists
+   - Read `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `{REPO_ROOT}/.adlc/memory/constitution.md` fallback) if either exists
    - Extract principles for alignment checking
    - Note governance constraints
 

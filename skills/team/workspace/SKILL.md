@@ -9,7 +9,7 @@ description: Use when coordinating a multi-repo workspace — init the .adlc/ st
 
 A multi-repo workspace coordinator for shared team context. The parent
 repository holds shared decisions (PDRs, ADRs, CDRs) under `.adlc/`,
-created by `product-specify`, `architect-specify`, and `team-learn`.
+created by `product-specify`, `architect-specify`, and `team-levelup`.
 Child implementation repositories are discovered at depth 1 and optionally
 linked as Git submodules so the entire workspace can be cloned with
 `git clone --recursive`.
@@ -74,7 +74,7 @@ scripts/powershell/setup-workspace.ps1
 {
   "REPO_ROOT": "/path/to/parent",
   "ADLC_DIR": "/path/to/parent/.adlc",
-  "ADLC_DIRS_CREATED": [".adlc/product", ".adlc/architecture", ".adlc/context"],
+  "ADLC_DIRS_CREATED": [".adlc/product", ".adlc/drafts", ".adlc/drafts/pdr"],
   "GITIGNORE_EXISTS": true,
   "GITIGNORE_RULES_MISSING": [".adlc/"],
   "CHILD_REPOS": [
@@ -91,7 +91,7 @@ scripts/powershell/setup-workspace.ps1
 .adlc/
 ├── product/           # PDRs (product-specify, product-init)
 ├── architecture/      # ADRs (architect-specify, architect-init)
-├── context/           # CDRs (team-learn, team-init)
+├── context/           # CDRs (team-levelup, team-init)
 ├── skills/            # Team skills metadata
 └── drafts/            # Draft artifacts before clarification
     ├── pdr/
@@ -158,7 +158,7 @@ Emitted by `workspace.sh --json`:
 
 ### Phase 1: `.adlc/` Structure Creation
 
-The setup script creates the full `.adlc/` directory tree if it doesn't exist. This is the shared context directory where other skills write PDRs, ADRs, CDRs, and skill metadata.
+The setup script creates the `.adlc/` directory tree if it doesn't exist (`product/`, `drafts/`, and the per-family draft subdirectories — ADR-401 scopes `.adlc/` to machine pipeline state). This is the shared context directory where other skills write drafts and pipeline state; published decision records and compiled deliverables live under `docs/adlc/`.
 
 **Idempotent**: already-existing directories are not recreated.
 
@@ -166,10 +166,10 @@ The setup script creates the full `.adlc/` directory tree if it doesn't exist. T
 
 The setup script checks `.gitignore` for workspace conventions and reports missing rules.
 
-**Excluded (should NOT be committed)** — local-only or agent-generated:
+**Allowlist model (ADR-401 R7)** — `.adlc/` is no longer ignored wholesale. Machine pipeline state is ignored via `.adlc/*` with tracked exceptions re-included; published content under `docs/adlc/` is always tracked:
 
 ```gitignore
-.adlc/
+# agent-install surface (regenerated)
 .agents/
 .opencode/
 .claude/
@@ -182,7 +182,31 @@ The setup script checks `.gitignore` for workspace conventions and reports missi
 skills-lock.json
 .skills.json
 .mcp.json
+.events.json
+.pytest_cache/
+.ruff_cache/
+
+# machine pipeline + runtime state (tracked exceptions follow)
+.adlc/*
+!.adlc/init-options.json
+!.adlc/workspace.yml
+!.adlc/drafts/
+!.adlc/evals/
+.adlc/evals/results/
+!.adlc/memory/
+.adlc/memory/*
+!.adlc/memory/evals/
+!.adlc/memory/evals/holdout.json
+
+# generated reports (legacy name kept during transition)
+.adlc/team-learn-report.md
+.adlc/team-levelup-report.md
+
+# knowledge graph (generated)
+graphify-out/
 ```
+
+The allowlist has a single definition in `scripts/bash/paths.sh` (`GITIGNORE_RULES_ALLOWLIST`, mirrored in `scripts/powershell/paths.ps1`); the setup scripts source it and report any missing rules. Tracked legacy files keep working — gitignore gates only untracked files.
 
 **Action**: If `GITIGNORE_RULES_MISSING` is non-empty, add the missing rules to `.gitignore`. Do NOT remove existing rules. If changes were made and not in `--dry-run` mode, commit with message `[workspace] Configure .gitignore for workspace conventions`.
 
@@ -234,7 +258,7 @@ Commit with message `[workspace] Add child repos to .gitignore` if changes were 
 ## Workspace Init Complete
 
 ### .adlc/ Structure
-- Created: 8 directories under `.adlc/`
+- Created: 7 directories under `.adlc/` (`product/`, `drafts/`, `drafts/{pdr,adr,cdr,skills,evals}/`)
 
 ### .gitignore
 - Rules added: 5
@@ -268,10 +292,10 @@ team context. It is created by `--init` and maintained by other skills:
 
 | Artifact | Path | Created By |
 |---|---|---|
-| PDRs | `.adlc/product/` | `product-specify`, `product-init` |
-| ADRs | `.adlc/architecture/` | `architect-specify`, `architect-init` |
-| CDRs | `.adlc/context/` | `team-learn`, `team-init` |
-| Skills | `.adlc/skills/` | `team-skills` |
+| PDR drafts | `.adlc/drafts/pdr/` (accepted → `docs/adlc/memory/pdr/`) | `product-specify`, `product-init` |
+| ADR drafts | `.adlc/drafts/adr/` (accepted → `docs/adlc/memory/adr/`) | `architect-specify`, `architect-init` |
+| CDRs | team-ai-directives `adlc` branch (local drafts in `.adlc/drafts/cdr/`) | `team-levelup`, `team-init` |
+| Skills | agent skills dir (`.agents/skills/` mirror) | `team-skills` |
 | Directory structure | `.adlc/` tree | `workspace --init` (this skill) |
 
 In audit mode (default), this skill does **not** create or modify `.adlc/` content. It only:
@@ -307,14 +331,14 @@ In audit mode (default), this skill does **not** create or modify `.adlc/` conte
 - Running `--force` on a parent with uncommitted changes outside child repos.
 - Creating `.adlc/` content in child repos (parent is the single source).
 - Adding a `workspace.yml` or registry file (convention-only, no config).
-- Excluding `.specify` from discovery (it may be a legitimate child repo).
+- Re-including `.specify` in discovery — the scripts hard-exclude it (see Discovery Rules), and that exclusion is intentional.
 - Modifying child repo contents during `--link` (only parent index changes).
 - Skipping `.gitignore` setup when local agent directories exist.
 
 ## Verification
 
 - [ ] Parent repo is a Git repository.
-- [ ] `--init` creates `.adlc/` with all subdirectories (`product/`, `architecture/`, `context/`, `skills/`, `drafts/`).
+- [ ] `--init` creates `.adlc/` with its subdirectories (`product/`, `drafts/`, `drafts/{pdr,adr,cdr,skills,evals}/`).
 - [ ] `--init` reports missing `.gitignore` rules (additive, never removes).
 - [ ] `--init` is idempotent (second run reports 0 dirs created).
 - [ ] Parent `.adlc/` exists (warn if missing in audit mode).
@@ -331,9 +355,9 @@ In audit mode (default), this skill does **not** create or modify `.adlc/` conte
 
 | Skill | Relationship |
 |---|---|
-| `product-specify` | Creates PDRs in parent `.adlc/product/` after `--init` |
-| `architect-specify` | Creates ADRs in parent `.adlc/architecture/` after `--init` |
-| `team-learn` | Creates CDRs in parent `.adlc/context/` after `--init` |
+| `product-specify` | Creates PDR drafts in parent `.adlc/drafts/pdr/` after `--init` |
+| `architect-specify` | Creates ADR drafts in parent `.adlc/drafts/adr/` after `--init` |
+| `team-levelup` | Creates CDR drafts (published to the team-ai-directives `adlc` branch) after `--init` |
 | `team-boot` | Loads parent `.adlc` context at session start |
 | `team-setup` | Configures agent directories (`.agents/`, `.opencode/`) — complement to `--init` |
 

@@ -193,3 +193,68 @@ def test_radar_skill_canonical_ring_definitions():
   # Canonical Stop definition
   assert "better alternatives exist" in skill_md
   assert "Deprecated / anti-pattern" not in skill_md
+
+
+def _source_tree_scripts(pattern):
+  """radar helper scripts under skills/ only — generated mirrors excluded."""
+  return [
+      p
+      for p in ROOT.glob(f"**/{pattern}")
+      if ".agents" not in p.parts
+      and ".opencode" not in p.parts
+      and ".git" not in p.parts
+  ]
+
+
+def test_single_canonical_radar_search_script_pair():
+  """Source tree must carry exactly one radar-search.sh + one radar-search.ps1.
+
+  A second copy (observed live: a stale tech-radar-context alias copy
+  emitting the old 0-match table) silently diverges. The canonical pair
+  lives under tech-radar-boot/scripts/.
+  """
+  sh_scripts = _source_tree_scripts("radar-search.sh")
+  ps1_scripts = _source_tree_scripts("radar-search.ps1")
+  assert len(sh_scripts) == 1, f"expected 1 radar-search.sh, found: {sh_scripts}"
+  assert len(ps1_scripts) == 1, f"expected 1 radar-search.ps1, found: {ps1_scripts}"
+  assert sh_scripts[0].parent.parent.name == "tech-radar-boot"
+
+
+def test_radar_search_zero_match_has_no_table():
+  """0-match markdown output = heading + source line only — no table.
+
+  An empty table header collapses into unrendered single-line markdown when
+  re-emitted; the script must emit nothing table-shaped on 0 matches (ADR-413).
+  """
+  out = _run_radar_search("zzz-no-such-technology-xyz")
+  assert "## Tikal Tech Radar Context" in out
+  assert "0 technologies matched" in out
+  table_lines = [ln for ln in out.splitlines() if ln.lstrip().startswith("|")]
+  assert table_lines == [], f"0-match output must not contain a table, got: {table_lines}"
+
+
+@pytest.mark.skipif(
+    __import__("shutil").which("pwsh") is None, reason="pwsh not installed"
+)
+def test_radar_search_ps1_zero_match_has_no_table():
+  """PowerShell parity: radar-search.ps1 0-match output has no table either."""
+  ps1 = (
+      ROOT
+      / "skills"
+      / "tech-radar"
+      / "tech-radar-boot"
+      / "scripts"
+      / "radar-search.ps1"
+  )
+  result = subprocess.run(
+      ["pwsh", str(ps1), "zzz-no-such-technology-xyz"],
+      capture_output=True,
+      text=True,
+      cwd=ROOT,
+  )
+  assert result.returncode == 0, f"radar-search.ps1 failed: {result.stderr}"
+  out = result.stdout
+  assert "## Tikal Tech Radar Context" in out
+  assert "0 technologies matched" in out
+  table_lines = [ln for ln in out.splitlines() if ln.lstrip().startswith("|")]
+  assert table_lines == [], f"ps1 0-match output must not contain a table, got: {table_lines}"

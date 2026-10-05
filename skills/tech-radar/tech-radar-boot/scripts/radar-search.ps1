@@ -110,14 +110,17 @@ if ($Json) {
     exit 0
 }
 
-# Markdown output
+# Markdown output. 0 matches → heading + source line only, no table: a 0-row
+# table header collapses into unrendered single-line markdown (ADR-413).
 Write-Output "## Tikal Tech Radar Context"
 Write-Output ""
-Write-Output "| Technology | Quadrant | Ring | Tikal's Opinion (Why?) |"
-Write-Output "|------------|----------|------|------------------------|"
+if ($results.Count -gt 0) {
+    Write-Output "| Technology | Quadrant | Ring | Tikal's Opinion (Why?) |"
+    Write-Output "|------------|----------|------|------------------------|"
 
-foreach ($r in $results) {
-    Write-Output "| $($r.name) | $($r.quadrant) | $($r.ring) | $($r.why) |"
+    foreach ($r in $results) {
+        Write-Output "| $($r.name) | $($r.quadrant) | $($r.ring) | $($r.why) |"
+    }
 }
 
 Write-Output ""
@@ -143,4 +146,8 @@ foreach ($g in $techGroups) {
 }
 
 Write-Output ""
-Write-Output "_Source: Tikal Israeli Tech Radar (live: https://tikalk.com/radar.json) · $($results.Count) blip placement(s) matched._"
+if ($results.Count -gt 0) {
+    Write-Output "_Source: Tikal Israeli Tech Radar (live: https://tikalk.com/radar.json) · $($results.Count) blip placement(s) matched._"
+} else {
+    Write-Output "_Source: Tikal Israeli Tech Radar (live: https://tikalk.com/radar.json) · 0 technologies matched._"
+}

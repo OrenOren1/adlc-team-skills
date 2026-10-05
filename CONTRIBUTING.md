@@ -29,7 +29,7 @@ evals/promptfoo/tests/test_check_*.py     # grader unit tests
 - **Cross-agent compatibility is required.** Skills must follow the
   [Agent Skills standard](https://agentskills.io) and must not depend on a
   single harness (e.g. don't hardcode `.claude/` paths — use the discovered
-  paths pattern from `mission-brief`'s `references/agent-integrations.md`).
+  paths pattern from `factory-mission`'s `references/agent-integrations.md`).
 - **Skill behavior must be testable.** A new skill ships with eval coverage
   (a goldset criterion + grader) or a clear reason it can't be graded.
 
@@ -46,7 +46,7 @@ evals/promptfoo/tests/test_check_*.py     # grader unit tests
 
 > [!NOTE]
 > If your pull request introduces a new skill, renames or removes an existing
-> one, or changes the behavior of `mission-brief`, make sure it was
+> one, or changes the behavior of `factory-mission`, make sure it was
 > **discussed and agreed upon** in an issue first. Large unagreed changes
 > will be closed.
 
@@ -118,7 +118,7 @@ A skill that doesn't match these conventions won't be merged:
   (enforced by `test_skill_directory_depth`).
 - **Description = trigger only**: start with "Use when…" and name concrete
   symptoms and situations. Never summarize what the skill does —
-  `mission-brief` routes subagents by descriptions, and a workflow summary
+  `factory-mission` routes subagents by descriptions, and a workflow summary
   invites the agent to follow the summary instead of reading the skill.
   (`test_skill_description_presence_and_length` enforces presence +
   length; the "Use when" form is enforced for model-invoked skills.)
@@ -153,7 +153,7 @@ pytest tests/ evals/promptfoo/tests/ -v
 | `tests/unit/test_playbook_integrity.py` | Skill frontmatter validity (name + description), directory/name parity, 2-level depth, template YAML |
 | `tests/unit/test_generated_artifacts_sync.py` | Generated install artifacts (`.agents/skills/` mirror, `.opencode/commands/`) stay in sync with `skills/` — regenerate with `npx adlc-cli skill add <repo> -a <agent> -y` |
 | `tests/unit/test_setup_scripts.py` | Every `setup-*.sh` runs in a sandbox and emits valid JSON/KEY=VALUE |
-| `tests/e2e/` | Workflow state machines (mission-brief, team-repair, universal skill routing) |
+| `tests/e2e/` | Workflow state machines (factory-mission, team-repair, universal skill routing) |
 | `evals/promptfoo/tests/` | Every grader produces correct pass/fail on goldset examples |
 
 **Skill-behavior tests** use the PromptFoo harness in `evals/promptfoo/` —
@@ -188,7 +188,7 @@ Any change that alters a skill's behavior needs a manual run in a real agent.
    mkdir /tmp/skill-test && cd /tmp/skill-test && git init
    npx skills add /path/to/your/adlc-team-skills -a claude
    ```
-2. **Run the affected skill** in your agent (e.g. `mission-brief "add a health endpoint"` or `/team-discover`) and verify it completes and writes the expected artifacts under `.adlc/`.
+2. **Run the affected skill** in your agent (e.g. `factory-mission "add a health endpoint"` or `/team-discover`) and verify it completes and writes the expected artifacts under `.adlc/`.
 3. **Run prerequisites first** — e.g. `team-setup` before `team-boot`-dependent flows, `evals-init` before `evals-*`.
 4. **Report results** in the PR:
 
@@ -199,7 +199,7 @@ Any change that alters a skill's behavior needs a manual run in a real agent.
 
 | Skill/command tested | Notes |
 |----------------------|-------|
-| `mission-brief` | Discovered 2 local skills, routed implement → tdd |
+| `factory-mission` | Discovered 2 local skills, routed implement → tdd |
 ~~~
 
 ### Canonical acceptance test

@@ -37,7 +37,7 @@ def test_skill_description_presence_and_length():
     """Every SKILL.md must carry a non-empty description within the spec's 1024-char limit.
 
     The description is the trigger surface for model-invoked skills and the
-    routing surface for mission-brief's universal orchestration; CONTRIBUTING
+    routing surface for factory-mission's universal orchestration; CONTRIBUTING
     documents it as required.
     """
     skill_files = list(ROOT.glob("skills/**/SKILL.md"))
@@ -103,7 +103,7 @@ def test_skill_directory_depth():
 def test_skill_description_use_when_prefix():
     """Descriptions must lead with "Use when…" — trigger only, no workflow summary.
 
-    The description is the routing surface (mission-brief hands it to
+    The description is the routing surface (factory-mission hands it to
     subagents; the model decides what to load from it). Superpowers'
     writing-skills measured that descriptions summarizing the workflow
     make agents follow the description instead of reading the skill body.

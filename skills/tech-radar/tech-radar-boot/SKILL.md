@@ -51,6 +51,10 @@ evaluating technology**, for example:
 Do **not** invoke it for pure business/product questions with no technology
 selection, or when the user explicitly says to ignore the radar.
 
+Invoke at the START of a matching task — before planning the todo list and
+before implementation — so the radar context informs planning.
+Never defer to session end.
+
 Manual invocation:
 ```
 /tech-radar-boot               # inject radar context for the current prompt
@@ -157,8 +161,11 @@ alternatives from the radar's actual `Keep`/`Start` blips in that quadrant.
 
 ### Step 6: Inject Tech Radar Context (Output Contract)
 
-Emit a **Tikal Tech Radar Context** section in the visible response, before the
-task answer, so downstream reasoning is grounded in the radar:
+The script's stdout goes to the tool channel — invisible to the user. ALWAYS
+re-emit the full Tikal Tech Radar Context section in your visible response,
+before the task answer (or, when 0 matched, the heading + `_Source:` line).
+Emit it as markdown blocks — heading, table rows, guidance bullets, and source
+line each on their own lines; never collapse the section into a single line.
 
 ```markdown
 ## Tikal Tech Radar Context
@@ -173,20 +180,30 @@ task answer, so downstream reasoning is grounded in the radar:
 - ⚠️ Stop: Jenkins → consider GitHub Actions, GitLab CI, or Tekton (see Why? above).
 
 _Source: Tikal Israeli Tech Radar (live: https://tikalk.com/radar.json) · N technologies matched._
+
+_Searched N blips, K matched._
 ```
 
 - One row per matched blip (include duplicates across quadrants when relevant).
 - Group a short **Radar guidance** list: safe-to-adopt vs avoid-with-alternatives.
 - Add a `_Source_` line noting the data came from the **live radar source** and
   how many technologies matched.
+- `N` = blips scanned in the loaded dataset; `K` = rows shown in the table.
+  **K MUST equal the table rows shown.** 0 rows matched → emit the section
+  heading + the `_Source:` line only — no table. A 0-row table header collapses
+  into unrendered single-line markdown; never emit one.
 
-If no candidate technology matches any blip, state that plainly with an empty
-table and a `_Source_` line (e.g. `_Source: … · 0 technologies matched._`) —
+If no candidate technology matches any blip, state that plainly with the heading
++ `_Source:` line (e.g. `_Source: … · 0 technologies matched._`) — no table —
 do not fabricate radar placements.
 
 ### Step 7: Capture the Selection (Decision Pairing)
 
-A technology selection is an **ADR-class decision**:
+A technology selection is an **ADR-class decision**. When no local memory index
+exists in the current working directory and the directory sits inside a workspace
+(detected via a `.gitmodules` marker in an ancestor), read the workspace root's
+`docs/adlc/memory/` index instead (ADR-401 dual-read order applies:
+`docs/adlc/memory` first, legacy `.adlc/memory` fallback).
 
 | Trigger | Action |
 |---------|--------|
@@ -194,11 +211,14 @@ A technology selection is an **ADR-class decision**:
 | "X vs Y" comparison resolved | ADR → suggest `/architect-specify` with the comparison outcome |
 | `Stop`-ring technology retained anyway | ADR → suggest `/architect-specify` documenting why the radar guidance was overridden |
 
-Add/refresh rows in the **Session Decision Ledger** (Decision | Type |
-Captured? | Skill) for the selection. If `architect-boot` was already
-invoked this session, extend its ledger rows with the radar evidence; at
-session end, prompt to run `/architect-specify` for any unrecorded tech
-selections.
+Add/refresh rows in **Team Context & Decisions** (ID | Name | Type | Rel |
+Status | Clarify) for the selection, mirrored as a task-list todo (draft →
+`/architect-specify` at session end); after code-modifying tasks, add a
+trailing todo to sweep Team Context & Decisions until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill). If
+`architect-boot` was already invoked this session, extend its ledger rows
+with the radar evidence; at session end, deliver the clarify prompt naming
+each captured tech-selection draft (ID + skill); if the user defers clarify,
+mark those rows handed off.
 
 ## Failure Handling
 
@@ -207,7 +227,7 @@ selections.
   context table noting the Tech Radar source was unreachable and continue the
   user's task without radar context — never substitute stale cached or
   bundled data as if it were current.
-- No matches → empty table + `0 technologies matched` line.
+- No matches → heading + `0 technologies matched` source line only — no table.
 
 ## Red Flags
 
@@ -223,6 +243,11 @@ selections.
   with different rings; surface each relevant placement.
 - Treating the skill load as the work — the Core Process must actually run and
   produce the Tech Radar Context table.
+- Reading radar findings via the script and answering without re-emitting the
+  context section (script stdout goes to the tool channel — invisible to the
+  user) — the visible response MUST carry the findings.
+- Collapsing the context section into a single line — heading, table rows,
+  guidance, and source line each go on their own markdown lines.
 - Injecting radar context but skipping the capture pairing — a tech selection
   that informed no ADR is a decision that evaporated.
 
@@ -237,10 +262,10 @@ selections.
 - `Stop`-ring matches include Tikal-aligned `Keep`/`Start` alternatives from the
   same quadrant, derived from the dataset.
 - A `_Source_` line reports the live-radar source and the match count; a no-match
-  run yields an empty table plus `0 technologies matched` rather than fabricated
+  run yields no table (heading + source line only) rather than fabricated
   data. On fetch failure, an error is reported and the skill continues without
   radar context.
-- Tech selections made this session appear in the Session Decision Ledger with
+- Tech selections made this session appear in Team Context & Decisions with
   `/architect-specify` as the capture skill.
 ## Configuration
 

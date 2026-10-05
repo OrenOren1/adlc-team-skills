@@ -26,7 +26,7 @@ to `agent` on the current runtime and discloses the lost independence.
 
 ## Profile schema
 
-Lives in `workflow-config.yml` under the `lanes:` key:
+Lives in the run's `mission.yml` under the `lanes:` key:
 
 ```yaml
 lanes:
@@ -93,7 +93,7 @@ A `cli:` lane dispatch:
 3. Wait for exit.
 4. Parse stdout as the step's output.
 5. The other runtime reads:
-    - `.adlc/workflow/brief.md` from disk
+    - `runs/<run_id>/brief.md` from disk
     - Step markers from the comment bus
    - The step's `SKILL.md` from `skills_root` (absolute path)
 6. The other runtime has no shared session context — it starts fresh.
@@ -107,7 +107,7 @@ An `agent` lane dispatch:
    - `claude --print "<instruction>"` (Claude Code)
    - Or the runtime's equivalent non-interactive mode
 2. The instruction includes: brief path, reads_from inputs, skill to
-   invoke, and "Read `.adlc/workflow/brief.md` for full context."
+   invoke, and "Read `runs/<run_id>/brief.md` for full context."
 3. Wait for exit.
 4. Parse output.
 5. The fresh session has no memory of previous steps — it reads code

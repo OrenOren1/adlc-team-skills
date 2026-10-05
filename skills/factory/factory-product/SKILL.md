@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 ## What this skill does
 
-`factory-product` orchestrates the product-decisions lifecycle. It coordinates individual product-related skills (`product-init`, `product-specify`, `product-clarify`, `product-implement`, `product-analyze`) to maintain a consistent `PRD.md` at the project root.
+`factory-product` orchestrates the product-decisions lifecycle. It coordinates individual product-related skills (`product-init`, `product-specify`, `product-clarify`, `product-implement`, `product-analyze`) to maintain a consistent `PRD.md` at `docs/adlc/product/PRD.md` (ADR-401).
 
 It operates as a **Kind-A DAG orchestrator** in alignment with the shared executor engine contract in `factory-mission/references/executor.md`.
 
@@ -32,7 +32,7 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 ### Greenfield Route (default on empty project)
 1. **`specify`** (`generate` phase) -> Invoke `product-specify` to collaboratively capture PDR drafts in `.adlc/drafts/pdr/`.
 2. **`clarify`⭐** (`clarify` phase) -> Invoke `product-clarify` to run interactive quality checks and mark PDRs Accepted (human sign-off gate).
-3. **`implement`** (`build` phase) -> Invoke `product-implement` to compile accepted PDRs into `PRD.md` and promote them to `.adlc/memory/pdr/`.
+3. **`implement`** (`build` phase) -> Invoke `product-implement` to compile accepted PDRs into `docs/adlc/product/PRD.md` and promote them to `docs/adlc/memory/pdr/`.
 4. **`analyze`** (`analyze` phase) -> Invoke `product-analyze` to verify PRD/PDR consistency and output a severity-ranked report.
 
 ### Brownfield Route (default if code exists but no PDRs)
@@ -49,7 +49,7 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 
 `factory-product` overrides the shared executor engine primitives as follows:
 
-1. **Publish Target**: Fixed to `local`. Outputs are written to `.adlc/memory/pdr/` and `PRD.md`. If tracker-integrated, a `tracker` completion summary comment is also posted.
+1. **Publish Target**: Fixed to `local`. Outputs are written to `docs/adlc/memory/pdr/` and `docs/adlc/product/PRD.md`. If tracker-integrated, a `tracker` completion summary comment is also posted.
 2. **Output Types**: Steps use the following `output_type` assignments:
    - `specify`/`init` → `draft` (PDR drafts stay in `.adlc/drafts/pdr/`, not published to comment bus)
    - `clarify`⭐ → `decision` (accepted/rejected PDR list published to comment bus)

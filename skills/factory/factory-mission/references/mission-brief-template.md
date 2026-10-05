@@ -1,7 +1,7 @@
 # Mission Brief Template (Canonical Factory Contract)
 
 > **Canonical source of truth** for the mission-brief format across the factory.
-> Consumed by `factory-queue` (plan mode — generated issues) and `mission-brief`
+> Consumed by `factory-queue` (plan mode — generated issues) and `factory-mission`
 > (execution — run intake). Milestones themselves are NOT briefs: milestone
 > descriptions carry the demo sentence + done-means; gate/task issues carry briefs.
 

@@ -17,7 +17,8 @@ Two sides, two repos:
 {
   "events": {
     "session_start":   [ { "skill": "team-boot", "timeout": 60 } ],
-    "session_compact": [ { "skill": "team-boot", "timeout": 60 } ]
+    "session_compact": [ { "skill": "team-boot", "timeout": 60 } ],
+    "file_edited":     [ { "skill": "team-boot", "timeout": 10, "matcher": "Edit|Write" } ]
   }
 }
 ```
@@ -31,6 +32,9 @@ Two sides, two repos:
   adapter has no `session_compact` mapping skips it (no wiring, no
   failure) until the CLI adds one. The double-injection guard is the
   plugin's job (CLI side).
+- **`file_edited` is the draft-nudge contract** (see below). `matcher` is
+  consumed only by agents that support it (e.g. claude-code `Edit|Write`);
+  others ignore it.
 
 **`team-boot`'s `scripts/boot.sh` / `boot.ps1`** — the handler:
 
@@ -46,6 +50,36 @@ Two sides, two repos:
 The handler's contract is exercised end-to-end by
 `scripts/acceptance-test.sh` (scratch install → configure → assert the
 emitted index).
+
+## `file_edited`: the draft-nudge contract
+
+Boot skills already capture decisions as drafts in `.adlc/drafts/{type}/`.
+`file_edited` is only the **timely nudge toward the existing clarify skill**
+— no counters, no state files, no new capture logic:
+
+- **Trigger**: dispatcher sets `ADLC_EVENT=file_edited` and forwards the
+  event payload (JSON) on stdin.
+- **Filter**: the payload's file path must match `.adlc/drafts/**`; every
+  other edit is silent (boot scripts echo nothing).
+- **Output**: one `[pending-drafts]` line naming the matching skill —
+  `adr→/architect-clarify`, `pdr→/product-clarify`, `chdr→/change-clarify`,
+  `cdr→/team-levelup`, `evals→/evals-clarify`.
+- **Payload shapes**: opencode `{file}` (flat), nested `{properties:{file}}`,
+  claude-code `{tool_input:{file_path}}` — all extracted, fail-open silence
+  on anything unparseable.
+
+Per-agent delivery (adlc-cli owns the mechanics — this table documents the
+contract each side must meet):
+
+| Agent | Native hook | Nudge delivery |
+|-------|------------|----------------|
+| opencode | `file.edited` (generic `event` subscription — no named hook key) | stdout stashed by the plugin, injected into the last user message on the next `messages.transform` pass, before the session-start dedup guard |
+| claude-code | `PostToolUse` + `matcher` | `hookSpecificOutput.additionalContext` (direct) |
+| codex | `PostToolUse` | suppressed envelope — safe no-op until Codex documents a tool-hook output sink |
+| cursor | `postToolUse` | suppressed envelope — safe no-op until Cursor documents a tool-hook output sink |
+
+Session-start output must remain byte-identical when `ADLC_EVENT` is unset
+— payload mode is additive only.
 
 ## Diagnosing a broken chain
 

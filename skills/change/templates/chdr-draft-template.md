@@ -1,6 +1,6 @@
 ---
 # Lightweight ChDR draft — written by team-boot continuous capture.
-# Enriched to full ChDR format by /change-clarify before promotion to .adlc/memory/.
+# Enriched to full ChDR format by /change-clarify before promotion to docs/adlc/memory/.
 status: proposed
 date: YYYY-MM-DD
 type: incident  # incident | workaround | abandoned

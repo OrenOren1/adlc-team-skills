@@ -3,7 +3,7 @@ import re
 def get_assert(output: str, context: dict = None) -> dict:
     """Grader for EVAL-005: Universal Skill Orchestration — local skills routing.
 
-    Verifies that the mission-brief delegation prompt:
+    Verifies that the factory-mission delegation prompt:
     1. Includes an "Available Skills" section listing installed skills.
     2. Shows skill names with descriptions (not just bare names).
     3. Instructs the subagent to invoke matching skills.

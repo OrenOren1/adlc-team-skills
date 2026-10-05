@@ -4,6 +4,27 @@
 
 This is the canonical executor contract for all Kind-A factory orchestrators (`factory-mission`, `factory-product`, `factory-architect`, `factory-learn`, `factory-init`). It defines how to compile a feature or lifecycle task into a structured step list, execute steps sequentially with state tracking, handle supervision gates, and run correction loops.
 
+## Shared Run State (ADR-395 — read this first)
+
+The executor is the **LLM interpreter** of a dual-executor architecture. It shares one program (`workflow.yml`) and one program counter (`state.json`) with the CLI engine (`adlc-cli workflow`):
+
+1. **One program counter.** All step progress lives in `.adlc/workflows/runs/<run_id>/state.json`. The executor NEVER hand-writes that file — every mutation goes through the librarian helpers:
+   ```
+   adlc-cli workflow state start   --workflow <id|path> [--run-id <id>] [--input k=v]
+   adlc-cli workflow state advance <run_id> --step <id> --status completed|failed \
+        [--output-file <path> | --output-json <json>] [--error <msg>]
+   adlc-cli workflow state pause   <run_id> --step <id>
+   adlc-cli workflow state fail    <run_id> --error <msg>"
+   adlc-cli workflow state show    <run_id>
+   ```
+2. **Step boundaries only.** State advances only at completed-step boundaries — never mid-step. This is what lets the CLI engine resume any run the executor parks, and vice versa.
+3. **Strict lease.** Every state-writing session acquires the lease first (`state start/advance` fold this in). Set `ADLC_WORKFLOW_SESSION=<session-id>` once per executor session — the lease then persists across sequential helper invocations and blocks concurrent writers. `state pause`/`state fail`/terminal advance release it: the run becomes claimable by any executor (exit-and-resume handoff).
+4. **Gates.** In-session, a gate is an inline human Q&A: `state pause <run_id> --step <gate_id>` → ask the human → `state advance <run_id> --step <gate_id> --status completed --output-json '{"choice":"<answer>"}'`. Headless (CI) the same gate is engine-PAUSED + `verdict_input`; the human's answer arrives as `resume --input verdict=<choice>`.
+5. **Frozen vs live policy (the executor difference).** This executor re-reads `runs/<run_id>/mission.yml` live on resume — operators may adjust budgets/supervision mid-run. The CLI engine executes the frozen `workflow.yml` copy deterministically.
+6. **Run context home.** Everything the run needs lives in `runs/<run_id>/`: `brief.md` (ADR-331), `mission.yml` (policy), `scratchpads/`, `findings/`, `decisions/`, `artifacts/`, `iterations.md`. Cross-run memory is global: `.adlc/workflows/memory.jsonl`. There is no `.adlc/workflow/` directory anymore.
+
+The execution loop below is annotated with the helper calls at each write point.
+
 When tracker-integrated, step terminal outputs are published to the code host's PR/MR/issue comment thread (the **comment bus**) via `factory-mission/references/tracker-integration.md` §Inter-Agent Comment Bus. The comment bus is the durable inter-agent memory — it survives session boundaries, runtime switches, and pod crashes. When not tracker-integrated, steps communicate through local files and the state file only (same-session mode).
 
 The executor is runtime-independent: it works with any agent CLI in any session. Lanes provide optional cross-runtime dispatch — the default `agent` lane spawns a fresh session of the same CLI for maker/checker separation.
@@ -14,14 +35,14 @@ The executor is runtime-independent: it works with any agent CLI in any session.
 
 ### Phase 0 — Configuration
 
-1. Every orchestrator reads `.adlc/workflow/workflow-config.yml` (copied from `config-template.yml` if absent).
+1. Every orchestrator reads the mission policy: `mission.yml` from the run directory (`.adlc/workflows/runs/<run_id>/mission.yml`) once the run exists, or the template defaults before it starts (`mission-template.yml`, copied into the run dir by `state start`). Policy knobs — `execution`, `supervision`, budgets (`max_iterations`, `max_spec_corrections`, `circuit_breaker`, `quality_threshold`), model tiers, `tdd`, `worktree_root`, `lease_ttl`, `stall_window`, `lanes` — are unchanged from the former `workflow-config.yml`; only the home moved.
 2. Supervision default is `gated` (or `hybrid` for lifecycle runs, meaning gates only at `clarify`⭐ and merge sign-off).
 3. Verify target lifecycle/compliance skills are installed (check `.agents/skills/` directory). Stop if missing.
 4. If `--issue <ref>` is specified: resolve tracker provider, discover MCP/CLI tools, verify the target PR/MR/issue is accessible (`tracker-integration.md` §1-2). The comment bus is active for this run.
 
 ### Phase 0.5 — Workspace Isolation & Atomic Git Ref Lock
 
-1. Derive worktree path: `<worktree_root>/<orchestrator>-<target-slug>/` where `<target-slug>` = owner-repo-issueN or owner-repo-feature-slug. Default `worktree_root` is `.adlc/worktrees`.
+1. Derive the run id (`<orchestrator>-<target-slug>`; append `-2`, `-3`… if taken under `.adlc/workflows/runs/`), then the worktree path: `<worktree_root>/<run_id>/` (run_id-prefixed — the registry link is mechanical, ADR-391-amendment). Default `worktree_root` is `.adlc/worktrees`.
 2. If worktree exists (resume): reuse it. Never remove or reset it. Inspect status and commits; if it holds work, confirm before continuing.
 3. If worktree doesn't exist: `git worktree add <path> -b <branch> <remote>/<base-branch>`. Branch named per project convention or `factory/<orchestrator>/<target-slug>`.
 4. **Atomic Git Ref Lock**: To eliminate race conditions where two machines read the tracker concurrently, the claiming machine pushes an atomic lock ref: `git push origin HEAD:refs/heads/factory/locks/<orchestrator>-<target-slug>`. If the ref already exists, the Git server rejects the push; the runner immediately halts before making code changes or running LLM steps.
@@ -32,7 +53,7 @@ The executor is runtime-independent: it works with any agent CLI in any session.
 
 ### Phase 0.7 — Lane & Context Parameter Resolution
 
-1. If `lanes` section exists in `workflow-config.yml`:
+1. If `lanes` section exists in the mission policy (`mission.yml`):
    a. Match this runtime's label against `runtimes[].match` (case-insensitive substring).
    b. For each step, resolve its lane: `inline` (this session), `agent` (fresh session of same CLI), or `cli:<runtime>` (spawn another runtime's CLI).
    c. Verify each `cli` lane's command executable exists. If missing, degrade to `agent` on this runtime and disclose lost independence.
@@ -43,9 +64,9 @@ The executor is runtime-independent: it works with any agent CLI in any session.
 
 ### Phase 1 — Two-Tier Resume & Lock Check (`--resume`)
 
-1. **Tier 1 (Local Check - Same Machine)**:
-   - Read local state file: `.adlc/workflow/.factory-<orchestrator>-state.json`.
-   - Read `run_lease`: if `heartbeat_ts + ttl_seconds > now` on this host → resume local session.
+1. **Tier 1 (Shared-State Check — any machine, any executor)**:
+   - `adlc-cli workflow state show <run_id>` — the shared program counter (`.adlc/workflows/runs/<run_id>/state.json`).
+   - The strict lease (`runs/<run_id>/lease.json`, ADR-395) replaces the old local state-file heartbeat: if a live lease is held by another session → HALT & REFUSE (the helper errors with the holder). Expired/absent → claim and continue.
 
 2. **Tier 2 (Remote Distributed Check - Cross-Machine)**:
    - If tracker-integrated: execute `tracker-integration.md` §Operation 10 (`Acquire Remote Lease`).
@@ -59,10 +80,10 @@ The executor is runtime-independent: it works with any agent CLI in any session.
    - If `mode == "fresh"`:
      - Free to claim; proceed to Phase 2.
 
-3. **Read the brief**: if `.adlc/workflow/brief.md` exists, read it to restore full run context (goal, constraints, success criteria, run ID, route, supervision, target, worktree, step inputs).
+3. **Read the brief**: if `runs/<run_id>/brief.md` exists, read it to restore full run context (goal, constraints, success criteria, run ID, route, supervision, target, worktree, step inputs).
 4. If state is empty and no marker comments exist: start fresh.
-5. If marker comments exist with incomplete steps: load outputs, skip to the first pending step, passing the previous step's findings as input.
-6. Completed runs archive to `.adlc/workflow/runs/<slug>/`. Marker comments remain on the PR/MR/issue as a permanent audit trail.
+5. If marker comments exist with incomplete steps: load outputs, skip to the first pending step (`state show` → `current_step_index`), passing the previous step's findings as input.
+6. Completed runs need no archiving — the run directory **is** the archive (`status: completed` persists; git-refs `refs/factory-runs/<run_id>` is the transport, ADR-393). Marker comments remain on the PR/MR/issue as a permanent audit trail.
 
 ### Phase 2 — Brief Construction
 
@@ -73,7 +94,7 @@ Before executing, compile the input into a structured Brief contract:
 
 Presented to the user for sign-off (in gated/hybrid modes).
 
-**Persist the brief to `.adlc/workflow/brief.md`** as a `draft` (not published to the comment bus). The brief contains:
+**Persist the brief to `runs/<run_id>/brief.md`** as a `draft` (not published to the comment bus). The brief contains:
 
 ```markdown
 # Factory Run Brief: <orchestrator>
@@ -100,7 +121,14 @@ Presented to the user for sign-off (in gated/hybrid modes).
 <list of reads_from entries — what each step should read and where>
 ```
 
-A resumed run reads the brief from disk. A `cli:` lane worker reads the brief from disk. The dispatch instruction tells the subagent: "Read `.adlc/workflow/brief.md` for full context."
+A resumed run reads the brief from disk. A `cli:` lane worker reads the brief from disk. The dispatch instruction tells the subagent: "Read `.adlc/workflows/runs/<run_id>/brief.md` for full context."
+
+**Emit the workflow definition (the plan of record).** In the same phase, compile the step list (Phase 4 schema) into a `workflow.yml` and start the shared run:
+
+1. Write the compiled definition to `.adlc/workflows/<run_id>/workflow.yml` (generated-by-slug home, ADR-391-amendment) — steps as `command`/`prompt` entries carrying the step's skill + prompt, supervision gates as `gate` steps with `verdict_input`, correction loops as `do-while` with `max_iterations` from mission budgets, models from tiers.
+2. Validate: `adlc-cli workflow validate <run_id>` — a failed validation is a Phase 2 defect; fix the definition, never skip the gate.
+3. Create the shared run: `adlc-cli workflow state start --workflow <run_id> --run-id <run_id> --input …` (lease acquired; frozen copy + mission.yml land in the run dir).
+4. The emitted file is dual-executor (ADR-395): CI can run the identical loop headless later; drift between prose and program is impossible because both consume one file.
 
 ### Phase 3 — Route Classification
 
@@ -111,7 +139,7 @@ Classify into routes based on workspace state (or `--route` override):
 
 ### Phase 4 — Step List Generation
 
-Generate an ordered list of steps using the orchestrator's specific DAG.
+Generate an ordered list of steps using the orchestrator's specific DAG. The list is *also* the compiled `workflow.yml` emitted in Phase 2 — keep the two synchronized by construction (generate once, render twice).
 
 Step schema:
 
@@ -134,18 +162,7 @@ Step schema:
 }
 ```
 
-State file also includes the run lease:
-
-```json
-{
-  "run_lease": {
-    "run_id": "run-001",
-    "heartbeat_ts": "2026-09-11T14:30:00Z",
-    "ttl_seconds": 900,
-    "pid": 12345
-  }
-}
-```
+The lease lives in `runs/<run_id>/lease.json` (holder/heartbeat/ttl — written by the `state` helpers, renewed on every `advance`), replacing the old in-state `run_lease` block. Worktree path, git identity, route, and supervision are recorded in the brief (they are run context, not step progress).
 
 `reads_from` entries are either:
 - Marker strings → fetch from comment bus (for `decision`/`findings`/`artifact-ref` outputs)
@@ -170,20 +187,20 @@ For each step:
 1. **Read input.** Before dispatching, resolve `reads_from`:
    - For marker entries: fetch from the PR/MR/issue via `tracker-integration.md` §5 (Read Step Outputs). Include the previous step's terminal output in the subagent's instruction.
    - For local path entries: read files from disk. Include content or path reference in the subagent's instruction.
-   - If `reads_from` is empty: the step starts from scratch (read `.adlc/workflow/brief.md` for Brief context).
+   - If `reads_from` is empty: the step starts from scratch (read `runs/<run_id>/brief.md` for Brief context).
 
-2. **Record heartbeat & Lease Process Wrapping**: write `heartbeat_ts: now` to state file before dispatch. Record PID if available. For steps expected to exceed half the lease TTL (long builds, tests, deep analysis), the step must be executed under a process-level heartbeat wrapper (e.g., `run_lock.sh with` equivalent) that refreshes the lease on a timer for the lifetime of the child and stops when the child exits.
+2. **Lease renewal before dispatch**: `adlc-cli workflow state show <run_id>` (or any helper call) renews the lease heartbeat. For steps expected to exceed half the lease TTL (long builds, tests, deep analysis), the step must be executed under a process-level heartbeat wrapper (e.g., `run_lock.sh with` equivalent) that refreshes the lease on a timer for the lifetime of the child and stops when the child exits.
    - **FD Leak Prevention**: To prevent the heartbeat process from inheriting the child's or parent's open file descriptors (which holds write pipes open and causes CI/CD shells to hang indefinitely waiting for EOF), all stdout/stderr for the heartbeat process must be explicitly redirected (e.g. to `/dev/null` or log files) inside the wrapped command. Never pipe the heartbeat wrapper process itself directly into a consumer that waits for EOF.
 
 3. **Dispatch to a subagent** using the step's resolved lane:
    - `inline`: follow the step's skill in this session (interactive stages — clarify, specify).
    - `agent`: spawn a fresh session of the same CLI (e.g., `opencode -p "<instruction>"`) with the brief path, reads_from inputs, and skill instruction. Fresh context — no memory of previous steps.
    - `cli:<runtime>`: spawn the other runtime's CLI as a child process. Write step instruction + brief + reads_from inputs to a temp file. The CLI reads it from stdin. Wait for exit. Parse output.
-    - The subagent has access to **Scratchpad Tools**: `write_scratchpad`, `append_scratchpad`, `read_scratchpad`, `list_scratchpads`. Scratchpads are stored in `.adlc/workflow/scratchpads/<name>.txt` and persist across steps within the run.
-    - The subagent also has access to **Workflow Memory**: `read_memory`, `write_memory`. Memories are stored in `.adlc/workflow/memory.jsonl` and persist across runs of the same workflow.
+    - The subagent has access to **Scratchpad Tools**: `write_scratchpad`, `append_scratchpad`, `read_scratchpad`, `list_scratchpads`. Scratchpads are stored in `runs/<run_id>/scratchpads/<name>.txt` and persist across steps within the run.
+    - The subagent also has access to **Workflow Memory**: `read_memory`, `write_memory`. Memories are stored in `.adlc/workflows/memory.jsonl` (workspace-global) and persist across runs of the same workflow.
    - Exactly one agent is live at a time. Never dispatch a second step while one is running.
    - A `cli:` lane that fails to launch (command missing, runtime refuses) degrades to `agent` on this runtime. Disclose the degradation and record it in state file.
-   - The dispatch instruction includes: "Read `.adlc/workflow/brief.md` for full context. The Brief is your specification — do not ask the user to repeat it. Read `.adlc/workflow/memory.jsonl` for past run lessons."
+   - The dispatch instruction includes: "Read `.adlc/workflows/runs/<run_id>/brief.md` for full context. The Brief is your specification — do not ask the user to repeat it. Read `.adlc/workflows/memory.jsonl` for past run lessons."
 
 4. If `phase_type` is `verify`: prepend independent verification instructions (maker/checker separation). The reviewer/verifier must review against an **exact revision**: record the `(head SHA, base SHA, merge base)` tuple. If the revision moves during the step, discard the output and re-run against the new revision.
 
@@ -196,26 +213,26 @@ For each step:
    a. If `output_type` is `draft`:
    - Persist output to `output_path` on local disk.
    - Do NOT publish to the comment bus.
-   - Update state file: `status: completed`, `heartbeat_ts: now`.
+   - `adlc-cli workflow state advance <run_id> --step <step_id> --status completed` (records the result, advances the shared counter, renews the lease).
    - Discard full subagent response from session context.
 
    b. If `output_type` is `decision`:
    - Publish a comment to the PR/MR/issue with the step's `output_marker` via `tracker-integration.md` §4 (Post Step Output). Content: accepted/rejected list with one-line reasons.
-   - If not tracker-integrated: persist to `.adlc/workflow/decisions/<step_id>.md` as local fallback.
-   - Update state file: `status: completed`, `heartbeat_ts: now`.
+   - If not tracker-integrated: persist to `runs/<run_id>/decisions/<step_id>.md` as local fallback.
+   - `adlc-cli workflow state advance <run_id> --step <step_id> --status completed`.
    - Discard full subagent response from session context.
 
    c. If `output_type` is `findings`:
    - Publish a comment to the PR/MR/issue with the step's `output_marker` via `tracker-integration.md` §4 (Post Step Output). Content: severity-ranked actionable report.
-   - If not tracker-integrated: persist to `.adlc/workflow/findings/<step_id>.md` as local fallback.
-   - Update state file: `status: completed`, `heartbeat_ts: now`.
+   - If not tracker-integrated: persist to `runs/<run_id>/findings/<step_id>.md` as local fallback.
+   - `adlc-cli workflow state advance <run_id> --step <step_id> --status completed`.
    - Discard full subagent response from session context.
 
    d. If `output_type` is `artifact-ref`:
    - Publish a comment to the PR/MR/issue with the step's `output_marker` via `tracker-integration.md` §4 (Post Step Output). Content: path/URL + one-line summary, NOT full artifact content.
    - The artifact itself lives on disk at `output_path`.
-   - If not tracker-integrated: record path in state file.
-   - Update state file: `status: completed`, `heartbeat_ts: now`.
+   - If not tracker-integrated: record path in the step's `--output-json '{"path": …}'`.
+   - `adlc-cli workflow state advance <run_id> --step <step_id> --status completed`.
    - Discard full subagent response from session context.
 
 8. **The full subagent response is discarded from session context.** Terminal output is now durable — on the comment bus (if tracker-integrated) or on local disk (if not). Session context is freed for the next step.
@@ -269,7 +286,7 @@ On successful convergence of all steps:
    - `local`: Write to `.adlc/` and project root.
    - `external-repo`: Open a PR on the `team-ai-directives` repository (used by `factory-learn`).
    - `tracker`: Post a completion summary comment on the PR/MR/issue with the final audit trail.
-4. Move state to the run archive directory. Marker comments on the PR/MR/issue remain as a permanent, human-visible audit trail.
+4. No archiving move — the run directory (`.adlc/workflows/runs/<run_id>/`) is the durable archive; git-refs Tier-3 transports it. The final `state advance` (last step, completed) closes the run and releases the lease. Marker comments on the PR/MR/issue remain as a permanent, human-visible audit trail.
 5. Print the audit trail.
 
 ### Phase 6.5 — Worktree Cleanup & Lease Release

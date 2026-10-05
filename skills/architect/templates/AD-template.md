@@ -2,7 +2,7 @@
 
 **Version**: 1.0 | **Created**: [DATE] | **Last Updated**: [DATE]\
 **Architect**: [AUTHOR/AI] | **Status**: Draft | Review | Approved
-**ADR Reference**: [.adlc/memory/adr/adr.md](.adlc/memory/adr/adr.md)
+**ADR Reference**: [../memory/adr/adr.md](../memory/adr/adr.md)
 
 ---
 
@@ -420,7 +420,7 @@ graph TB
 
 ## 6. Constitution Alignment
 
-**Constitution Reference**: [.adlc/memory/constitution.md](.adlc/memory/constitution.md)
+**Constitution Reference**: [../memory/constitution.md](../memory/constitution.md)
 
 ### Alignment Status
 
@@ -439,7 +439,7 @@ graph TB
 
 ## 7. ADR Summary
 
-Detailed Architecture Decision Records are maintained in [.adlc/memory/adr/adr.md](.adlc/memory/adr/adr.md).
+Detailed Architecture Decision Records are maintained in [../memory/adr/adr.md](../memory/adr/adr.md).
 
 **Key Decisions:**
 
