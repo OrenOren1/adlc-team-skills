@@ -50,8 +50,22 @@ adlc-cli workflow state start --workflow .agents/skills/factory-architect/workfl
 adlc-cli workflow state advance <run-id> --step specify --status completed
 ```
 
-Use the real step ids from this file's `steps:` list below (`specify`,
-`clarify`, `gate-decisions`, `implement`, `analyze`) — not guessed ones.
+`state advance` only accepts the **top-level** step ids in `workflow.yml`:
+`specify`, `clarify`, `gate-decisions`, `build-and-verify`. The nested
+`implement` / `analyze` steps are not valid ids (`Unknown step 'implement'`).
+Two steps need more than a bare `advance`:
+
+- `gate-decisions` is a human gate. Don't advance it directly:
+  `adlc-cli workflow state pause <run-id> --step gate-decisions`, ask the
+  human to approve or reject, then
+  `adlc-cli workflow state advance <run-id> --step gate-decisions --status completed --output-json '{"choice":"approve"}'`.
+- `build-and-verify` is a do-while loop (max 3 iterations) that the state
+  helper does not evaluate. Run `implement` then `analyze` yourself; if the
+  analyze output contains `VERDICT: CRITICAL` or `VERDICT: HIGH`, repeat.
+  When the loop ends, advance once:
+  `adlc-cli workflow state advance <run-id> --step build-and-verify --status completed --output-json '{"stdout":"VERDICT: PASS"}'`.
+
+See `factory-mission/references/executor.md` for the full gate and output contract.
 
 ---
 
