@@ -40,8 +40,9 @@ sh: scripts/bash/setup-product-roadmap.sh [--json]
 ps: scripts/powershell/setup-product-roadmap.ps1
 ```
 
-**Read PDR files** (memory first, drafts fallback):
-1. `{REPO_ROOT}/.adlc/memory/pdr/PDR-*.md` (Accepted/Completed)
+**Read PDR files** (memory first, drafts fallback; memory dual-reads
+`docs/adlc/memory/pdr/` then legacy `.adlc/memory/pdr/` per ADR-401):
+1. `{REPO_ROOT}/docs/adlc/memory/pdr/PDR-*.md` + legacy `{REPO_ROOT}/.adlc/memory/pdr/PDR-*.md` (Accepted/Completed)
 2. `{REPO_ROOT}/.adlc/drafts/pdr/PDR-*.md` (Proposed/Discovered)
 
 **Identify milestones**: PDRs with `Category: Milestone`. These define the roadmap structure and contain the `### Gates` table, `### Features Included` table, `### Done Means` definition, and optional `### Tracker Milestone` URL.
@@ -234,8 +235,8 @@ When querying issue states, detect available tools in this order:
 ## Configuration
 
 - `PDR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/pdr`
-- `PDR_MEMORY_DIR` — `{REPO_ROOT}/.adlc/memory/pdr`
-- `PRD_FILE` — `{REPO_ROOT}/PRD.md`
+- `PDR_MEMORY_DIR` — `{REPO_ROOT}/docs/adlc/memory/pdr` (legacy `.adlc/memory/pdr` read-compatible; counts sum both roots)
+- `PRD_FILE` — `{REPO_ROOT}/docs/adlc/product/PRD.md`
 - MCP servers — GitHub, GitLab, Jira, Linear (auto-detected)
 - CLI tools — `gh`, `glab`, `jira`, `linear` (fallback)
 

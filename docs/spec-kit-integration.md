@@ -36,7 +36,7 @@ commands only and lets `adlc-team-skills` own the team-context layer.
   `session_start` event plugin that auto-injects `team-ai-directives`
   (constitution, CDR index, skills registry) into every agent session —
   keeping agents aligned with team directives from turn 1.
-- **No command redundancy.** CDR lifecycle commands (`/team-learn`,
+- **No command redundancy.** CDR lifecycle commands (`/team-levelup`,
   `/team-init`) are provided directly by `adlc-team-skills` — no spec-kit
   extension is needed.
 
@@ -44,8 +44,8 @@ commands only and lets `adlc-team-skills` own the team-context layer.
 
 | Domain / Layer | Owned By | Provided Artifacts |
 |---|---|---|
-| `team-ai-directives` context | `adlc-team-skills` | Auto `team-boot`, `/team-discover`, `/team-constitution`, `/mission-brief` |
-| PDR, ADR, Evals & CDR | `adlc-team-skills` | `/product-*`, `/architect-*`, `/evals-*`, `/team-learn` |
+| `team-ai-directives` context | `adlc-team-skills` | Auto `team-boot`, `/team-discover`, `/team-constitution` (brief format contract lives in `factory-mission`) |
+| PDR, ADR, Evals & CDR | `adlc-team-skills` | `/product-*`, `/architect-*`, `/evals-*`, `/team-levelup` |
 | Factory Orchestration | `adlc-team-skills` | `/factory-mission`, `/factory-product`, `/factory-architect`, `/factory-learn`, `/factory-queue`, `/factory-review` |
 | Spec-Driven Feature Dev | `spec-kit` | `/spec.specify`, `/spec.plan`, `/spec.tasks`, `/spec.implement`, `/spec.converge` |
 | Agent Context & Git | `spec-kit` | Auto `AGENTS.md` / `CLAUDE.md` plan updates & git branch/commit integration |
@@ -133,8 +133,9 @@ Verify `.events.json` exists at the project root and that
 missing.
 
 **Old `/levelup-*` commands still appear.**
-These were consolidated into `/team-learn` and `/team-init`. Remove any
-stale spec-kit levelup extension if present:
+These were consolidated into `/team-levelup` and `/team-init`. Remove any
+stale spec-kit `levelup` extension if present (unrelated to the former
+`levelup-*` skills, now `team-levelup`):
 
 ```bash
 specify extension disable levelup

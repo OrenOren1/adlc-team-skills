@@ -82,8 +82,8 @@ ARCHITECT_PS1_SETUPS = sorted(ROOT.glob("skills/architect/architect-*/scripts/po
 
 
 def test_architect_common_sh_defines_diagram_functions():
-    """Every architect bash common.sh must define the diagram helper functions."""
-    assert len(ARCHITECT_BASH_COMMONS) == 5, f"Expected 5 architect common.sh files, found {len(ARCHITECT_BASH_COMMONS)}"
+    """The canonical architect bash common.sh must define the diagram helper functions."""
+    assert len(ARCHITECT_BASH_COMMONS) == 1, f"Expected 1 canonical common.sh, found {len(ARCHITECT_BASH_COMMONS)}"
     for common_sh in ARCHITECT_BASH_COMMONS:
         content = common_sh.read_text(encoding="utf-8")
         assert "get_architecture_diagram_format()" in content, (
@@ -95,8 +95,8 @@ def test_architect_common_sh_defines_diagram_functions():
 
 
 def test_architect_ps1_defines_diagram_functions():
-    """Every architect setup-architect.ps1 must define the diagram helper functions."""
-    assert len(ARCHITECT_PS1_SETUPS) == 5, f"Expected 5 architect PS1 files, found {len(ARCHITECT_PS1_SETUPS)}"
+    """The canonical architect setup-architect.ps1 must define the diagram helper functions."""
+    assert len(ARCHITECT_PS1_SETUPS) == 1, f"Expected 1 canonical PS1 file, found {len(ARCHITECT_PS1_SETUPS)}"
     for ps1 in ARCHITECT_PS1_SETUPS:
         content = ps1.read_text(encoding="utf-8")
         assert "function Get-ArchitectureDiagramFormat" in content, (

@@ -8,7 +8,7 @@ labels: bug
 
 **Agent / harness:** [e.g., Claude Code 2.1, OpenCode, Codex]
 
-**Skill(s) involved:** [e.g., team-boot, mission-brief, factory-mission]
+**Skill(s) involved:** [e.g., team-boot, factory-mission, factory-queue]
 
 **Reproduction:**
 

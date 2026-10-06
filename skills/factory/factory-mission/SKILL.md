@@ -13,13 +13,13 @@ It implements the following key factory platform capabilities:
 1. **Universal Skill Routing**: Decoupled step dispatching. It scans installed skills and hands the inventory to subagents (the model picks which tool fits the step).
 2. **Tracker-Agnostic Integration** (`references/tracker-integration.md`): When invoked with `--issue <ref>`, it pulls ticket context, respects automation/dispatch labels (`autonomous`/`supervised`), and writes back status comments + iteration logs.
 3. **Inter-Agent Comment Bus** (`references/tracker-integration.md` §Inter-Agent Comment Bus): When tracker-integrated, each step's terminal output (decisions, findings, artifact references — never drafts) is published as a structured comment on the PR/MR/issue. The next step reads previous markers before starting. This is the durable inter-agent memory that survives session boundaries, runtime switches, and pod crashes. Drafts stay on local disk.
-4. **Self-Contained Worker Brief**: The Mission Brief is persisted to `.adlc/workflow/brief.md` as a draft. Resumed runs and cross-runtime workers read it from disk — no session-context dependency.
+4. **Self-Contained Worker Brief**: The Mission Brief is persisted to `.adlc/workflows/runs/<run_id>/brief.md` as a draft. Resumed runs and cross-runtime workers read it from disk — no session-context dependency.
 5. **Worktree Isolation**: Each run gets its own git worktree. Never touches the user's main checkout. Cleaned up on exit (retained if unsaved work).
 6. **Lease-Based Liveness**: The state file carries a renewable lease with heartbeat + TTL. Resume can distinguish live, stale, and completed runs.
 7. **Stall Detection**: After dispatching a subagent, observable progress is checked at a configurable window (default 20 min). A hung agent that passes the circuit breaker is detected and killed.
 8. **Lane-Based Dispatch** (`references/lanes.md`): Steps can run on different lanes — `inline` (this session), `agent` (fresh session of same CLI for maker/checker separation), or `cli:<runtime>` (optional cross-vendor). The `agent` lane is the default for unattended stages.
-9. **Scratchpad Tools**: Subagents share named, run-private scratchpads (`.adlc/workflow/scratchpads/<name>.txt`) to compile notes, drafts, and reviews incrementally before publishing.
-10. **Workflow Memory & Self-Improvement**: Persistent JSONL database (`.adlc/workflow/memory.jsonl`) stores learnings across runs. `factory-learn` periodically runs retrospectives to prune/weight memories.
+9. **Scratchpad Tools**: Subagents share named, run-private scratchpads (`.adlc/workflows/runs/<run_id>/scratchpads/<name>.txt`) to compile notes, drafts, and reviews incrementally before publishing.
+10. **Workflow Memory & Self-Improvement**: Persistent JSONL database (`.adlc/workflows/memory.jsonl`, workspace-global) stores learnings across runs. `factory-learn` periodically runs retrospectives to prune/weight memories.
 11. **Hierarchical Context Parameters**: Workflows and agents reference parameters as `{{params.<key>}}`, resolved from most specific to least specific: `agent < workflow < repository < project < default`.
 12. **Decoupled Test/Code Separation**: In `autonomous` or `supervised` modes, it splits `implement` into sequential `test` (Test Agent writes failing tests under read-only `src/`) and `code` (Implement Agent writes code under read-only `tests/`) runs — each closed by a **mandatory mechanical gate** (see Phase 5): the RED gate proves the new suite fails before coding starts; the GREEN gate proves it passes before converge is reached.
 
@@ -32,7 +32,7 @@ It implements the following key factory platform capabilities:
 - You want to run autonomously against a ticket queue.
 
 **When NOT to use**:
-- For non-factory standalone projects (use generic `mission-brief` instead).
+- For non-factory standalone projects (run `adlc-cli workflow run <workflow.yml>` — the CLI engine, ADR-395).
 - Trivial 1-line changes (do them directly).
 
 ---
@@ -42,7 +42,7 @@ It implements the following key factory platform capabilities:
 `factory-mission` executes in alignment with the shared executor contract (`references/executor.md`) and the tracker-agnostic layer (`references/tracker-integration.md`).
 
 ### Phase 0 to 4: Setup & Compilation
-1. Read `.adlc/workflow/workflow-config.yml`. Resolve execution and supervision.
+1. Read the run's `mission.yml` (`.adlc/workflows/runs/<run_id>/mission.yml`). Resolve execution and supervision.
 2. If `--issue <ref>` is specified:
    - Discover credentials and MCP/CLI tools (`references/tracker-integration.md`).
    - Pull the issue content as the primary Brief description.
@@ -52,6 +52,8 @@ It implements the following key factory platform capabilities:
 4. Structure the Mission Brief (Goal, Constraints, Non-Goals, Success Criteria). The Brief is a `draft` — not published to the comment bus.
 5. Resolve hierarchical Context Parameters from `agent < workflow < repository < project < default` and embed the frozen value map in the brief.
 6. Generate the step list based on route classification (`spec`, `change`, `quick`). Each step declares `output_type` (`draft`/`decision`/`findings`/`artifact-ref`) and `reads_from` (markers or local paths) per the executor contract.
+
+**Team index fallback:** when no team record-class index was injected at session start, read the binding records directly from `docs/adlc/memory/` (ADR-401 dual-read order: `docs/adlc/memory` first, legacy `.adlc/memory` fallback) and state that fallback in one line. Never block on the missing injection.
 
 ### Phase 5: Executing the Converge Loop
 Execute steps sequentially. When reaching `implement` / `converge`:
@@ -66,9 +68,9 @@ In `autonomous` and `supervised` modes, the `implement` step is split into two s
 2. **The Implement Agent (`code` step)**:
    - Instruction: Write minimum implementation code in `src/` to pass the tests.
    - Enforcement: Mount `tests/`, `spec.md`, and `plan.md` as hard **read-only**; only `src/` is writeable.
-   - **GREEN gate (mandatory)**: the executor runs the suite again; `converge` is never reached with a red suite. Any failure loops straight back to the `code` step with the failure list attached (this loop-back does not consume the converge circuit breaker; only broken *iterations* do — use the `code`-step retry cap from `workflow-config.yml`).
+   - **GREEN gate (mandatory)**: the executor runs the suite again; `converge` is never reached with a red suite. Any failure loops straight back to the `code` step with the failure list attached (this loop-back does not consume the converge circuit breaker; only broken *iterations* do — use the `code`-step retry cap from `mission.yml`).
 
-**Skipping the split** is allowed only when the run declares no test surface: `tdd: false` in `workflow-config.yml`, a docs/config-only step, or `interactive` mode (the attended pair runs its own discipline — e.g. superpowers' `test-driven-development`). A code-bearing step in `autonomous`/`supervised` mode never skips it.
+**Skipping the split** is allowed only when the run declares no test surface: `tdd: false` in `mission.yml`, a docs/config-only step, or `interactive` mode (the attended pair runs its own discipline — e.g. superpowers' `test-driven-development`). A code-bearing step in `autonomous`/`supervised` mode never skips it.
 
 #### Converge Loop (Implement ↔ Converge)
 1. Execute implement step (or `test` + `code` steps — RED→GREEN gates enforced first).
@@ -80,7 +82,7 @@ In `autonomous` and `supervised` modes, the `implement` step is split into two s
 
 ### Phase 6: Completion & Write-Back
 1. If tracker-integrated: read all marker comments from the PR/MR/issue to compile the audit trail (converge decisions, test findings, implement artifact references, convergence history).
-2. Archive state to `.adlc/workflow/runs/<slug>/mission-log.json`.
+2. Close the shared run: final `adlc-cli workflow state advance <run_id> --step <last> --status completed` (the run dir is the durable archive; no separate move).
 3. Write per-implement logs to `iterations.md`.
 4. If tracker-integrated:
    - Post completion summary as a ticket comment (marker: `factory-mission:status=completed:run=<run_id>`).

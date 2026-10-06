@@ -164,9 +164,9 @@ You are acting as an **Architecture Orchestrator** managing a multi-phase docume
 |----------|---------|----------|
 | `{REPO_ROOT}/.adlc/drafts/adr/` | Architectural decisions with rationale (individual file format) | Input |
 | `{REPO_ROOT}/.adlc/architect/state.json` | DAG execution state | State |
-| `{REPO_ROOT}/.adlc/architect/views/{subsystem}/{view}.md` | Per-view outputs | Reference |
-| `{REPO_ROOT}/AD.md` | Full Architecture Description | Output |
-| `{REPO_ROOT}/.adlc/memory/constitution.md` | Governance principles | Constraint |
+| `{REPO_ROOT}/docs/adlc/architect/views/{subsystem}/{view}.md` | Per-view outputs | Reference |
+| `{REPO_ROOT}/docs/adlc/architect/AD.md` | Full Architecture Description | Output |
+| `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `.adlc/memory/constitution.md` fallback) | Governance principles | Constraint |
 
 **IMPORTANT - Path Resolution**:
 - The setup script outputs `REPO_ROOT` - use this to determine the correct paths
@@ -301,7 +301,7 @@ Located in the skill's `templates/` directory:
 
 #### ADR Status Check
 
-2. **Check ADRs exist**: Verify `{REPO_ROOT}/.adlc/drafts/adr/` or `{REPO_ROOT}/.adlc/memory/adr/` exists (individual file format)
+2. **Check ADRs exist**: Verify `{REPO_ROOT}/.adlc/drafts/adr/` or `{REPO_ROOT}/docs/adlc/memory/adr/` (legacy `{REPO_ROOT}/.adlc/memory/adr/` fallback) exists (individual file format)
 3. **Check for Accepted ADRs**: Count ADRs with status "Accepted"
    - If **zero Accepted ADRs**: **STOP** and output:
      ```
@@ -323,7 +323,7 @@ Located in the skill's `templates/` directory:
 >
 > #### Constraint 1: View Files MUST Be Written to Disk
 > You **MUST** write each view to disk as a separate file before proceeding
-> to the next view. Location: `{REPO_ROOT}/.adlc/architect/views/{subsystem}/{view}.md`
+> to the next view. Location: `{REPO_ROOT}/docs/adlc/architect/views/{subsystem}/{view}.md`
 > - Do NOT hold views in memory and write only AD.md
 > - Do NOT combine multiple views into a single write operation
 > - Each file MUST be readable and standalone
@@ -396,11 +396,11 @@ Located in the skill's `templates/` directory:
 
 **Objective**: Analyze ADRs, detect sub-systems, generate customized DAG, get user approval
 
-**Script Action**: Run `scripts/bash/setup-architect.sh` which calls `plan-dag` internally
+**Script Action**: Run `{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh` (Requires the `architect-clarify` skill: `adlc-cli skills add tikalk/adlc-team-skills --skill architect-clarify`). which calls `plan-dag` internally
 
 #### Step 1.1: Load and Analyze ADRs
 
-1. **Read ADR Directory**: Load ADRs from `{REPO_ROOT}/.adlc/drafts/adr/` (and check `{REPO_ROOT}/.adlc/memory/adr/` if drafts is empty)
+1. **Read ADR Directory**: Load ADRs from `{REPO_ROOT}/.adlc/drafts/adr/` (and check `{REPO_ROOT}/docs/adlc/memory/adr/` or legacy `{REPO_ROOT}/.adlc/memory/adr/` if drafts is empty)
 2. **Parse ADR Index**: Extract sub-systems from `{REPO_ROOT}/.adlc/drafts/adr/adr.md` or individual ADR files
 3. **Group ADRs by Sub-system**: Create mapping of sub-system → ADRs
 4. **Validate ADR Status** (MANDATORY):
@@ -557,7 +557,7 @@ After user approval, write the execution plan to `{REPO_ROOT}/.adlc/architect/st
     }
   ],
   "perspectives": ["security", "performance"],
-  "output_file": "AD.md"
+  "output_file": "docs/adlc/architect/AD.md"
 }
 ```
 
@@ -584,7 +584,7 @@ For each view in the DAG:
 2. **Load Dependency Context**: Read completed view files for context
 3. **Load View Template**: Read from `templates/views/{view}.md`
 4. **Generate View Content**: Fill template with ADR-derived content
-5. **Write View File**: Save to `{REPO_ROOT}/.adlc/architect/views/{subsystem}/{view}.md`
+5. **Write View File**: Save to `{REPO_ROOT}/docs/adlc/architect/views/{subsystem}/{view}.md`
 6. **Update State**: Mark view as "completed" in state.json
 
 **View Generation with Dependency Context**:
@@ -593,7 +593,7 @@ For each view in the DAG:
 ## Generating: Functional View for "Core" sub-system
 
 **Dependencies loaded**:
-- Context View: {REPO_ROOT}/.adlc/architect/views/core/context.md (completed)
+- Context View: {REPO_ROOT}/docs/adlc/architect/views/core/context.md (completed)
 
 **ADRs for this view**: ADR-001 (Microservices), ADR-005 (API Gateway)
 
@@ -742,7 +742,7 @@ If the agent session is interrupted:
 **Before proceeding to Phase 3, you MUST verify that all expected view files exist on disk:**
 
 1. For each subsystem in state.json, check every view with status "completed"
-2. Verify the file exists: `{REPO_ROOT}/.adlc/architect/views/{subsystem}/{view}.md`
+2. Verify the file exists: `{REPO_ROOT}/docs/adlc/architect/views/{subsystem}/{view}.md`
 3. Verify each file is readable and has minimum content (≥20 lines)
 4. **Mermaid scan (Constraint 9)**: Scan each view file for ASCII box-drawing
    characters (`┌`, `└`, `├`, `│`, `═`, `───`). If found in any view that
@@ -836,10 +836,10 @@ If the agent session is interrupted:
 > **CRITICAL**: You MUST read each view file from the filesystem using actual file read operations. 
 > Do NOT use content from memory or from the ADRs directly. The view files are the SOLE source of truth.
 
-1. **Scan Directory**: List `{REPO_ROOT}/.adlc/architect/views/` directory
+1. **Scan Directory**: List `{REPO_ROOT}/docs/adlc/architect/views/` directory
 2. **Read Each File** (MANDATORY - file by file):
    - For each subsystem/view combination in state.json
-   - Read the file: `{REPO_ROOT}/.adlc/architect/views/{subsystem}/{view}.md`
+   - Read the file: `{REPO_ROOT}/docs/adlc/architect/views/{subsystem}/{view}.md`
    - If file cannot be read → **STOP** and report error:
      ```
      ❌ PHASE 3 ERROR: Cannot read view file
@@ -864,7 +864,7 @@ If the agent session is interrupted:
 **Directory Structure**:
 
 ```text
-{REPO_ROOT}/.adlc/architect/views/
+{REPO_ROOT}/docs/adlc/architect/views/
 ├── core/
 │   ├── context.md
 │   ├── functional.md
@@ -958,39 +958,39 @@ Compare views across sub-systems for:
 [Unified from all sub-system context views]
 [Single system-level context diagram]
 
-> **Subsystem Details**: [Core](.adlc/architect/views/core/context.md) | [Auth](.adlc/architect/views/auth/context.md) | [Data](.adlc/architect/views/data/context.md)
+> **Subsystem Details**: [Core](views/core/context.md) | [Auth](views/auth/context.md) | [Data](views/data/context.md)
 
 ### 3.2 Functional View
 [Merged functional elements from all sub-systems]
 [Unified component diagram]
 
-> **Subsystem Details**: [Core](.adlc/architect/views/core/functional.md) | [Auth](.adlc/architect/views/auth/functional.md) | [Data](.adlc/architect/views/data/functional.md)
+> **Subsystem Details**: [Core](views/core/functional.md) | [Auth](views/auth/functional.md) | [Data](views/data/functional.md)
 
 ### 3.3 Information View
 [Consolidated data model]
 [Unified ER diagram]
 
-> **Subsystem Details**: [Core](.adlc/architect/views/core/information.md) | [Auth](.adlc/architect/views/auth/information.md) | [Data](.adlc/architect/views/data/information.md)
+> **Subsystem Details**: [Core](views/core/information.md) | [Auth](views/auth/information.md) | [Data](views/data/information.md)
 
 ### 3.4 Concurrency View (if applicable)
 [Merged from sub-systems with concurrency]
 
-> **Subsystem Details**: [Core](.adlc/architect/views/core/concurrency.md) | [Auth](.adlc/architect/views/auth/concurrency.md)
+> **Subsystem Details**: [Core](views/core/concurrency.md) | [Auth](views/auth/concurrency.md)
 
 ### 3.5 Development View
 [Unified code organization]
 
-> **Subsystem Details**: [Core](.adlc/architect/views/core/development.md) | [Auth](.adlc/architect/views/auth/development.md) | [Data](.adlc/architect/views/data/development.md)
+> **Subsystem Details**: [Core](views/core/development.md) | [Auth](views/auth/development.md) | [Data](views/data/development.md)
 
 ### 3.6 Deployment View
 [Consolidated deployment topology]
 
-> **Subsystem Details**: [Core](.adlc/architect/views/core/deployment.md) | [Auth](.adlc/architect/views/auth/deployment.md) | [Data](.adlc/architect/views/data/deployment.md)
+> **Subsystem Details**: [Core](views/core/deployment.md) | [Auth](views/auth/deployment.md) | [Data](views/data/deployment.md)
 
 ### 3.7 Operational View (if applicable)
 [Merged operational concerns]
 
-> **Subsystem Details**: [Core](.adlc/architect/views/core/operational.md) | [Auth](.adlc/architect/views/auth/operational.md)
+> **Subsystem Details**: [Core](views/core/operational.md) | [Auth](views/auth/operational.md)
 
 ## 4. Architectural Perspectives
 
@@ -1001,7 +1001,7 @@ Compare views across sub-systems for:
 [Apply performance template across all views]
 
 ## 5. Architecture Decision Records Summary
-[Index linking to {REPO_ROOT}/.adlc/memory/adr/adr.md]
+[ADR index link: `../memory/adr/adr.md` (sibling-relative — resolves to {REPO_ROOT}/docs/adlc/memory/adr/adr.md)]
 
 ## 6. Tech Stack Summary
 [Consolidated from all ADRs]
@@ -1016,7 +1016,7 @@ For each view section in AD.md:
 1. **Collect subsystem links**:
    - For each subsystem in state.json
    - Check if view exists in subsystem's `dag` array
-   - Build link: `[SubsystemName](.adlc/architect/views/{subsystem-id}/{view}.md)`
+   - Build link: `[SubsystemName](views/{subsystem-id}/{view}.md)`
 
 2. **Format link block**:
    ```markdown
@@ -1036,7 +1036,7 @@ For each view section in AD.md:
 ### 3.1 Context View
 [Unified system-level context]
 
-> **Subsystem Details**: [Core](.adlc/architect/views/core/context.md) | [Auth](.adlc/architect/views/auth/context.md) | [Data](.adlc/architect/views/data/context.md)
+> **Subsystem Details**: [Core](views/core/context.md) | [Auth](views/auth/context.md) | [Data](views/data/context.md)
 ```
 
 **Example Output** (2 subsystems, only Core has Concurrency):
@@ -1044,7 +1044,7 @@ For each view section in AD.md:
 ### 3.4 Concurrency View
 [Merged concurrency concerns]
 
-> **Subsystem Details**: [Core](.adlc/architect/views/core/concurrency.md)
+> **Subsystem Details**: [Core](views/core/concurrency.md)
 ```
 
 #### Step 3.6: Apply Perspectives
@@ -1075,12 +1075,12 @@ After generating AD.md, perform ALL of the following steps:
   set. If >0, STOP and fix before proceeding.
 
 **Step 2: Copy to Canonical Location (MANDATORY)**
-- Move Accepted ADR files into `{REPO_ROOT}/.adlc/memory/adr/`
+- Move Accepted ADR files into `{REPO_ROOT}/docs/adlc/memory/adr/` (ADR-401 canonical memory root)
 - Create the file if it doesn't exist, or merge with existing content
 - **VERIFY**: Read the file back and confirm ADRs are present
 
 **Step 3: Clean Up Drafts (MANDATORY)**
- - Move each promoted ADR file from `{REPO_ROOT}/.adlc/drafts/adr/` to `{REPO_ROOT}/.adlc/memory/adr/`
+ - Move each promoted ADR file from `{REPO_ROOT}/.adlc/drafts/adr/` to `{REPO_ROOT}/docs/adlc/memory/adr/`
  - If no ADRs remain in drafts → the setup script cleans up empty directories
  - **VERIFY**: Confirm:
    - No duplicate ADRs exist (same ID in both locations)
@@ -1089,20 +1089,20 @@ After generating AD.md, perform ALL of the following steps:
 
 **Step 3b: Generate Memory ADR Index (MANDATORY)**
 
-After moving Accepted ADRs to `.adlc/memory/adr/`, generate a memory index file at `{REPO_ROOT}/.adlc/memory/adr/adr.md` using the `generate_adr_index` function from the setup script (the same function that generates the drafts index, but with scope=memory):
+After moving Accepted ADRs to `docs/adlc/memory/adr/`, generate a memory index file at `{REPO_ROOT}/docs/adlc/memory/adr/adr.md` using the `generate_adr_index` function from the setup script (the same function that generates the drafts index, but with scope=memory — ADR-401: the memory scope writes the index to the docs root whenever it holds records):
 
 ```bash
-source "{REPO_ROOT}/.agents/skills/architect-implement/scripts/bash/setup-architect.sh"
+source "{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh"
 generate_adr_index memory
 ```
 
-This writes `{REPO_ROOT}/.adlc/memory/adr/adr.md` with the 7-column schema, parsing YAML frontmatter via `parse_fm_field`. The index format:
+This writes `{REPO_ROOT}/docs/adlc/memory/adr/adr.md` with the 7-column schema, parsing YAML frontmatter via `parse_fm_field`. The index format:
 
 ```markdown
 # Architecture Decision Records (Memory)
 
 > Auto-generated by /architect-implement. Accepted ADRs only.
-> Source: .adlc/memory/adr/ADR-*.md
+> Source: docs/adlc/memory/adr/ADR-*.md
 
 ## ADR Index
 
@@ -1167,11 +1167,11 @@ Run this 10-point verification checklist:
 
 | Check | Expected | Verification Method | Status |
 |-------|----------|---------------------|--------|
-| 1. View files on disk | N files (one per view per subsystem) | List `{REPO_ROOT}/.adlc/architect/views/` | ☐ |
+| 1. View files on disk | N files (one per view per subsystem) | List `{REPO_ROOT}/docs/adlc/architect/views/` | ☐ |
 | 2. AD.md exists | Yes, at project root | Check file existence | ☐ |
 | 3. AD.md content size | >200 lines | Count lines in AD.md | ☐ |
 | 4. AD.md has all views | N sections (## 3.x headers) | Parse AD.md headers | ☐ |
-| 5. Memory ADRs promoted | N Accepted ADRs | Count files in `{REPO_ROOT}/.adlc/memory/adr/` | ☐ |
+| 5. Memory ADRs promoted | N Accepted ADRs | Count files in `{REPO_ROOT}/docs/adlc/memory/adr/` | ☐ |
 | 6. Drafts cleaned | No duplicates | Compare drafts vs memory | ☐ |
 | 7. state.json consistent | All views "completed" | Verify progress field | ☐ |
 | 8. Subsystem links (if applicable) | Links in AD.md (if 2+ subsystems) | Scan AD.md for "Subsystem Details" | ☐ |
@@ -1266,11 +1266,11 @@ After implement completes, run `/architect-analyze` to validate consistency and 
 
 ## Verification
 
-- **AD.md exists** at `{REPO_ROOT}/AD.md` with more than 200 lines and all viewpoint sections (`## 3.x` headers).
-- **Per-subsystem view files** exist at `{REPO_ROOT}/.adlc/architect/views/{subsystem}/{view}.md` for every completed view.
+- **AD.md exists** at `{REPO_ROOT}/docs/adlc/architect/AD.md` with more than 200 lines and all viewpoint sections (`## 3.x` headers).
+- **Per-subsystem view files** exist at `{REPO_ROOT}/docs/adlc/architect/views/{subsystem}/{view}.md` for every completed view.
 - **state.json is consistent**: all generated views are marked `"completed"` and the phase is `"completed"`.
-- **Accepted ADRs promoted**: all ADRs with status `"Accepted"` are moved to `{REPO_ROOT}/.adlc/memory/adr/`; the memory index is regenerated at `{REPO_ROOT}/.adlc/memory/adr/adr.md`.
-- **Drafts cleaned up**: promoted ADR files moved from `{REPO_ROOT}/.adlc/drafts/adr/` to `{REPO_ROOT}/.adlc/memory/adr/`; no duplicates remain; any remaining drafts are Proposed/Discovered only.
+- **Accepted ADRs promoted**: all ADRs with status `"Accepted"` are moved to `{REPO_ROOT}/docs/adlc/memory/adr/`; the memory index is regenerated at `{REPO_ROOT}/docs/adlc/memory/adr/adr.md`.
+- **Drafts cleaned up**: promoted ADR files moved from `{REPO_ROOT}/.adlc/drafts/adr/` to `{REPO_ROOT}/docs/adlc/memory/adr/`; no duplicates remain; any remaining drafts are Proposed/Discovered only.
 - **AD.md is viewpoint-organized**: sections are grouped by viewpoint (`## 3. Architectural Views → ### 3.1 Context View`, etc.), not by subsystem.
 - **Mermaid-only diagrams**: no ASCII box-drawing characters (`┌`, `└`, `├`, `│`, `═`, `───`) are used for architectural diagrams.
 - **Placeholder validation passed**: no critical placeholders (`[TBD]`, `[STAKEHOLDER_*]`, `[ENTITY_*]`, `[COMPONENT_*]`, `[SUB_SYSTEM_NAME]`) remain unfilled in view files.

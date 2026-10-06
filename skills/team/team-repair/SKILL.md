@@ -129,7 +129,7 @@ Output: `[OK]` or `[FAIL]` with reason
 #### Check 5: Constitution Alignment
 
 1. Read team constitution from `{TEAM_AI_DIRECTIVES}/context_modules/constitution.md`
-2. Locate project constitution: the project root (where `.adlc/` lives) → `{REPO_ROOT}/.adlc/memory/constitution.md`
+2. Locate project constitution: the project root (where `.adlc/` lives) → `{REPO_ROOT}/docs/adlc/memory/constitution.md`, falling back to legacy `{REPO_ROOT}/.adlc/memory/constitution.md` (ADR-401 dual-read)
 3. If project constitution exists:
    - Check if it references team-ai-directives (e.g., "Based on team-ai-directives", "Inherits from")
    - Check if team principles are present in project constitution (compare principle titles)
@@ -162,7 +162,7 @@ Output: `[OK]` or `[FAIL]` with reason
    - A `team-boot` invocation directive
    - A reference to team AI directives context (constitution, CDR index)
    - The Class Boots catalog (architect-boot / product-boot / change-boot / team-boot / tech-radar-boot)
-   - The compact Decision Capture triggers + Session Decision Ledger contract
+   - The compact Decision Capture triggers + Team Context & Decisions contract (single merged table; Status carries the accepted-vs-pending distinction)
 4. Output:
    - `[OK]` — Project AGENTS.md contains a valid team AI directives managed section
    - `[WARN]` — Project AGENTS.md exists but is missing the managed section (agents won't auto-invoke `team-boot`)
@@ -177,7 +177,7 @@ Output: `[OK]` or `[FAIL]` with reason
 
 Output:
 - `[OK]` — every mechanical rule has a paired check; every skill has eval coverage or a stated reason
-- `[WARN]` — N mechanical rules lack checks; M skills lack eval coverage (promotion candidates → feed to factory-learn Maintenance route / team-learn Phase 2b, action P)
+- `[WARN]` — N mechanical rules lack checks; M skills lack eval coverage (promotion candidates → feed to factory-learn Maintenance route / team-levelup Phase 2b, action P)
 
 #### Check 9: adlc Orphan Branch
 
@@ -213,7 +213,7 @@ If any check is `[FAIL]`, print the report, set exit code 1, and **STOP**. Do no
 
 **Objective**: Resolve paths and validate infrastructure
 
-Run `$(dirname "$0")/team-helpers.sh --json` (or the PowerShell equivalent) to resolve paths and parse JSON output:
+Run `$(dirname "$0")/../team-setup/team-helpers.sh --json` (or the PowerShell equivalent) to resolve paths and parse JSON output. The helper scripts are canonical in `team-setup` and shared by reference:
 
 ```json
 {
@@ -309,8 +309,8 @@ After repairing the team AI directives' own `AGENTS.md`, also ensure the **proje
 If Check 7 returned `[WARN]` or `[INFO]`, run the injection:
 
 ```bash
-bash "$(dirname "$0")/team-helpers.sh" --inject-agents "{REPO_ROOT}"
-# or: pwsh "$(Split-Path $PSCommandPath -Parent)/team-helpers.ps1" -InjectAgents "{REPO_ROOT}"
+bash "$(dirname "$0")/../team-setup/team-helpers.sh" --inject-agents "{REPO_ROOT}"
+# or: pwsh "$(Split-Path $PSCommandPath -Parent)/../team-setup/team-helpers.ps1" -InjectAgents "{REPO_ROOT}"
 ```
 
 If `--dry-run`:
@@ -782,10 +782,10 @@ Conflict levels:
 | Scope Overlap | Overlapping rules | INFO |
 | Constitution Conflict | Rule vs principle | CRITICAL |
 
-Use `team-learn/scripts/helpers.sh` conflict detection or implement inline:
+Use `team-levelup/scripts/helpers.sh` conflict detection or implement inline:
 
 ```bash
-skills/team/team-learn/scripts/helpers.sh --conflicts "$TEAM_AI_DIRECTIVES/context_modules/rules"
+skills/team/team-levelup/scripts/helpers.sh --conflicts "$TEAM_AI_DIRECTIVES/context_modules/rules"
 ```
 
 #### Step 3: Create Conflict CDRs
@@ -826,7 +826,7 @@ Rule
 
 Regenerate the local CDR index.
 
-Handoff: if conflict CDRs created, suggest `/team-learn`.
+Handoff: if conflict CDRs created, suggest `/team-levelup`.
 
 ### Phase 9: Freshness Verification
 
@@ -924,7 +924,7 @@ For each `{directive-id}` directory, read:
 - `evals/{directive-id}/goldset.md` — human-readable cases
 - `evals/{directive-id}/goldset.json` — machine-readable cases
 
-If no goldensets exist, report: "No evals found — run /team-learn to create eval CDRs first." and skip this phase.
+If no goldensets exist, report: "No evals found — run /team-levelup to create eval CDRs first." and skip this phase.
 
 #### Step 2: Identify Paired Directives
 
@@ -1017,7 +1017,7 @@ Delete both the directive file and its paired eval goldenset.
 - Test date: [YYYY-MM-DD]
 ```
 
-Regenerate the local CDR index. Handoff: suggest `/team-learn` to review deletion candidates.
+Regenerate the local CDR index. Handoff: suggest `/team-levelup` to review deletion candidates.
 
 For each **Promotion candidate**, create a CDR in `adlc branch drafts/cdr/CDR-{NNN}.md`:
 
@@ -1044,7 +1044,7 @@ pre-commit hook / lint rule / CI job) can enforce it without session context.
 ### Decision
 Build the deterministic check. Once it exists and runs in CI, deprecate the CDR
 or reduce it to a thin pointer (`enforced by <check path>`). Route to
-`/team-learn` action **P — Promote to check** (Phase 2b).
+`/team-levelup` action **P — Promote to check** (Phase 2b).
 
 ### Evidence
 - Directive: context_modules/rules/{domain}/{file}.md
@@ -1053,7 +1053,7 @@ or reduce it to a thin pointer (`enforced by <check path>`). Route to
 - Test date: [YYYY-MM-DD]
 ```
 
-Regenerate the local CDR index again. Handoff: suggest `/team-learn` to review promotion candidates (action P).
+Regenerate the local CDR index again. Handoff: suggest `/team-levelup` to review promotion candidates (action P).
 
 ### Phase 11: Validate Drafts
 
@@ -1160,7 +1160,7 @@ For each violation, record:
 
 #### Step 6: Handoff
 
-- If errors were found: suggest fixing the draft files before promoting them via the appropriate clarify skill (`/architect-clarify` for ADRs, `/product-clarify` for PDRs, `/change-clarify` for ChDRs, `/team-learn` for CDRs).
+- If errors were found: suggest fixing the draft files before promoting them via the appropriate clarify skill (`/architect-clarify` for ADRs, `/product-clarify` for PDRs, `/change-clarify` for ChDRs, `/team-levelup` for CDRs).
 - If all drafts pass validation: confirm drafts are structurally ready for promotion.
 - Remind: validation does not check semantic quality — only structural completeness. A draft that passes validation may still be rejected during clarification.
 
@@ -1244,7 +1244,7 @@ For each violation, record:
 ### Next Steps
 
 1. Review repaired files
-2. If conflict CDRs were created, run `/team-learn` to resolve them
+2. If conflict CDRs were created, run `/team-levelup` to resolve them
 3. Commit changes if satisfied
 ```
 
@@ -1307,7 +1307,7 @@ For each violation, record:
 - `TEAM_AI_DIRECTIVES` — Path to the team AI directives (overrides `.adlc/init-options.json`).
 - `.adlc/init-options.json` — Project-level config file with `team_ai_directives` field.
 - Default fallback: `team-ai-directives/` relative to project root.
-- `team-helpers.sh` / `team-helpers.ps1` — Shared scripts used for path resolution.
+- `../team-setup/team-helpers.sh` / `../team-setup/team-helpers.ps1` — Shared scripts (canonical in `team-setup`) used for path resolution.
 
 ## 12-Factor Alignment
 

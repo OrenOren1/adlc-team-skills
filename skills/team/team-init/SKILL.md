@@ -26,7 +26,7 @@ orphan branch of `team-ai-directives` (not project-local `.adlc/drafts/`).
 
 ### When NOT to use
 
-- **Greenfield (session complete)**: Use `/team-learn` to extract from session
+- **Greenfield (session complete)**: Use `/team-levelup` to extract from session
 - **Mining git history**: Use `/change-init` for past decisions
 
 ## Process
@@ -60,7 +60,7 @@ Write to `adlc` branch `drafts/cdr/` using the shared CDR draft template at `ski
 
 ### Phase 5: Handoff
 
-Suggest running `/team-learn` to review and publish the discovered CDRs.
+Suggest running `/team-levelup` to review and publish the discovered CDRs.
 
 ## Verification
 

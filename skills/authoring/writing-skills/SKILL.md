@@ -87,7 +87,7 @@ overstate both failure and success.
 
 ## Skill Discovery Optimization (SDO)
 
-The `description` is the trigger surface: `mission-brief` hands every
+The `description` is the trigger surface: `factory-mission` hands every
 skill's name+description to its subagents, and the model decides what to
 load from that list.
 

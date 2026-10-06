@@ -20,7 +20,7 @@ The scaffold written by `team-setup` (Mode 3) contains only a placeholder ("No t
 
 - Not a port of spec-kit's `spec.constitution` template machinery — no placeholder tokens, no hooks, no `extensions.yml`, no template propagation, no Sync Impact Report
 - Not semantic versioning — the team constitution is versioned by **git history** in the team AI directives repo; freshness is tracked by OKF v0.2 frontmatter (`generated`, `verified`, `stale_after`) via `/team-repair`
-- Not for **project-level** constitutions (`.adlc/memory/constitution.md`) — those remain `spec.constitution` territory when spec-kit is in play
+- Not for **project-level** constitutions (`docs/adlc/memory/constitution.md`, legacy `.adlc/memory/constitution.md` fallback) — those remain `spec.constitution` territory when spec-kit is in play
 
 ## When to use
 
@@ -30,8 +30,8 @@ The scaffold written by `team-setup` (Mode 3) contains only a placeholder ("No t
 
 ### When NOT to use
 
-- **Project-level constitution**: use spec-kit's `spec.constitution` for `.adlc/memory/constitution.md`
-- **Constitution changes via CDR flow**: if a constitution change was proposed as a CDR, let `/team-learn` handle it
+- **Project-level constitution**: use spec-kit's `spec.constitution` for `docs/adlc/memory/constitution.md` (legacy `.adlc/memory/constitution.md` fallback)
+- **Constitution changes via CDR flow**: if a constitution change was proposed as a CDR, let `/team-levelup` handle it
 - **team AI directives not configured**: run `/team-setup` first
 
 ## Process
@@ -157,7 +157,7 @@ Compose a short Governance section. Keep it to these three points (do not expand
 ```markdown
 ## Governance
 
-- **Amendments**: proposed as CDRs via `/team-init` or `/team-learn`, reviewed and published via `/team-learn`. Direct edits via `/team-constitution` are reserved for bootstrapping and explicit team decisions.
+- **Amendments**: proposed as CDRs via `/team-init` or `/team-levelup`, reviewed and published via `/team-levelup`. Direct edits via `/team-constitution` are reserved for bootstrapping and explicit team decisions.
 - **Compliance**: this constitution is loaded by `team-boot` at the start of every session. Agents and humans MUST follow it; on conflict, the constitution supersedes ad-hoc practices.
 - **Alignment**: `/team-repair` (Check 6) verifies project constitutions inherit these principles. Project constitutions may extend, never contradict.
 ```
@@ -259,8 +259,8 @@ Report:
 
 #### Don't Cross the Streams
 
-- Project constitutions (`.adlc/memory/constitution.md`) are out of scope
-- CDR-driven constitution changes go through `/team-learn`, not this skill
+- Project constitutions (`docs/adlc/memory/constitution.md`) are out of scope
+- CDR-driven constitution changes go through `/team-levelup`, not this skill
 
 ### Workflow Guidance & Transitions
 
@@ -274,7 +274,7 @@ Report:
 /team-repair (validate team AI directives, refresh freshness)
 ```
 
-Ongoing amendments follow the CDR lifecycle (`/team-init` or `/team-learn` → specify → clarify → publish), with `/team-constitution` available for explicit interactive edits.
+Ongoing amendments follow the CDR lifecycle (`/team-init` or `/team-levelup` → specify → clarify → publish), with `/team-constitution` available for explicit interactive edits.
 
 ## Verification
 

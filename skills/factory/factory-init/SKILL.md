@@ -46,9 +46,9 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 
 | Layer | Skip init/implement when | Always runs |
 |--|--|--|
-| product | `.adlc/memory/pdr/` non-empty AND `PRD.md` exists | product-analyze |
-| architecture | `.adlc/memory/adr/` non-empty AND `AD.md` exists | architect-analyze |
-| change | `.adlc/memory/chdr/` non-empty AND `.adlc/memory/chdr.md` exists | (ChDRs feed the sweep directly) |
+| product | `docs/adlc/memory/pdr/` (legacy `.adlc/memory/pdr/` fallback — either non-empty) AND `docs/adlc/product/PRD.md` exists | product-analyze |
+| architecture | `docs/adlc/memory/adr/` (legacy `.adlc/memory/adr/` fallback — either non-empty) AND `docs/adlc/architect/AD.md` exists | architect-analyze |
+| change | `docs/adlc/memory/chdr/` (legacy `.adlc/memory/chdr/` fallback — either non-empty) AND `docs/adlc/memory/chdr.md` exists | (ChDRs feed the sweep directly) |
 
 ---
 
@@ -62,13 +62,13 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 |--|--|--|--|--|
 | 1 | `product-init` | product-init | generate | draft (`.adlc/drafts/pdr/`) |
 | 2 | `product-clarify`⭐ | product-clarify | clarify | decision |
-| 3 | `product-implement` | product-implement | build | artifact-ref (`PRD.md`) |
+| 3 | `product-implement` | product-implement | build | artifact-ref (`docs/adlc/product/PRD.md`) |
 | 4 | `architect-init` | architect-init | generate | draft (`.adlc/drafts/adr/`) |
 | 5 | `architect-clarify`⭐ | architect-clarify (reads accepted PDR list) | clarify | decision |
-| 6 | `architect-implement` | architect-implement | build | artifact-ref (`AD.md`) |
+| 6 | `architect-implement` | architect-implement | build | artifact-ref (`docs/adlc/architect/AD.md`) |
 | 7 | `change-init` | change-init | generate | draft (`.adlc/drafts/chdr/`) |
 | 8 | `change-clarify`⭐ | change-clarify | clarify | decision |
-| 9 | `change-publish` | change-publish | build | artifact-ref (`.adlc/memory/chdr/`) |
+| 9 | `change-publish` | change-publish | build | artifact-ref (`docs/adlc/memory/chdr/`) |
 | 10 | `product-analyze` | product-analyze | analyze | findings |
 | 11 | `architect-analyze` | architect-analyze | analyze | findings |
 | 12 | `sweep` | inline (this skill, §The Sweep Step) | analyze | findings (`.adlc/coverage/coverage.md` + history) |
@@ -95,8 +95,8 @@ The sweep is executed by this orchestrator (step `skill: factory-init`, prompt =
 | Source | Yields |
 |--|
 | `product-init` + `architect-init` setup scripts (re-run; idempotent JSON scanners) | sub-systems, feature-areas, tech stack |
-| `.adlc/memory/pdr/`, `.adlc/memory/adr/`, `.adlc/memory/chdr/` (+ indexes) | accepted decisions per layer |
-| `PRD.md`, `AD.md` | compiled artifacts |
+| `docs/adlc/memory/{pdr,adr,chdr}/` (legacy `.adlc/memory/` fallback, + indexes) | accepted decisions per layer |
+| `docs/adlc/product/PRD.md`, `docs/adlc/architect/AD.md` | compiled artifacts |
 | `.adlc/coverage/coverage.md` (if exists) | previous matrix → drift diff |
 
 ### Output: `.adlc/coverage/coverage.md` (+ `history/<date>-<run_id>.md`)
@@ -132,7 +132,7 @@ Every gap line uses the form:
 
 **4. Drift section** — `## Drift vs <previous date> sweep` (or `## Baseline` on first sweep): new gaps, closed gaps, regressed areas. On refresh, this diff IS the report.
 
-**5. Findings output** — severity-ranked summary published as `output_type: findings` (comment bus if tracker-integrated, else `.adlc/workflow/findings/sweep.md`); every finding tagged `[layer: ...]` for correction routing (ADR-361). The matrix file itself is the artifact; the matrix **never edits records** — it reports, clarify fixes.
+**5. Findings output** — severity-ranked summary published as `output_type: findings` (comment bus if tracker-integrated, else `runs/<run_id>/findings/sweep.md`); every finding tagged `[layer: ...]` for correction routing (ADR-361). The matrix file itself is the artifact; the matrix **never edits records** — it reports, clarify fixes.
 
 ---
 
@@ -140,7 +140,7 @@ Every gap line uses the form:
 
 `factory-init` overrides the shared executor engine primitives as follows:
 
-1. **Publish Target**: Fixed to `local`. Outputs are written to `.adlc/` (drafts, memory, coverage) and `PRD.md` / `AD.md` at project root. If tracker-integrated, a `tracker` completion summary comment is also posted.
+1. **Publish Target**: Fixed to `local`. Outputs are written to `.adlc/` (drafts, coverage) and `docs/adlc/` (memory records, `docs/adlc/product/PRD.md`, `docs/adlc/architect/AD.md`). If tracker-integrated, a `tracker` completion summary comment is also posted.
 2. **Output Types** (per PDR-050): init steps → `draft`; clarify⭐ → `decision`; implement/publish → `artifact-ref`; analyze + sweep → `findings`.
 3. **Supervision Default**: `hybrid`. Human gates hard-enforced at the three clarify⭐ steps (PDR, ADR, ChDR approvals) and at final coverage-matrix review.
 4. **Pre-flight Check**: Verifies that the `product-*`, `architect-*`, and `change-*` lifecycle skills are installed. Team AI directives configuration is NOT required (CDR excluded); `architect-init`'s team-directives dedup degrades gracefully if unconfigured.
@@ -169,7 +169,7 @@ Every gap line uses the form:
 ## Verification
 
 - [ ] All 12 bootstrap steps completed (or per-layer skip applied with reason recorded in state)
-- [ ] `PRD.md`, `AD.md`, `.adlc/memory/pdr/`, `.adlc/memory/adr/`, `.adlc/memory/chdr/` populated per track
+- [ ] `docs/adlc/product/PRD.md`, `docs/adlc/architect/AD.md`, `docs/adlc/memory/{pdr,adr,chdr}/` populated per track
 - [ ] `.adlc/coverage/coverage.md` written with Pivot (all layer columns), four relations each with `Coverage: N%`, layer-tagged + cited gap lines, and Drift/Baseline section
 - [ ] Prior matrix archived to `.adlc/coverage/history/<date>-<run_id>.md`
 - [ ] Every sweep finding tagged `[layer: ...]`; CRITICAL/HIGH routed to the matching track's clarify (bounded `max_corrections`)
@@ -183,8 +183,8 @@ Every gap line uses the form:
 - `ADR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/adr`
 - `CHDR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/chdr`
 - `COVERAGE_DIR` — `{REPO_ROOT}/.adlc/coverage` (`coverage.md` + `history/`)
-- `PRD_FILE` — `{REPO_ROOT}/PRD.md` | `AD_FILE` — `{REPO_ROOT}/AD.md`
-- State file — `{REPO_ROOT}/.adlc/workflow/.factory-factory-init-state.json` (executor lease/resume)
+- `PRD_FILE` — `{REPO_ROOT}/docs/adlc/product/PRD.md` | `AD_FILE` — `{REPO_ROOT}/docs/adlc/architect/AD.md`
+- Shared run state — `{REPO_ROOT}/.adlc/workflows/runs/<run_id>/state.json` via `adlc-cli workflow state` helpers (ADR-395; lease/resume)
 
 ## References
 

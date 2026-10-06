@@ -6,12 +6,16 @@
 #   -Scaffold DIR      Create a fresh 11-file team AI directives scaffold at DIR
 #   -AgentsOnly DIR    Create only AGENTS.md at DIR (for repair use)
 #   -InjectAgents DIR  Inject team-boot directive into project-level AGENTS.md at DIR
+#   -AgentsStatus DIR  Report managed-section status in project-level AGENTS.md at DIR
+#   -AgentsUninstall DIR  Remove managed section from project-level AGENTS.md at DIR
 #   -Name NAME         Team name for scaffold (default: "My Team")
 param(
   [switch]$Json,
   [string]$Scaffold = "",
   [string]$AgentsOnly = "",
   [string]$InjectAgents = "",
+  [string]$AgentsStatus = "",
+  [string]$AgentsUninstall = "",
   [string]$Name = "My Team"
 )
 
@@ -233,11 +237,11 @@ okf_version: "0.2"
   Set-Content -Path (Join-Path $Dest "context_modules/index.md") -Value $indexTop
   Set-Content -Path (Join-Path $Dest "context_modules/log.md") -Value "# Context Modules Update Log`n"
 
-  Set-Content -Path (Join-Path $Dest "context_modules/rules/index.md") -Value "# Rules`n`nNo rules defined yet. Use /team-learn to create rules via CDRs."
+  Set-Content -Path (Join-Path $Dest "context_modules/rules/index.md") -Value "# Rules`n`nNo rules defined yet. Use /team-levelup to create rules via CDRs."
   Set-Content -Path (Join-Path $Dest "context_modules/rules/log.md") -Value "# Rules Update Log`n"
-  Set-Content -Path (Join-Path $Dest "context_modules/personas/index.md") -Value "# Personas`n`nNo personas defined yet. Use /team-learn to create personas via CDRs."
+  Set-Content -Path (Join-Path $Dest "context_modules/personas/index.md") -Value "# Personas`n`nNo personas defined yet. Use /team-levelup to create personas via CDRs."
   Set-Content -Path (Join-Path $Dest "context_modules/personas/log.md") -Value "# Personas Update Log`n"
-  Set-Content -Path (Join-Path $Dest "context_modules/examples/index.md") -Value "# Examples`n`nNo examples defined yet. Use /team-learn to create examples via CDRs."
+  Set-Content -Path (Join-Path $Dest "context_modules/examples/index.md") -Value "# Examples`n`nNo examples defined yet. Use /team-levelup to create examples via CDRs."
   Set-Content -Path (Join-Path $Dest "context_modules/examples/log.md") -Value "# Examples Update Log`n"
 
   $cdrDerived = @"
@@ -350,29 +354,39 @@ If the team AI directives context is NOT in your system prompt or first user mes
 
 If team AI directives are unconfigured, invoke the ``team-setup`` skill.
 
-Invoke the matching class boot when a task or decision matches a row:
+Invoke the matching class boot when a task or decision matches a row — invoke it
+at the START of the matching task, before planning the todo list and before
+implementation, so the class context informs planning; never defer to session end
+or post-hoc. When no local memory index exists in the current working directory
+and the directory sits inside a workspace (detected via a ``.gitmodules`` marker
+in an ancestor), the boot reads the workspace root's ``docs/adlc/memory/`` index
+instead (ADR-401 dual-read order applies: ``docs/adlc/memory`` first, legacy
+``.adlc/memory`` fallback).
 
 ## Class Boots
 
 | Boot | Injects | Invoke When | Capture Via |
 |--|--|--|--|
-| architect-boot | ADR index (.adlc/memory/adr/) | architecture work; tech-stack/pattern choice | /architect-specify |
-| product-boot | PDR index (.adlc/memory/pdr/) | product/feature scope, personas, monetization | /product-specify |
-| change-boot | ChDR index (.adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits | /change-init |
-| team-boot | CDR module bodies (team-ai-directives) | CDR descriptor match; reusable team pattern | /team-learn |
+| architect-boot | ADR index (docs/adlc/memory/adr/ + legacy .adlc/memory/adr/) | architecture work; tech-stack/pattern choice | /architect-specify |
+| product-boot | PDR index (docs/adlc/memory/pdr/ + legacy .adlc/memory/pdr/) | product/feature scope, personas, monetization | /product-specify |
+| change-boot | ChDR index (docs/adlc/memory/chdr.md + legacy .adlc/memory/chdr.md) | change-history rationale, reverts, issue-linked commits, git commands w/ human-authored messages, authored PRs, CHANGELOG edits | /change-init |
+| team-levelup | CDR module bodies (team-ai-directives) | CDR descriptor match; reusable team pattern | /team-levelup |
 | tech-radar-boot | Tikal Tech Radar context | choosing/evaluating technology | radar context + /architect-specify |
 
 Each class boot emits its class context section and its own searched line (_Searched N records, K matched._).
 
-**Every response MUST include** a Team Context in Use section before the task answer:
+**Every response MUST include** a Team Context & Decisions section before the task answer (Status ``in use`` rows ground the session in accepted records; Status ``pending`` rows capture emerging decisions in the same table):
 
-## Team Context in Use
+## Team Context & Decisions
 
-| ID | Name | Type | Rel |
-|--|--|--|--|
-| CDR-YYYY-NNN | <name> | <type> | <relevance> |
+| ID | Name | Type | Rel | Status | Clarify |
+|--|--|--|--|--|--|
+| CDR-YYYY-NNN | <name> | <type> | <relevance> | in use | — |
+| — | <decision> | <ADR/PDR/CDR/ChDR/Eval> | <trigger> | pending | <clarify skill> |
 
-Plus: ``_Searched N CDRs, M skills, J matched._`` — **J MUST equal the number of rows in your table; if no CDRs/skills genuinely match, show an empty table with 0 matched (do not copy a hard-coded CDR or inflate the count).**
+Plus: ``_Scope: N CDRs · A ADRs · P PDRs · C ChDRs · E evals · M skills — J rows shown · Unrecorded: N pending · Unclarified: M captured drafts._`` — **J MUST equal the number of rows (any indexed type). Status ``in use`` + Clarify ``—`` = grounding context (accepted records only); Status ``pending``/``captured``/``clarified``/``handed off`` + Clarify skill = owed decisions. No draft row may carry Status ``in use`` — drafts appear only as pending decision rows. 0 rows matched → emit the section heading + the counts line only — no table. A 0-row table header collapses into unrendered single-line markdown; never emit one (do not copy a hard-coded row or inflate the count).** Scope names the always-available layer and class indexes (counts only, never content) plus the session's open decisions; class boots append their own scope line when fired.
+
+Render the section as markdown blocks — heading, table (when rows exist), and counts line each on their own lines; never collapse the table into a single line.
 
 ## Decision Capture
 
@@ -380,18 +394,14 @@ Detect decisions as they emerge; full detection and capture guidance lives in th
 
 - Tech stack / pattern choice → ADR → /architect-specify (pull tech-radar-boot context first for tech selection)
 - Feature scope / persona / monetization → PDR → /product-specify
-- Reusable team rule / pattern → CDR → /team-learn
+- Reusable team rule / pattern → CDR → /team-levelup
 - Revert/hotfix rationale / issue-linked commit → ChDR → /change-init
 
-Maintain a running Session Decision Ledger in every response (after the Team Context in Use table):
+Maintain the decision rows in the same table above (Status pending/captured/clarified/handed off + Clarify skill); with no pending decisions, emit the heading + the counts line only — no table.
 
-| Decision | Type | Captured? | Skill |
-|----------|------|-----------|-------|
-| _none yet_ | — | — | — |
+At session end, deliver the clarify prompt naming each captured draft (ID + clarify skill); if the user defers clarify, mark those rows handed off. Only suggest capture when genuinely warranted.
 
-_Unrecorded: N pending._
-
-At session end, prompt to invoke the capture skills for any unrecorded decisions. Only suggest capture when genuinely warranted.
+Surface each detected decision as a task-list todo (write the draft to ``.adlc/drafts/{type}/``, then run the matching clarify skill at session end). After code-modifying tasks, add a trailing todo to sweep Team Context & Decisions until _Unrecorded: 0 pending · Unclarified: 0 drafts_ (a draft leaves Unclarified only via its clarify skill or an explicit user handoff to a named clarify or execute skill).
 $MarkerEnd
 "@
 
@@ -422,6 +432,47 @@ $MarkerEnd
   }
 }
 
+function Get-ProjectAgentsSectionStatus {
+  param([string]$ProjectRoot = ".")
+  $AgentsFile = Join-Path $ProjectRoot "AGENTS.md"
+  $MarkerStart = "<!-- TEAM_AI_DIRECTIVES START -->"
+  $MarkerEnd = "<!-- TEAM_AI_DIRECTIVES END -->"
+  if (-not (Test-Path $AgentsFile)) {
+    Write-Output "STATUS: missing (no AGENTS.md at $ProjectRoot)"
+    return
+  }
+  $Content = Get-Content $AgentsFile -Raw -Encoding UTF8
+  if ($Content.Contains($MarkerStart) -and $Content.Contains($MarkerEnd)) {
+    Write-Output "STATUS: installed ($AgentsFile contains the managed section)"
+  } else {
+    Write-Output "STATUS: not-installed ($AgentsFile lacks the managed section)"
+  }
+}
+
+function Remove-ProjectAgentsSection {
+  param([string]$ProjectRoot = ".")
+  $AgentsFile = Join-Path $ProjectRoot "AGENTS.md"
+  $MarkerStart = "<!-- TEAM_AI_DIRECTIVES START -->"
+  $MarkerEnd = "<!-- TEAM_AI_DIRECTIVES END -->"
+  if (-not (Test-Path $AgentsFile)) {
+    Write-Output "Nothing to remove: no AGENTS.md at $ProjectRoot"
+    return
+  }
+  $Content = Get-Content $AgentsFile -Raw -Encoding UTF8
+  $StartIdx = $Content.IndexOf($MarkerStart)
+  $EndIdx = $Content.IndexOf($MarkerEnd)
+  if ($StartIdx -lt 0 -or $EndIdx -le $StartIdx) {
+    Write-Output "No managed section in $AgentsFile (nothing removed)"
+    return
+  }
+  $NewContent = $Content.Substring(0, $StartIdx) + $Content.Substring($EndIdx + $MarkerEnd.Length)
+  while ($NewContent.Contains("`n`n`n")) { $NewContent = $NewContent.Replace("`n`n`n", "`n`n") }
+  $NewContent = $NewContent.Trim("`r", "`n")
+  if ($NewContent) { $NewContent += "`n" }
+  Set-Content -Path $AgentsFile -Value $NewContent -Encoding UTF8
+  Write-Output "Removed team AI directives section from $AgentsFile"
+}
+
 # MAIN
 if ($Scaffold) {
   New-TeamAiDirectivesScaffold -Dest $Scaffold -TeamName $Name
@@ -429,6 +480,10 @@ if ($Scaffold) {
   New-AgentsOnly -Dest $AgentsOnly
 } elseif ($InjectAgents -ne "") {
   Invoke-ProjectAgentsInjection -ProjectRoot $InjectAgents
+} elseif ($AgentsStatus -ne "") {
+  Get-ProjectAgentsSectionStatus -ProjectRoot $AgentsStatus
+} elseif ($AgentsUninstall -ne "") {
+  Remove-ProjectAgentsSection -ProjectRoot $AgentsUninstall
 } elseif ($Json) {
   Write-OutputJson
 } else {

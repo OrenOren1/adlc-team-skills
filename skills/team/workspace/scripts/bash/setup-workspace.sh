@@ -14,6 +14,16 @@ for arg in "$@"; do
 done
 
 ###############################################################################
+# ADR-401 shared layout constants (single definition in paths.sh)
+###############################################################################
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/paths.sh" ]; then
+  # shellcheck disable=SC1091
+  . "$SCRIPT_DIR/paths.sh"
+fi
+
+###############################################################################
 # Path resolution (inline — no external helper dependency)
 ###############################################################################
 
@@ -40,9 +50,6 @@ resolve_branch() {
 
 ADLC_SUBDIRS=(
   "product"
-  "architecture"
-  "context"
-  "skills"
   "drafts"
   "drafts/pdr"
   "drafts/adr"
@@ -68,22 +75,36 @@ create_adlc_structure() {
 # .gitignore convention check (read-only — reports missing rules)
 ###############################################################################
 
-# Rules that should be in .gitignore for workspace conventions
-GITIGNORE_RULES=(
-  ".adlc/"
-  ".agents/"
-  ".opencode/"
-  ".claude/"
-  ".cursor/"
-  ".codex/"
-  ".gemini/"
-  ".qwen/"
-  ".devin/"
-  ".tabnine/"
-  "skills-lock.json"
-  ".skills.json"
-  ".mcp.json"
-)
+# Rules that should be in .gitignore for workspace conventions.
+#
+# ADR-401 R7: the wholesale `.adlc/` ignore is replaced by an allowlist —
+# `.adlc/*` ignored EXCEPT the tracked exceptions (`init-options.json`,
+# `workspace.yml`, `drafts/`, `evals/` config, `memory/evals/holdout.json`)
+# plus the generated-report and graphify rules. The allowlist has a single
+# definition in paths.sh (sourced at the top of this script); the fallback
+# below keeps the agent-install surface checked when paths.sh is unavailable
+# (selective install) — it never reintroduces a wholesale `.adlc/` ignore.
+if [ -n "${GITIGNORE_RULES_ALLOWLIST:-}" ]; then
+  GITIGNORE_RULES=("${GITIGNORE_RULES_ALLOWLIST[@]}")
+else
+  GITIGNORE_RULES=(
+    ".agents/"
+    ".opencode/"
+    ".claude/"
+    ".cursor/"
+    ".codex/"
+    ".gemini/"
+    ".qwen/"
+    ".devin/"
+    ".tabnine/"
+    "skills-lock.json"
+    ".skills.json"
+    ".mcp.json"
+    ".events.json"
+    ".pytest_cache/"
+    ".ruff_cache/"
+  )
+fi
 
 check_gitignore_rules() {
   local missing=()
@@ -146,7 +167,9 @@ discover_child_repos() {
 
 PROJECT_ROOT=$(resolve_project_root)
 BRANCH=$(resolve_branch)
-ADLC_DIR="${PROJECT_ROOT}/.adlc"
+# Absolute form derived from the sourced ADLC_DIR constant (paths.sh),
+# never redefined as a competing literal.
+ADLC_DIR="${PROJECT_ROOT}/${ADLC_DIR:-.adlc}"
 GITIGNORE_EXISTS=false
 [[ -f "${PROJECT_ROOT}/.gitignore" ]] && GITIGNORE_EXISTS=true
 

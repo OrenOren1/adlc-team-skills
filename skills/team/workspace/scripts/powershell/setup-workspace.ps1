@@ -6,6 +6,14 @@
 $ErrorActionPreference = "Stop"
 
 ###############################################################################
+# ADR-401 shared layout constants (single definition in paths.ps1)
+###############################################################################
+
+$PathsPs1 = Join-Path $PSScriptRoot "paths.ps1"
+if (Test-Path $PathsPs1) { . $PathsPs1 }
+
+
+###############################################################################
 # Path resolution (inline — no external helper dependency)
 ###############################################################################
 
@@ -34,9 +42,6 @@ function Resolve-Branch {
 
 $AdlcSubdirs = @(
     "product"
-    "architecture"
-    "context"
-    "skills"
     "drafts"
     "drafts/pdr"
     "drafts/adr"
@@ -62,21 +67,37 @@ function New-AdlcStructure {
 # .gitignore convention check (read-only — reports missing rules)
 ###############################################################################
 
-$GitignoreRules = @(
-    ".adlc/"
-    ".agents/"
-    ".opencode/"
-    ".claude/"
-    ".cursor/"
-    ".codex/"
-    ".gemini/"
-    ".qwen/"
-    ".devin/"
-    ".tabnine/"
-    "skills-lock.json"
-    ".skills.json"
-    ".mcp.json"
-)
+# Rules that should be in .gitignore for workspace conventions.
+#
+# ADR-401 R7: the wholesale `.adlc/` ignore is replaced by an allowlist —
+# `.adlc/*` ignored EXCEPT the tracked exceptions (`init-options.json`,
+# `workspace.yml`, `drafts/`, `evals/` config, `memory/evals/holdout.json`)
+# plus the generated-report and graphify rules. The allowlist has a single
+# definition in paths.ps1 (dot-sourced at the top of this script); the
+# fallback below keeps the agent-install surface checked when paths.ps1 is
+# unavailable (selective install) — it never reintroduces a wholesale `.adlc/`
+# ignore.
+if ($GITIGNORE_RULES_ALLOWLIST) {
+    $GitignoreRules = $GITIGNORE_RULES_ALLOWLIST
+} else {
+    $GitignoreRules = @(
+        ".agents/"
+        ".opencode/"
+        ".claude/"
+        ".cursor/"
+        ".codex/"
+        ".gemini/"
+        ".qwen/"
+        ".devin/"
+        ".tabnine/"
+        "skills-lock.json"
+        ".skills.json"
+        ".mcp.json"
+        ".events.json"
+        ".pytest_cache/"
+        ".ruff_cache/"
+    )
+}
 
 function Test-GitignoreRules {
     $missing = @()

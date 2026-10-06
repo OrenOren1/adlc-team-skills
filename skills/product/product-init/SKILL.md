@@ -38,6 +38,8 @@ Reverse-engineers product decisions from an **existing product** using a **three
 sh: scripts/bash/setup-product-init.sh [--json]
 ps: scripts/powershell/setup-product-init.ps1
 ```
+**Requires:** the `product-clarify` skill (provides `pdr-lib.sh`): `adlc-cli skills add tikalk/adlc-team-skills --skill product-clarify`
+
 
 **Setup output** (JSON):
 ```json
@@ -292,7 +294,7 @@ Generate `{REPO_ROOT}/.adlc/drafts/pdr/pdr.md` from all `PDR-*.md` files:
 
 - `PDR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/pdr` (individual PDR files)
 - `PDR_INDEX` — `{REPO_ROOT}/.adlc/drafts/pdr/pdr.md` (auto-generated index)
-- `PRD_FILE` — `{REPO_ROOT}/PRD.md`
+- `PRD_FILE` — `{REPO_ROOT}/docs/adlc/product/PRD.md`
 - `STATE_FILE` — `{REPO_ROOT}/.adlc/product/state.json`
 
 ## 12-Factor Alignment

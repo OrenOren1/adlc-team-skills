@@ -17,6 +17,30 @@ $Decompose = -not $NoDecompose
 
 $ErrorActionPreference = 'Stop'
 
+# ADR-401 shared layout constants (single definition in paths.ps1).
+$ArchitectPathsPs1 = "$PSScriptRoot/../../../../team/workspace/scripts/powershell/paths.ps1"
+if (-not (Test-Path $ArchitectPathsPs1)) {
+    $ArchitectPathsPs1 = "$PSScriptRoot/../../../workspace/scripts/powershell/paths.ps1"
+}
+if (Test-Path $ArchitectPathsPs1) { . $ArchitectPathsPs1 }
+
+# ADR-401 dual-read (R8): resolve a memory-relative artifact to the canonical
+# docs/adlc/memory path, falling back to legacy .adlc/memory when only the
+# legacy path exists. PowerShell mirror of _adlc_memory_path in
+# setup-architect.sh; callers pass a path relative to the memory root
+# (e.g. "adr", "constitution.md"). Returns the legacy path when neither
+# exists so creation sites keep their current behavior.
+function Get-AdlcMemoryPath {
+    param([string]$RepoRoot, [string]$RelPath)
+    $docsBase = $DOCS_ADLC_MEMORY
+    if (-not $docsBase) { $docsBase = "docs/adlc/memory" }
+    $docsPath = Join-Path $RepoRoot (Join-Path $docsBase $RelPath)
+    $legacyPath = Join-Path $RepoRoot (Join-Path ".adlc/memory" $RelPath)
+    if (Test-Path $docsPath) { return $docsPath }
+    return $legacyPath
+}
+
+
 if ($Help) {
     Write-Output "Usage: ./setup-architect.ps1 [action] [context] [-Views VIEWS] [-AdrHeuristic HEURISTIC] [-Json] [-Help]"
     Write-Output ""
@@ -378,7 +402,7 @@ function Scan-ExistingDocs {
     $findings = @()
     
     # Check for existing architecture docs
-    if (Test-Path "$RepoRoot\AD.md") {
+    if (Test-Path "$RepoRoot\docs/adlc/architect/AD.md") -or (Test-Path "$RepoRoot\AD.md") {
         $findings += "EXISTING_AD: $RepoRoot\AD.md"
     }
     
@@ -564,8 +588,9 @@ function New-ArchitectureDiagrams {
 # Specify action (greenfield - interactive PRD exploration to create ADRs)
 function Invoke-Specify {
     param($repoRoot, $contextArgs)
-    
-    $adrDir = Join-Path $repoRoot ".adlc\memory\adr"
+
+    # ADR-401 dual-read (R8): canonical docs/adlc/memory first, legacy fallback.
+    $adrDir = Get-AdlcMemoryPath -RepoRoot $repoRoot -RelPath "adr"
     $adrTemplate = Join-Path $repoRoot ".adlc\templates\adr-template.md"
     
     Write-Host "📐 Setting up for interactive ADR creation..." -ForegroundColor Cyan
@@ -624,7 +649,7 @@ function Invoke-Specify {
     Write-Host "  2. Ask clarifying questions about architecture"
     Write-Host "  3. Create ADRs for each key decision"
     Write-Host "  4. Save decisions to .adlc/drafts/adr/ADR-{NNN}.md (Proposed status)"
-    Write-Host "     (ADRs will be moved to .adlc/memory after /architect-implement)"
+    Write-Host "     (ADRs will be moved to docs/adlc/memory after /architect-implement)"
     if ($Decompose) {
         Write-Host "  5. Organize ADRs by sub-system"
     }
@@ -639,8 +664,9 @@ function Invoke-Specify {
 # Clarify action (refine existing ADRs)
 function Invoke-Clarify {
     param($repoRoot, $contextArgs)
-    
-    $adrDir = Join-Path $repoRoot ".adlc\memory\adr"
+
+    # ADR-401 dual-read (R8): canonical docs/adlc/memory first, legacy fallback.
+    $adrDir = Get-AdlcMemoryPath -RepoRoot $repoRoot -RelPath "adr"
     
     if (-not (Test-Path $adrDir)) {
         Write-Error "ADR file does not exist: $adrDir`nRun '/architect-specify' or '/architect-init' first"
@@ -669,9 +695,10 @@ function Invoke-Clarify {
 # Implement action (generate full AD.md from ADRs)
 function Invoke-Implement {
     param($repoRoot, $contextArgs)
-    
-    $adrDir = Join-Path $repoRoot ".adlc\memory\adr"
-    $adFile = Join-Path $repoRoot "AD.md"
+
+    # ADR-401 dual-read (R8): canonical docs/adlc/memory first, legacy fallback.
+    $adrDir = Get-AdlcMemoryPath -RepoRoot $repoRoot -RelPath "adr"
+    $adFile = Join-Path $repoRoot "docs/adlc/architect/AD.md"
     $adTemplate = Join-Path $repoRoot ".adlc\templates\AD-template.md"
     
     if (-not (Test-Path $adrDir)) {
@@ -685,6 +712,7 @@ function Invoke-Implement {
     if (-not (Test-Path $adFile)) {
         if (Test-Path $adTemplate) {
             Write-Host "Creating AD.md from template..." -ForegroundColor Cyan
+            New-Item -ItemType Directory -Force -Path (Split-Path $adFile -Parent) | Out-Null
             Copy-Item $adTemplate $adFile
             Write-Host "✅ Created: $adFile" -ForegroundColor Green
         } else {
@@ -705,7 +733,7 @@ function Invoke-Implement {
     Write-Host "  2. Generate 7 Rozanski & Woods viewpoints"
     Write-Host "  3. Apply Security and Performance perspectives"
     Write-Host "  4. Create Mermaid diagrams for each view"
-    Write-Host "  5. Write complete AD.md to project root"
+    Write-Host "  5. Write complete AD.md to docs/adlc/architect/"
     Write-Host "  6. Move Accepted ADRs to canonical location"
     Write-Host "  7. Clean up drafts if all ADRs are Accepted"
     
@@ -717,8 +745,9 @@ function Invoke-Implement {
 # Initialize action (brownfield - reverse-engineer from codebase, ADRs only)
 function Invoke-Init {
     param($repoRoot, $contextArgs)
-    
-    $adrDir = Join-Path $repoRoot ".adlc\memory\adr"
+
+    # ADR-401 dual-read (R8): canonical docs/adlc/memory first, legacy fallback.
+    $adrDir = Get-AdlcMemoryPath -RepoRoot $repoRoot -RelPath "adr"
     $adrTemplate = Join-Path $repoRoot ".adlc\templates\adr-template.md"
     
     Write-Host "🔍 Initializing brownfield architecture discovery..." -ForegroundColor Cyan
@@ -977,12 +1006,8 @@ function Invoke-Review {
         }
     }
     
-    # Check constitution alignment (new path: memory/constitution.md)
-    $constitutionFile = Join-Path $repoRoot ".adlc\memory\constitution.md"
-    if (-not (Test-Path $constitutionFile)) {
-        # Fallback to legacy path
-        $constitutionFile = Join-Path $repoRoot ".adlc\memory\constitution.md"
-    }
+    # Check constitution alignment (ADR-401 dual-read: docs/adlc/memory first, legacy fallback)
+    $constitutionFile = Get-AdlcMemoryPath -RepoRoot $repoRoot -RelPath "constitution.md"
     if (Test-Path $constitutionFile) {
         Write-Host ""
         Write-Host "📜 Checking constitution alignment..." -ForegroundColor Cyan
@@ -1009,9 +1034,12 @@ function Invoke-Analyze {
     Write-Host "🔍 Architecture Analysis Mode" -ForegroundColor Cyan
     Write-Host ""
     
-    $adFile = Join-Path $repoRoot "AD.md"
-    $adrDir = Join-Path $repoRoot ".adlc\memory\adr"
-    $constitutionFile = Join-Path $repoRoot ".adlc\memory\constitution.md"
+    # ADR-401 dual-read: compiled AD at docs/adlc/architect/AD.md, legacy repo-root AD.md fallback.
+    $adFile = Join-Path $repoRoot "docs/adlc/architect/AD.md"
+    if (-not (Test-Path $adFile)) { $adFile = Join-Path $repoRoot "AD.md" }
+    # ADR-401 dual-read (R8): canonical docs/adlc/memory first, legacy fallback.
+    $adrDir = Get-AdlcMemoryPath -RepoRoot $repoRoot -RelPath "adr"
+    $constitutionFile = Get-AdlcMemoryPath -RepoRoot $repoRoot -RelPath "constitution.md"
     
     $adExists = Test-Path $adFile
     $adrExists = Test-Path $adrDir
@@ -1079,8 +1107,9 @@ function Invoke-Analyze {
 # Validate action (READ-ONLY architecture validation for plan alignment)
 function Invoke-Validate {
     param($repoRoot, $contextArgs)
-    
-    $adrDir = Join-Path $repoRoot ".adlc\memory\adr"
+
+    # ADR-401 dual-read (R8): canonical docs/adlc/memory first, legacy fallback.
+    $adrDir = Get-AdlcMemoryPath -RepoRoot $repoRoot -RelPath "adr"
     
     Write-Host "🔍 Architecture Validation Mode (READ-ONLY)" -ForegroundColor Cyan
     Write-Host ""
@@ -1118,7 +1147,7 @@ function Invoke-PlanDag {
     
     $adrDir = Join-Path $repoRoot ".adlc\drafts\adr"
     $stateFile = Join-Path $repoRoot ".adlc\architect\state.json"
-    $viewsDir = Join-Path $repoRoot ".adlc\architect\views"
+    $viewsDir = Join-Path $repoRoot "docs/adlc/architect/views"
     
     Write-Host "📐 DAG Planning Phase" -ForegroundColor Cyan
     Write-Host ""
@@ -1148,7 +1177,8 @@ function Invoke-PlanDag {
         $lines = Get-Content $indexFile
         foreach ($line in $lines) {
             # Parse ADR index table rows: | ADR-XXX | SubSystem | ...
-            if ($line -match '^\|\s*ADR-\d+\s*\|\s*([^|]+)\s*\|') {
+            # ID class is alphanumeric+dash: suffixed variants (e.g. ADR-386-amendment-2) must match, not just bare numerics.
+            if ($line -match '^\|\s*ADR-[0-9A-Za-z-]+\s*\|\s*([^|]+)\s*\|') {
                 $subsystem = $Matches[1].Trim()
                 if ($subsystem -and $subsystem -ne "Sub-System" -and $subsystems -notcontains $subsystem) {
                     $subsystems += $subsystem
@@ -1198,7 +1228,7 @@ function Invoke-ExecuteDag {
     param($repoRoot, $contextArgs)
     
     $stateFile = Join-Path $repoRoot ".adlc\architect\state.json"
-    $viewsDir = Join-Path $repoRoot ".adlc\architect\views"
+    $viewsDir = Join-Path $repoRoot "docs/adlc/architect/views"
     
     Write-Host "🔧 DAG Execution Phase" -ForegroundColor Cyan
     Write-Host ""
@@ -1222,7 +1252,7 @@ function Invoke-ExecuteDag {
     Write-Host "  1. Read execution plan from state.json"
     Write-Host "  2. Identify next view(s) to generate"
     Write-Host "  3. Generate view with dependency context"
-    Write-Host "  4. Write to .adlc/architect/views/{subsystem}/{view}.md"
+    Write-Host "  4. Write to docs/adlc/architect/views/{subsystem}/{view}.md"
     Write-Host "  5. Update progress in state.json"
     
     if ($Json) {
@@ -1242,8 +1272,8 @@ function Invoke-Summarize {
     param($repoRoot, $contextArgs)
     
     $stateFile = Join-Path $repoRoot ".adlc\architect\state.json"
-    $viewsDir = Join-Path $repoRoot ".adlc\architect\views"
-    $adFile = Join-Path $repoRoot "AD.md"
+    $viewsDir = Join-Path $repoRoot "docs/adlc/architect/views"
+    $adFile = Join-Path $repoRoot "docs/adlc/architect/AD.md"
     $adrDir = Join-Path $repoRoot ".adlc\drafts\adr"
     
     Write-Host "📝 Summarization Phase" -ForegroundColor Cyan
@@ -1274,7 +1304,7 @@ function Invoke-Summarize {
     
     Write-Host "Ready for summarization."
     Write-Host "The AI agent will:"
-    Write-Host "  1. Read all view files from .adlc/architect/views/"
+    Write-Host "  1. Read all view files from docs/adlc/architect/views/"
     Write-Host "  2. Detect cross-subsystem conflicts"
     Write-Host "  3. Resolve conflicts using ADRs as source of truth"
     Write-Host "  4. Aggregate into unified AD.md"
@@ -1313,8 +1343,9 @@ try {
     }
     
     # Architecture files (new structure: AD.md at root, ADRs in memory/)
-    $adFile = Join-Path $repoRoot "AD.md"
-    $adrDir = Join-Path $repoRoot ".adlc\memory\adr"
+    $adFile = Join-Path $repoRoot "docs/adlc/architect/AD.md"
+    # ADR-401 dual-read (R8): canonical docs/adlc/memory first, legacy fallback.
+    $adrDir = Get-AdlcMemoryPath -RepoRoot $repoRoot -RelPath "adr"
     $templateFile = Join-Path $repoRoot ".adlc\templates\architecture-template.md"
     $adTemplateFile = Join-Path $repoRoot ".adlc\templates\AD-template.md"
     

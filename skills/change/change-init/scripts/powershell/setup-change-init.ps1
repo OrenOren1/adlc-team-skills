@@ -2,6 +2,13 @@
 # setup-change-init.ps1 — Setup for change-init (self-contained)
 $ErrorActionPreference = "Stop"
 
+# ADR-401 shared layout constants (single definition in paths.ps1).
+$AdlcPathsPs1 = "$PSScriptRoot/../../../../team/workspace/scripts/powershell/paths.ps1"
+if (-not (Test-Path $AdlcPathsPs1)) {
+    $AdlcPathsPs1 = "$PSScriptRoot/../../../workspace/scripts/powershell/paths.ps1"
+}
+if (Test-Path $AdlcPathsPs1) { . $AdlcPathsPs1 }
+
 ###############################################################################
 # Inline path resolution (no external helper dependency)
 ###############################################################################

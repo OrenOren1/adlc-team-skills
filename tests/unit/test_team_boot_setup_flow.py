@@ -56,7 +56,7 @@ def test_team_boot_sh_lean_orientation():
     assert "Available Skills" in BOOT_SH
     assert "MCP Servers" in BOOT_SH
     assert "Every response MUST include" in BOOT_SH
-    assert "Team Context in Use" in BOOT_SH
+    assert "Team Context & Decisions" in BOOT_SH
     # Should NOT cat full files
     assert "cat \"$TEAM_AI_DIRECTIVES/context_modules/constitution.md\"" not in BOOT_SH
     assert "cat \"$TEAM_AI_DIRECTIVES/.skills.json\"" not in BOOT_SH
@@ -85,7 +85,7 @@ def test_boot_sh_context_contract_integrity():
     # J must equal row count (prevents "1 matched" copy-paste with a 2-row table)
     assert "J MUST equal the number of rows" in BOOT_SH
     # Canonical heading standardizes the section across models
-    assert "## Team Context in Use" in BOOT_SH
+    assert "## Team Context & Decisions" in BOOT_SH
     # Exploration efficiency guidance
     assert "targeted file searches" in BOOT_SH
 
@@ -99,7 +99,7 @@ def test_boot_ps1_example_row_is_placeholder():
 def test_boot_ps1_context_contract_integrity():
     """boot.ps1 must enforce counts-line integrity, canonical heading, and exploration guidance."""
     assert "J MUST equal the number of rows" in BOOT_PS1
-    assert "## Team Context in Use" in BOOT_PS1
+    assert "## Team Context & Decisions" in BOOT_PS1
     assert "targeted file searches" in BOOT_PS1
 
 
@@ -111,7 +111,7 @@ def test_boot_sh_class_boots_catalog():
     team context plus the catalog that routes to them.
     """
     assert "## Class Boots" in BOOT_SH
-    for boot in ("architect-boot", "product-boot", "change-boot", "team-learn", "tech-radar-boot"):
+    for boot in ("architect-boot", "product-boot", "change-boot", "team-levelup", "tech-radar-boot"):
         assert boot in BOOT_SH
     # Class index paths are named in the catalog rows
     assert ".adlc/memory/adr/" in BOOT_SH
@@ -125,28 +125,34 @@ def test_boot_sh_class_boots_catalog():
 def test_boot_ps1_class_boots_catalog():
     """boot.ps1 must surface the same Class Boots catalog as boot.sh (parity)."""
     assert "## Class Boots" in BOOT_PS1
-    for boot in ("architect-boot", "product-boot", "change-boot", "team-learn", "tech-radar-boot"):
+    for boot in ("architect-boot", "product-boot", "change-boot", "team-levelup", "tech-radar-boot"):
         assert boot in BOOT_PS1
     assert "## PDR Index" not in BOOT_PS1
     assert "## ADR Index" not in BOOT_PS1
     assert "## ChDR Index" not in BOOT_PS1
 
 
-def test_boot_counts_line_is_cdrs_and_skills_only():
-    """The Searched...counts line covers what team-boot actually searches.
+def test_boot_scope_line_covers_all_record_classes():
+    """The scope line reports the whole always-available inventory, not only CDRs.
 
-    Class indexes are searched when their class boot is invoked — each boot
-    reports its own searched line. The always-on line must not claim PDR/ADR/
-    ChDR counts that were never injected.
+    Counts are cheap globs (no content loading), so naming ADR/PDR/ChDR/evals
+    does not break progressive disclosure. J = section-1 row count.
     """
-    assert "Searched $CDR_COUNT CDRs, $SKILL_TOTAL skills, J matched." in BOOT_SH
-    assert "Searched $CdrCount CDRs, $SkillTotal skills, J matched." in BOOT_PS1
-    assert "$PDR_COUNT" not in BOOT_SH
-    assert "$ADR_COUNT" not in BOOT_SH
-    assert "$CHDR_COUNT" not in BOOT_SH
-    assert "$PdrCount" not in BOOT_PS1
-    assert "$AdrCount" not in BOOT_PS1
-    assert "$ChdrCount" not in BOOT_PS1
+    assert "Scope:" in BOOT_SH
+    for token in ("CDRs ·", "ADRs ·", "PDRs ·", "ChDRs ·", "evals ·", "skills", "J rows shown"):
+        assert token in BOOT_SH, f"scope line missing {token}"
+    for var in ("$CDR_COUNT", "$ADR_COUNT", "$PDR_COUNT", "$CHDR_COUNT", "$EVAL_COUNT", "$SKILL_TOTAL"):
+        assert var in BOOT_SH, f"scope counter {var} missing"
+    assert "Scope:" in BOOT_PS1
+    for var in ("$CdrCount", "$AdrCount", "$PdrCount", "$ChdrCount", "$EvalCount", "$SkillTotal"):
+        assert var in BOOT_PS1, f"scope counter {var} missing"
+    # unified 6-col tables at every emission site
+    for source in (BOOT_SH, BOOT_PS1):
+        assert "| ID | Name | Type | Rel | Status | Clarify |" in source
+    # consolidated pending table; no per-class pending sections
+    assert "## Pending Decisions" in BOOT_SH
+    for old in ("## Pending ADRs", "## Pending PDRs", "## Pending ChDRs", "## Pending CDRs", "## Pending EVALs"):
+        assert old not in BOOT_SH, f"stale per-class block: {old}"
 
 
 def test_boot_sh_compact_decision_capture():
@@ -154,20 +160,73 @@ def test_boot_sh_compact_decision_capture():
     assert "## Decision Capture" in BOOT_SH
     assert "/architect-clarify" in BOOT_SH
     assert "/product-clarify" in BOOT_SH
-    assert "/team-learn" in BOOT_SH
+    assert "/team-levelup" in BOOT_SH
     assert "/change-clarify" in BOOT_SH
     assert "/evals-clarify" in BOOT_SH
-    assert "Session Decision Ledger" in BOOT_SH
-    assert "Unrecorded: N pending." in BOOT_SH
+    assert "Team Context & Decisions" in BOOT_SH
+    assert "Unrecorded: N pending" in BOOT_SH
+    assert "Unclarified: M captured drafts" in BOOT_SH
+    assert "task-list todo" in BOOT_SH
+    assert "trailing todo" in BOOT_SH
+    assert "Unrecorded: 0 pending" in BOOT_SH
 
 
 def test_boot_ps1_compact_decision_capture():
     """boot.ps1 must keep compact decision-capture triggers + the ledger contract (parity)."""
     assert "## Decision Capture" in BOOT_PS1
     assert "/architect-clarify" in BOOT_PS1
-    assert "/team-learn" in BOOT_PS1
-    assert "Session Decision Ledger" in BOOT_PS1
-    assert "Unrecorded: N pending." in BOOT_PS1
+    assert "/team-levelup" in BOOT_PS1
+    assert "Team Context & Decisions" in BOOT_PS1
+    assert "Unrecorded: N pending" in BOOT_PS1
+    assert "Unclarified: M captured drafts" in BOOT_PS1
+    assert "task-list todo" in BOOT_PS1
+    assert "trailing todo" in BOOT_PS1
+    assert "Unrecorded: 0 pending" in BOOT_PS1
+
+
+def _ledger_todo_surfaces():
+    """Every surface that carries the Session Decision Ledger contract."""
+    return {
+        "boot.sh": BOOT_SH,
+        "boot.ps1": BOOT_PS1,
+        "team-boot SKILL.md": BOOT,
+        "team-boot decision-capture.md": (ROOT / "skills/team/team-boot/references/decision-capture.md").read_text(encoding="utf-8"),
+        "team-helpers.sh": (ROOT / "skills/team/team-setup/team-helpers.sh").read_text(encoding="utf-8"),
+        "team-helpers.ps1": (ROOT / "skills/team/team-setup/team-helpers.ps1").read_text(encoding="utf-8"),
+        "architect-boot": (ROOT / "skills/architect/architect-boot/SKILL.md").read_text(encoding="utf-8"),
+        "product-boot": (ROOT / "skills/product/product-boot/SKILL.md").read_text(encoding="utf-8"),
+        "change-boot": (ROOT / "skills/change/change-boot/SKILL.md").read_text(encoding="utf-8"),
+        "tech-radar-boot": TECH_RADAR,
+        "team-levelup": (ROOT / "skills/team/team-levelup/SKILL.md").read_text(encoding="utf-8"),
+        "post-setup-agents.md": (
+            ROOT / "skills/team/team-setup/references/post-setup-agents.md"
+        ).read_text(encoding="utf-8"),
+    }
+
+
+def test_ledger_todo_contract_on_all_surfaces():
+    """The ledger→todo contract must appear on every decision-capture surface.
+
+    PR #40 shipped the per-decision task-list todo + trailing ledger-sweep
+    only in the injected AGENTS.md managed section; the event-hook output
+    and skill bodies must carry the same contract or agents on either
+    surface drift apart.
+    """
+    for name, source in _ledger_todo_surfaces().items():
+        assert "task-list todo" in source, f"{name}: missing task-list todo contract"
+        assert "trailing todo" in source, f"{name}: missing trailing ledger-sweep todo"
+        assert "Unrecorded: 0 pending" in source, f"{name}: missing sweep target"
+        assert "Unclarified: 0 drafts" in source, f"{name}: missing unclarified-drafts target"
+        assert "handed off" in source, f"{name}: missing handoff exit"
+        assert "clarify prompt" in source, f"{name}: missing session-end clarify prompt"
+        assert "execute skill" in source, f"{name}: handoff must allow a named execute-skill target"
+
+
+def test_no_stale_inline_4col_ledger_grammar():
+    """No ledger surface may regress to the 4-column inline ledger grammar."""
+    for name, source in _ledger_todo_surfaces().items():
+        assert "Decision | Type |" not in source, f"{name}: stale 4-col ledger grammar"
+        assert "Captured? | Skill" not in source, f"{name}: stale 4-col ledger grammar"
 
 
 def test_team_boot_sh_unconfigured_warns_user():
@@ -330,7 +389,7 @@ def test_agents_md_simplified():
         return  # AGENTS.md is gitignored — skip in CI
     assert "team-boot" in AGENTS
     assert "CDR" in AGENTS
-    assert "Team Context in Use" in AGENTS
+    assert "Team Context & Decisions" in AGENTS
     assert "Every response MUST include" in AGENTS
     assert "_Searched" in AGENTS
     assert "Class Boots" in AGENTS
@@ -343,7 +402,7 @@ def test_agents_md_simplified():
     assert "First-Tool-Call Gate" not in AGENTS
     assert "CDR-2026-003 | Cloud-Native Platform Architect" not in AGENTS
     assert "CDR-YYYY-NNN" in AGENTS
-    assert "## Team Context in Use" in AGENTS
+    assert "## Team Context & Decisions" in AGENTS
     assert "J MUST equal the number of rows" in AGENTS
 
 

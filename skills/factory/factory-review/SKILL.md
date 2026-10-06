@@ -34,9 +34,11 @@ In `--self-heal` mode, it enters a **three-sub-agent converge loop** mirroring `
 
 1. Read the `REVIEW.md` file from the repository root. If absent, create a default template (see `references/review-policy.md`).
 2. The policy defines:
-   - **Review passes**: Bugs & logical errors, security vulnerabilities, and compliance against design documents (`PRD.md`/`AD.md`).
+   - **Review passes**: Bugs & logical errors, security vulnerabilities, and compliance against design documents (`docs/adlc/product/PRD.md`/`docs/adlc/architect/AD.md`).
    - **Severity weights**: What constitutes an *Important* block (e.g., memory leak, security risk, spec deviation) vs. a *Nit* (formatting, style).
    - **Skip lists**: Generated paths, vendor files, and CI-validated paths.
+
+**Team index fallback:** when no team record-class index was injected at session start, read the binding records directly from `docs/adlc/memory/` (ADR-401 dual-read order: `docs/adlc/memory` first, legacy `.adlc/memory` fallback) and state that fallback in one line. Never block on the missing injection.
 
 ### 2. PR Review Pipeline (single review, no self-heal)
 
@@ -153,7 +155,7 @@ factory-review --pr <id> --self-heal
 
 ### 5. Findings to Directives Feedback Loop
 
-- **Twice-Mistake Threshold**: If the review detects the same policy violation on a second PR, automatically trigger a local `team-learn` call to extract a preventive rule.
+- **Twice-Mistake Threshold**: If the review detects the same policy violation on a second PR, automatically trigger a local `team-levelup` call to extract a preventive rule.
 - Package the rule as a CDR draft (via `factory-learn`) targeting the `team-ai-directives` repository.
 - Flag any changes that make current directives outdated.
 

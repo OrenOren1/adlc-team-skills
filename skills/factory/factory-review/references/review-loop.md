@@ -39,7 +39,7 @@ The loop controller does **not** review, fix, or judge — it only orchestrates.
 | READ-ONLY | READ-ONLY | READ-ONLY | READ-ONLY | No | No |
 
 **Input (`reads_from`):**
-- Iteration 0: no input (fresh review). Read `.adlc/workflow/brief.md` for context if available.
+- Iteration 0: no input (fresh review). Read `runs/<run_id>/brief.md` for context if available.
 - Iteration > 0: `factory-review:step=converge:run=<run_id>:iter=<k-1>` (previous converge decision — to know which findings remain open).
 
 **Action:**
@@ -173,11 +173,11 @@ Replaces a simple hard iteration cap with factory-mission's circuit breaker + sc
 | **Stuck** (findings identical) | Unresolved Important finding set identical across 3 consecutive fix cycles | Circuit breaker trips → `needs-human-review` → exit |
 | **Regression** (findings growing) | Score-regression counter: new issues introduced by fix; finding count > previous iteration | 2 consecutive regressions → circuit breaker trips |
 | **Unfixable spec** | Converge verifies the governing ticket/spec itself is wrong/ambiguous — not just the code failing to meet it | `SPEC_CORRECTION_NEEDED` → route to factory-queue |
-| **Circuit breaker** | `consecutive_tasks_appended` reaches 3 (configurable in `workflow-config.yml`) | Exit loop, mark `needs-human-review` |
+| **Circuit breaker** | `consecutive_tasks_appended` reaches 3 (configurable in the run's `mission.yml`) | Exit loop, mark `needs-human-review` |
 
 ### Circuit Breaker Configuration
 
-In `workflow-config.yml` (or the step's brief):
+In the run's `mission.yml` (or the step's brief):
 
 ```yaml
 review_self_heal:
@@ -267,9 +267,9 @@ Each step is defined as a step in the executor's step list (follows `factory-mis
 3. The full subagent response is discarded from session context after the marker is published (same as `executor.md` Phase 5 §7-8).
 
 When not tracker-integrated (no PR/MR/issue to post to):
-- Findings persist to `.adlc/workflow/findings/<step_id>.md`.
-- Decisions persist to `.adlc/workflow/decisions/<step_id>.md`.
-- Artifact-refs persist to `.adlc/workflow/artifacts/<step_id>.md`.
+- Findings persist to `.adlc/workflows/runs/<run_id>/findings/<step_id>.md`.
+- Decisions persist to `.adlc/workflows/runs/<run_id>/decisions/<step_id>.md`.
+- Artifact-refs persist to `.adlc/workflows/runs/<run_id>/artifacts/<step_id>.md`.
 - `reads_from` reads from these local paths instead of markers.
 
 ---
@@ -309,7 +309,7 @@ This mirrors factory-mission Phase 5's `SPEC_CORRECTION_NEEDED` → Phase 6 rout
 
 ## State File
 
-The loop controller maintains a state file at `.adlc/workflow/.factory-review-state.json`:
+The loop controller advances the shared run counter via `adlc-cli workflow state advance` (`.adlc/workflows/runs/<run_id>/state.json`) — per-loop bookkeeping (consecutive counters) lives in that step's `--output-json`:
 
 ```json
 {
