@@ -25,6 +25,28 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 
 ---
 
+## Execution Mechanism — drive this in-session, never recurse `workflow run`
+
+This skill's own steps (below) are defined in `workflow.yml` for the **headless**
+executor (`adlc-cli workflow run <path>`, used by CI/sensor-triggered runs with
+no live model in the loop). When YOU are running this skill — i.e. any time you
+reached this file via a skill/command invocation inside an active session —
+you ARE the executor. Drive these steps yourself, inline, using
+`adlc-cli workflow state start|advance|pause|fail|show` (see `adlc-cli workflow
+state --help`) to persist progress, not by shelling out to a second
+`adlc-cli workflow run factory-architect` (or any bare skill name).
+
+Confirmed broken if you try it anyway: `workflow run` resolves a bare name
+only against a literal `.yml`/`.yaml` path, `.adlc/workflows/<id>/workflow.yml`
+(an "installed" copy), or a short hardcoded builtin list (`factory` only) —
+never against `.agents/skills/<id>/workflow.yml`, which is where this file
+actually lives once installed. A nested `workflow run factory-architect` call
+fails immediately with `Workflow not found: factory-architect`, and recovering
+from that failure by guessing a path or extra flags tends to make things
+worse, not better — just drive the steps yourself instead.
+
+---
+
 ## Lifecycle DAG & Step Resolution
 
 `factory-architect` implements a **fixed named-skill DAG** (`fixed` step resolution):
