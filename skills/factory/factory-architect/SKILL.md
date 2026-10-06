@@ -41,9 +41,17 @@ only against a literal `.yml`/`.yaml` path, `.adlc/workflows/<id>/workflow.yml`
 (an "installed" copy), or a short hardcoded builtin list (`factory` only) —
 never against `.agents/skills/<id>/workflow.yml`, which is where this file
 actually lives once installed. A nested `workflow run factory-architect` call
-fails immediately with `Workflow not found: factory-architect`, and recovering
-from that failure by guessing a path or extra flags tends to make things
-worse, not better — just drive the steps yourself instead.
+fails immediately with `Workflow not found: factory-architect` — don't retry
+it with a guessed path or extra flags; drive the steps yourself instead, e.g.:
+
+```
+adlc-cli workflow state start --workflow .agents/skills/factory-architect/workflow.yml --run-id <run-id> --input route=brownfield
+# ... do the specify step's actual work yourself (write ADR drafts), then:
+adlc-cli workflow state advance <run-id> --step specify --status completed
+```
+
+Use the real step ids from this file's `steps:` list below (`specify`,
+`clarify`, `gate-decisions`, `implement`, `analyze`) — not guessed ones.
 
 ---
 
