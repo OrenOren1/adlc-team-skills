@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # setup-change-init.ps1 — Setup for change-init (self-contained)
 $ErrorActionPreference = "Stop"
 

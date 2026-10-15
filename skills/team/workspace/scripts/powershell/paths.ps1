@@ -1,4 +1,4 @@
-# paths.ps1 — ADR-401 shared layout constants (single definition).
+﻿# paths.ps1 — ADR-401 shared layout constants (single definition).
 #
 # Dot-sourced, never executed. PowerShell mirror of paths.sh: defines the
 # .adlc/ + docs/adlc/ path roots and the R7 gitignore allowlist consumed by

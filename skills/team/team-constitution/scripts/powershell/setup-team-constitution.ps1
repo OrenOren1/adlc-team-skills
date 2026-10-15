@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # setup-team-constitution.ps1 — Setup for team-constitution (self-contained)
 $ErrorActionPreference = "Stop"
 

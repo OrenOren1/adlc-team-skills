@@ -1,4 +1,4 @@
-# radar-search.ps1 — Deterministic search and alias normalization for Tikal Tech Radar.
+﻿# radar-search.ps1 — Deterministic search and alias normalization for Tikal Tech Radar.
 # PowerShell native (ConvertFrom-Json). No Python/Node dependency.
 #
 # Usage:

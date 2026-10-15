@@ -1,4 +1,4 @@
-# product-roadmap setup script (PowerShell)
+﻿# product-roadmap setup script (PowerShell)
 param([switch]$Json)
 $ErrorActionPreference = "Stop"
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # setup-evals-validate.ps1 — Setup for evals-init (self-contained)
 $ErrorActionPreference = "Stop"
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # setup-change-clarify.ps1 — Setup for change-clarify (self-contained)
 $ErrorActionPreference = "Stop"
 

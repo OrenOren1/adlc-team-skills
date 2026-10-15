@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # team-helpers.ps1 — Shared utilities for team-* skills (PowerShell)
 #
 # Flags:

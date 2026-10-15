@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # Mermaid diagram generator for architecture views
 # Generates Mermaid code for all 7 Rozanski & Woods architectural views
 #

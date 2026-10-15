@@ -1,4 +1,4 @@
-# Setup architecture description with Rozanski & Woods methodology
+﻿# Setup architecture description with Rozanski & Woods methodology
 [CmdletBinding()]
 param(
     [Parameter(Position=0)]

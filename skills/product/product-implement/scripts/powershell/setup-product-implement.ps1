@@ -1,4 +1,4 @@
-# product-implement setup script (PowerShell)
+﻿# product-implement setup script (PowerShell)
 param([switch]$Json)
 $ErrorActionPreference = "Stop"
 

@@ -1,4 +1,4 @@
-# team-boot session_start script — lean orientation for first user message injection.
+﻿# team-boot session_start script — lean orientation for first user message injection.
 # PowerShell native (ConvertFrom-Json).
 $ErrorActionPreference = "Stop"
 

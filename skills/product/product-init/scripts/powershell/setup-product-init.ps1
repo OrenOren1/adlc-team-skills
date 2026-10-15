@@ -1,4 +1,4 @@
-# product-init setup script (PowerShell)
+﻿# product-init setup script (PowerShell)
 # Self-contained — resolves paths, detects feature areas, finds next PDR number
 
 param(
