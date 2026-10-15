@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # setup-change-publish.ps1 — Setup for change-publish (self-contained)
 $ErrorActionPreference = "Stop"
 

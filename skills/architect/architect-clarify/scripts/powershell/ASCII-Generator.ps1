@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # ASCII diagram generator for architecture views
 # Generates ASCII art for all 7 Rozanski & Woods architectural views
 #

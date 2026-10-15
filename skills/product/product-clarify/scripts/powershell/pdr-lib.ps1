@@ -1,4 +1,4 @@
-# pdr-lib.ps1 — Shared PDR lifecycle library for adlc-skills product-* skills (PowerShell twin of pdr-lib.sh)
+﻿# pdr-lib.ps1 — Shared PDR lifecycle library for adlc-skills product-* skills (PowerShell twin of pdr-lib.sh)
 #
 # Mirrors the bash pdr-lib.sh so that the PDR side has the same structural
 # robustness on Windows as on Unix: script-driven index generation, atomic move

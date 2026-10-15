@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # setup-workspace.ps1 — Setup for workspace --init mode (self-contained)
 #
 # Creates .adlc/ directory structure, checks .gitignore conventions,
