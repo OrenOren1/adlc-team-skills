@@ -45,9 +45,16 @@ NEXT_PDR=$(next_pdr_number)
 PDR_COUNT=$(find "$PDR_DRAFTS_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l)
 
 if $JSON_MODE; then
-  cat <<EOF
-{"REPO_ROOT":"$REPO_ROOT","PDR_DRAFTS_DIR":"$PDR_DRAFTS_DIR","PRD_FILE":"$PRD_FILE","next_pdr":"$NEXT_PDR","pdr_count":$PDR_COUNT}
-EOF
+  python3 - "$REPO_ROOT" "$PDR_DRAFTS_DIR" "$PRD_FILE" "$NEXT_PDR" "$PDR_COUNT" <<'PY'
+import json, sys
+print(json.dumps({
+  "REPO_ROOT": sys.argv[1],
+  "PDR_DRAFTS_DIR": sys.argv[2],
+  "PRD_FILE": sys.argv[3],
+  "next_pdr": sys.argv[4],
+  "pdr_count": int(sys.argv[5])
+}))
+PY
 else
   echo "[INFO] product-specify setup"
   echo "  REPO_ROOT: $REPO_ROOT"

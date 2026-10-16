@@ -18,8 +18,14 @@ if [[ -z "$TEAM_AI_DIRECTIVES" || "$TEAM_AI_DIRECTIVES" = "null" ]]; then
 fi
 
 if [[ "${1:-}" == "--json" || "${1:-}" == "-Json" ]]; then
-  printf '{"REPO_ROOT": "%s", "TEAM_AI_DIRECTIVES": "%s", "BRANCH": "%s"}\n' \
-    "$PROJECT_ROOT" "$TEAM_AI_DIRECTIVES" "$BRANCH"
+  python3 - "$PROJECT_ROOT" "$TEAM_AI_DIRECTIVES" "$BRANCH" <<'PY'
+import json, sys
+print(json.dumps({
+  "REPO_ROOT": sys.argv[1],
+  "TEAM_AI_DIRECTIVES": sys.argv[2],
+  "BRANCH": sys.argv[3]
+}))
+PY
 else
   echo "REPO_ROOT=$PROJECT_ROOT"
   echo "TEAM_AI_DIRECTIVES=$TEAM_AI_DIRECTIVES"

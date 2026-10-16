@@ -43,9 +43,18 @@ if [[ -d "$PDR_DRAFTS_DIR" ]]; then
 fi
 
 if $JSON_MODE; then
-  cat <<EOF
-{"REPO_ROOT":"$REPO_ROOT","PDR_DRAFTS_DIR":"$PDR_DRAFTS_DIR","PDR_MEMORY_DIR":"$PDR_MEMORY_DIR","PRD_FILE":"$PRD_FILE","SECTIONS_DIR":"$SECTIONS_DIR","STATE_FILE":"$STATE_FILE","accepted_count":$ACCEPTED_COUNT}
-EOF
+  python3 - "$REPO_ROOT" "$PDR_DRAFTS_DIR" "$PDR_MEMORY_DIR" "$PRD_FILE" "$SECTIONS_DIR" "$STATE_FILE" "$ACCEPTED_COUNT" <<'PY'
+import json, sys
+print(json.dumps({
+  "REPO_ROOT": sys.argv[1],
+  "PDR_DRAFTS_DIR": sys.argv[2],
+  "PDR_MEMORY_DIR": sys.argv[3],
+  "PRD_FILE": sys.argv[4],
+  "SECTIONS_DIR": sys.argv[5],
+  "STATE_FILE": sys.argv[6],
+  "accepted_count": int(sys.argv[7])
+}))
+PY
 else
   echo "[INFO] product-implement setup"
   echo "  Accepted PDRs: $ACCEPTED_COUNT"

@@ -22,9 +22,16 @@ PDR_COUNT=$(find "$PDR_DRAFTS_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l)
 PRD_EXISTS=false
 if [ -f "$PRD_FILE" ] || [ -f "$REPO_ROOT/PRD.md" ]; then PRD_EXISTS=true; fi
 if $JSON_MODE; then
-  cat <<EOF
-{"REPO_ROOT":"$REPO_ROOT","PDR_DRAFTS_DIR":"$PDR_DRAFTS_DIR","PRD_FILE":"$PRD_FILE","pdr_count":$PDR_COUNT,"prd_exists":$PRD_EXISTS}
-EOF
+  python3 - "$REPO_ROOT" "$PDR_DRAFTS_DIR" "$PRD_FILE" "$PDR_COUNT" "$PRD_EXISTS" <<'PY'
+import json, sys
+print(json.dumps({
+  "REPO_ROOT": sys.argv[1],
+  "PDR_DRAFTS_DIR": sys.argv[2],
+  "PRD_FILE": sys.argv[3],
+  "pdr_count": int(sys.argv[4]),
+  "prd_exists": sys.argv[5] == "true"
+}))
+PY
 else
   echo "[INFO] product-analyze setup"
   echo "  PDRs: $PDR_COUNT"

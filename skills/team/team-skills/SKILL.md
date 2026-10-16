@@ -119,8 +119,14 @@ For **local skills** (`default` list — names map to `skills/{name}/`):
 
 For **external skills** (`external` map — entries have a `url`):
 
-1. Download `SKILL.md` from the entry's `url` field
-2. Save to `{skills_dir}/{name}/SKILL.md`
+1. Check the name against `blocked` first — refuse immediately if listed.
+2. Verify the entry's `url` starts with `https://` — refuse any other
+   scheme (`http://`, `file://`, bare paths) and report it.
+3. Show the user the URL and destination, and ask for confirmation
+   before downloading (preview first, no silent network fetch).
+4. Download `SKILL.md` from the entry's `url` field.
+5. Save to `{skills_dir}/{name}/SKILL.md`.
+6. Never execute downloaded content — install means copy the file only.
 
 Never install any skill listed in `blocked`. Skip skills already present at the
 destination (report them as `[installed]`).
