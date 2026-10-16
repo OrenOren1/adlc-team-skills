@@ -34,14 +34,14 @@ resolve_team_ai_directives() {
   local td="${TEAM_AI_DIRECTIVES:-}"
   [[ -n "$td" ]] && { echo "$td"; return; }
   if [[ -f "${project_root}/.adlc/init-options.json" ]]; then
-    td=$(python3 -c "
-import json
+    td=$(python3 -c '
+import json,sys
 try:
-    with open('${project_root}/.adlc/init-options.json') as f:
-        print(json.load(f).get('team_ai_directives', ''))
+    with open(sys.argv[1]) as f:
+        print(json.load(f).get("team_ai_directives", ""))
 except Exception:
-    print('')
-" 2>/dev/null || true)
+    print("")
+' "${project_root}/.adlc/init-options.json" 2>/dev/null || true)
     [[ -n "$td" ]] && { echo "$td"; return; }
   fi
   echo "${project_root}/team-ai-directives"

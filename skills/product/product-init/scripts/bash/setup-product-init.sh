@@ -106,31 +106,30 @@ next_pdr_number() {
 FEATURE_AREAS=$(detect_feature_areas)
 NEXT_PDR=$(next_pdr_number)
 
-# Build feature_areas JSON array
-FEATURE_AREAS_JSON="["
-first=true
-while IFS= read -r area; do
-  if [[ "$first" == "true" ]]; then
-    first=false
-  else
-    FEATURE_AREAS_JSON+=","
-  fi
-  id=$(echo "$area" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-  FEATURE_AREAS_JSON+="{\"id\":\"$id\",\"name\":\"$area\"}"
-done <<< "$FEATURE_AREAS"
-FEATURE_AREAS_JSON+="]"
+# Build feature_areas in Python (bash string-concat cannot escape quotes safely).
+# Pass the newline-separated area list; Python builds id/name pairs with json.dumps.
+PDR_COUNT=$(find "$PDR_DRAFTS_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l)
 
 if $JSON_MODE; then
-  cat <<EOF
-{
-  "REPO_ROOT": "$REPO_ROOT",
-  "PDR_DRAFTS_DIR": "$PDR_DRAFTS_DIR",
-  "PRD_FILE": "$PRD_FILE",
-  "feature_areas": $FEATURE_AREAS_JSON,
-  "next_pdr": "$NEXT_PDR",
-  "pdr_count": $(find "$PDR_DRAFTS_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l)
-}
-EOF
+  python3 - "$REPO_ROOT" "$PDR_DRAFTS_DIR" "$PRD_FILE" "$NEXT_PDR" "$PDR_COUNT" "$FEATURE_AREAS" <<'PY'
+import json, sys, re
+repo_root, drafts_dir, prd_file, next_pdr, pdr_count, areas_raw = sys.argv[1:7]
+areas = []
+for area in areas_raw.splitlines():
+    area = area.strip()
+    if not area:
+        continue
+    slug = re.sub(r'\s+', '-', area.strip().lower())
+    areas.append({"id": slug, "name": area})
+print(json.dumps({
+  "REPO_ROOT": repo_root,
+  "PDR_DRAFTS_DIR": drafts_dir,
+  "PRD_FILE": prd_file,
+  "feature_areas": areas,
+  "next_pdr": next_pdr,
+  "pdr_count": int(pdr_count)
+}))
+PY
 else
   echo "[INFO] product-init setup"
   echo "  REPO_ROOT: $REPO_ROOT"

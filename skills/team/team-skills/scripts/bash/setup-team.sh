@@ -7,14 +7,14 @@ TEAM_AI_DIRECTIVES=""
 
 INIT_OPTIONS="${PROJECT_ROOT}/.adlc/init-options.json"
 if [[ -f "$INIT_OPTIONS" ]]; then
-  TEAM_AI_DIRECTIVES=$(python3 -c "
+  TEAM_AI_DIRECTIVES=$(python3 -c '
 import json, sys
 try:
-    with open('$INIT_OPTIONS') as f:
-        print(json.load(f).get('team_ai_directives', ''))
+    with open(sys.argv[1]) as f:
+        print(json.load(f).get("team_ai_directives", ""))
 except Exception:
-    print('')
-" 2>/dev/null || true)
+    print("")
+' "$INIT_OPTIONS" 2>/dev/null || true)
 fi
 
 if [[ -z "$TEAM_AI_DIRECTIVES" ]]; then
@@ -22,8 +22,14 @@ if [[ -z "$TEAM_AI_DIRECTIVES" ]]; then
 fi
 
 if [[ "${1:-}" == "--json" || "${1:-}" == "-Json" ]]; then
-  printf '{"REPO_ROOT": "%s", "TEAM_AI_DIRECTIVES": "%s", "BRANCH": "%s"}\n' \
-    "$PROJECT_ROOT" "$TEAM_AI_DIRECTIVES" "$BRANCH"
+  python3 - "$PROJECT_ROOT" "$TEAM_AI_DIRECTIVES" "$BRANCH" <<'PY'
+import json, sys
+print(json.dumps({
+  "REPO_ROOT": sys.argv[1],
+  "TEAM_AI_DIRECTIVES": sys.argv[2],
+  "BRANCH": sys.argv[3]
+}))
+PY
 else
   echo "REPO_ROOT=$PROJECT_ROOT"
   echo "TEAM_AI_DIRECTIVES=$TEAM_AI_DIRECTIVES"

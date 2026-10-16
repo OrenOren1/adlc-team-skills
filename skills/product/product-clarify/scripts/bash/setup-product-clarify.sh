@@ -29,9 +29,17 @@ if [[ "$PDR_COUNT" -gt 0 ]]; then
   ACCEPTED_COUNT=$(count_pdr_accepted "$PDR_DRAFTS_DIR" 2>/dev/null || grep -lE '^#+\s*Status' "$PDR_DRAFTS_DIR"/PDR-*.md 2>/dev/null | xargs -I{} grep -l '^\*\*Accepted\*\*' {} 2>/dev/null | wc -l)
 fi
 if $JSON_MODE; then
-  cat <<EOF
-{"REPO_ROOT":"$REPO_ROOT","PDR_DRAFTS_DIR":"$PDR_DRAFTS_DIR","PDR_MEMORY_DIR":"$PDR_MEMORY_DIR","PRD_FILE":"$PRD_FILE","pdr_count":$PDR_COUNT,"accepted_count":$ACCEPTED_COUNT}
-EOF
+  python3 - "$REPO_ROOT" "$PDR_DRAFTS_DIR" "$PDR_MEMORY_DIR" "$PRD_FILE" "$PDR_COUNT" "$ACCEPTED_COUNT" <<'PY'
+import json, sys
+print(json.dumps({
+  "REPO_ROOT": sys.argv[1],
+  "PDR_DRAFTS_DIR": sys.argv[2],
+  "PDR_MEMORY_DIR": sys.argv[3],
+  "PRD_FILE": sys.argv[4],
+  "pdr_count": int(sys.argv[5]),
+  "accepted_count": int(sys.argv[6])
+}))
+PY
 else
   echo "[INFO] product-clarify setup"
   echo "  PDRs found: $PDR_COUNT"

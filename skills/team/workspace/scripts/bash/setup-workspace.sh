@@ -182,7 +182,8 @@ GITIGNORE_RULES_MISSING=$(check_gitignore_rules)
 # Discover child repos
 CHILD_REPO_NAMES=$(discover_child_repos "$PROJECT_ROOT")
 
-# Build child repo JSON array
+# Build child repo JSON array (records escaped with Python so quotes,
+# backslashes, and newlines in paths/remotes cannot break output)
 CHILD_REPOS_JSON="["
 first=true
 CHILD_COUNT=0
@@ -194,65 +195,60 @@ if [[ -n "$CHILD_REPO_NAMES" ]]; then
     if is_submodule "$repo_name"; then submod="true"; else submod="false"; fi
     if is_tracked_in_parent "$repo_name"; then tracked="true"; else tracked="false"; fi
 
-    esc_remote=${remote//\"/\\\"}
-    esc_path=${repo_path//\"/\\\"}
+    rec=$(python3 - "$repo_name" "$repo_path" "$remote" "$submod" "$tracked" <<'PY'
+import json, sys
+name, path, remote, submod, tracked = sys.argv[1:6]
+print(json.dumps({
+  "name": name, "path": path, "remote": remote,
+  "is_submodule": submod == "true", "is_tracked": tracked == "true"
+}))
+PY
+)
 
     if [[ "$first" == "true" ]]; then
       first=false
     else
       CHILD_REPOS_JSON+=","
     fi
-    CHILD_REPOS_JSON+="{\"name\":\"${repo_name}\",\"path\":\"${esc_path}\",\"remote\":\"${esc_remote}\",\"is_submodule\":${submod},\"is_tracked\":${tracked}}"
+    CHILD_REPOS_JSON+="$rec"
     CHILD_COUNT=$((CHILD_COUNT + 1))
   done <<< "$CHILD_REPO_NAMES"
 fi
 CHILD_REPOS_JSON+="]"
 
 # Build ADLC_DIRS_CREATED JSON array
-ADLC_CREATED_JSON="["
-first=true
-if [[ -n "$ADLC_DIRS_CREATED" ]]; then
-  while IFS= read -r dir; do
-    [[ -z "$dir" ]] && continue
-    if [[ "$first" == "true" ]]; then
-      first=false
-    else
-      ADLC_CREATED_JSON+=","
-    fi
-    ADLC_CREATED_JSON+=$(printf '"%s"' "$dir")
-  done <<< "$ADLC_DIRS_CREATED"
-fi
-ADLC_CREATED_JSON+="]"
+ADLC_CREATED_JSON=$(python3 - "$ADLC_DIRS_CREATED" <<'PY'
+import json, sys
+print(json.dumps([line for line in sys.argv[1].splitlines() if line.strip()]))
+PY
+)
 
 # Build GITIGNORE_RULES_MISSING JSON array
-GITIGNORE_MISSING_JSON="["
-first=true
-if [[ -n "$GITIGNORE_RULES_MISSING" ]]; then
-  while IFS= read -r rule; do
-    [[ -z "$rule" ]] && continue
-    if [[ "$first" == "true" ]]; then
-      first=false
-    else
-      GITIGNORE_MISSING_JSON+=","
-    fi
-    GITIGNORE_MISSING_JSON+=$(printf '"%s"' "$rule")
-  done <<< "$GITIGNORE_RULES_MISSING"
-fi
-GITIGNORE_MISSING_JSON+="]"
+GITIGNORE_MISSING_JSON=$(python3 - "$GITIGNORE_RULES_MISSING" <<'PY'
+import json, sys
+print(json.dumps([line for line in sys.argv[1].splitlines() if line.strip()]))
+PY
+)
 
 if $JSON_MODE; then
-  cat <<EOF
-{
-  "REPO_ROOT": "${PROJECT_ROOT}",
-  "ADLC_DIR": "${ADLC_DIR}",
-  "ADLC_DIRS_CREATED": ${ADLC_CREATED_JSON},
-  "GITIGNORE_EXISTS": ${GITIGNORE_EXISTS},
-  "GITIGNORE_RULES_MISSING": ${GITIGNORE_MISSING_JSON},
-  "CHILD_REPOS": ${CHILD_REPOS_JSON},
-  "CHILD_COUNT": ${CHILD_COUNT},
-  "BRANCH": "${BRANCH}"
-}
-EOF
+  python3 - "$PROJECT_ROOT" "$ADLC_DIR" "$ADLC_CREATED_JSON" "$GITIGNORE_EXISTS" \
+    "$GITIGNORE_MISSING_JSON" "$CHILD_REPOS_JSON" "$CHILD_COUNT" "$BRANCH" <<'PY'
+import json, sys
+repo_root, adlc_dir = sys.argv[1:3]
+created, gitignore_exists = sys.argv[3], sys.argv[4]
+missing, repos = sys.argv[5], sys.argv[6]
+count, branch = int(sys.argv[7]), sys.argv[8]
+print(json.dumps({
+  "REPO_ROOT": repo_root,
+  "ADLC_DIR": adlc_dir,
+  "ADLC_DIRS_CREATED": json.loads(created),
+  "GITIGNORE_EXISTS": gitignore_exists == "true",
+  "GITIGNORE_RULES_MISSING": json.loads(missing),
+  "CHILD_REPOS": json.loads(repos),
+  "CHILD_COUNT": count,
+  "BRANCH": branch
+}))
+PY
 else
   echo "[INFO] workspace-init setup"
   echo "  REPO_ROOT: $PROJECT_ROOT"

@@ -37,8 +37,13 @@ else
     exit 1
 fi
 
-# Get all paths and variables from common functions
-eval "$(get_feature_paths)"
+# Get all paths and variables from common functions (parse, never eval:
+# eval would execute path content as shell code if it contained $(...) or quotes)
+REPO_ROOT=$(get_feature_paths | sed -n 's/^REPO_ROOT="\(.*\)"$/\1/p')
+if [[ -z "${REPO_ROOT:-}" ]]; then
+  echo "Error: could not resolve repository root" >&2
+  exit 1
+fi
 
 # ADR-401 shared layout constants (single definition in paths.sh; common.sh
 # already sources it — this block keeps the script correct standalone).

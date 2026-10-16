@@ -11,9 +11,11 @@
 #   bash radar-search.sh --json flask
 set -euo pipefail
 
-RADAR_URL="https://tikalk.com/radar.json"
+readonly RADAR_URL="https://tikalk.com/radar.json"
 
-RADAR_DATA=$(curl -fsSL --max-time 10 "$RADAR_URL" 2>/dev/null) || {
+# --proto '=https' pins the fetch (including redirects) to HTTPS so a
+# compromised DNS / redirect cannot downgrade to http:// or file://.
+RADAR_DATA=$(curl -fsSL --proto '=https' --max-time 10 "$RADAR_URL" 2>/dev/null) || {
   echo "Error: could not fetch Tikal Tech Radar data from $RADAR_URL (radar context unavailable)" >&2
   exit 1
 }

@@ -10,8 +10,9 @@ if [[ "${1:-}" == "--setup" ]]; then
   exit 0
 fi
 
-# Resolve paths
-eval "$(resolve_team_levelup_paths)"
+# Resolve paths (function sets PROJECT_ROOT/TEAM_AI_DIRECTIVES/BRANCH globals
+# directly; output is informational only — never eval it)
+resolve_team_levelup_paths >/dev/null
 
 if [[ -z "$TEAM_AI_DIRECTIVES" ]] || [[ ! -d "$TEAM_AI_DIRECTIVES" ]]; then
   echo "Team AI directives repository not configured."

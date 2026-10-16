@@ -236,8 +236,11 @@ If `--link` or `--ignore-only` is combined with `--init`, execute the correspond
 Delegates to `workspace.sh --link`. Safety checks enforced:
 - Parent working tree must be clean (no uncommitted changes outside child repos)
 - Child repos must have a remote `origin` URL configured
+- Remote URLs must use an allowed scheme (`https://`, `git@`, `ssh://`) —
+  anything else (e.g. `http://`, `file://`) is reported as an error and skipped
 - Already-registered submodules are skipped (idempotent)
 - Repos tracked in parent index require `--force`
+- Preview with `--dry-run` first and confirm with the user before linking
 
 #### `--ignore-only` (Ignore Instead of Submodule)
 

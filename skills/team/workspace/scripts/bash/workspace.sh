@@ -216,13 +216,19 @@ for repo_name in "${CHILD_REPOS[@]:-}"; do
   has_adlc=false
   [[ -d "$repo_path/.adlc" ]] && has_adlc=true
 
-  # Escape for JSON
-  esc_remote=${remote//\"/\\\"}
-  esc_path=${repo_path//\"/\\\"}
-
-  record=$(cat <<EOF
-{"name":"${repo_name}","path":"${esc_path}","remote":"${esc_remote}","branch":"${branch}","dirty":${dirty},"unpushed":${unpushed},"is_submodule":${submod},"parent_sha":"${p_sha}","child_sha":"${c_sha}","sha_drift":${drift},"has_adlc":${has_adlc}}
-EOF
+  # Build the per-repo record with Python so paths/remotes with
+  # quotes, backslashes, or newlines cannot break JSON output.
+  record=$(python3 - "$repo_name" "$repo_path" "$remote" "$branch" "$dirty" "$unpushed" "$submod" "$p_sha" "$c_sha" "$drift" "$has_adlc" <<'PY'
+import json, sys
+name, path, remote, branch, dirty, unpushed, submod, p_sha, c_sha, drift, has_adlc = sys.argv[1:12]
+print(json.dumps({
+  "name": name, "path": path, "remote": remote, "branch": branch,
+  "dirty": dirty == "true", "unpushed": int(unpushed or 0),
+  "is_submodule": submod == "true",
+  "parent_sha": p_sha, "child_sha": c_sha,
+  "sha_drift": drift == "true", "has_adlc": has_adlc == "true"
+}))
+PY
 )
   REPO_RECORDS+=("$record")
   DISPLAY_NAME+=("$repo_name")
@@ -241,6 +247,14 @@ EOF
       ERRORS+=("${repo_name}: no remote URL configured")
       continue
     fi
+    case "$remote" in
+      https://*|git@*|ssh://*)
+        ;;
+      *)
+        ERRORS+=("${repo_name}: remote URL scheme not allowed (use https:// or git@/ssh://)")
+        continue
+        ;;
+    esac
     if is_tracked_in_parent "$repo_name"; then
       if ! $FORCE; then
         ERRORS+=("${repo_name}: tracked in parent index (use --force)")
@@ -288,26 +302,36 @@ if $JSON_MODE; then
   for e in "${ERRORS[@]:-}"; do
     [[ -z "$e" ]] && continue
     [[ $first -eq 0 ]] && errors_json+=","
-    errors_json+=$(printf '"%s"' "${e//\"/\\\"}")
+    errors_json+=$(python3 - "$e" <<'PY'
+import json, sys
+print(json.dumps(sys.argv[1]))
+PY
+)
     first=0
   done
   errors_json+="]"
 
-  cat <<EOF
-{
-  "PARENT_REPO": "${REPO_ROOT//\"/\\\"}",
-  "PARENT_BRANCH": "${PARENT_BRANCH}",
-  "PARENT_HAS_ADLC": ${PARENT_HAS_ADLC},
-  "MODE": "${MODE}",
-  "DRY_RUN": ${DRY_RUN},
-  "DISCOVERED_COUNT": ${#CHILD_REPOS[@]},
-  "REGISTERED_COUNT": ${#REGISTERED[@]},
-  "SKIPPED_COUNT": ${#SKIPPED[@]},
-  "ERROR_COUNT": ${#ERRORS[@]},
-  "REPOS": ${repos_json},
-  "ERRORS": ${errors_json}
-}
-EOF
+  python3 - "$REPO_ROOT" "$PARENT_BRANCH" "$PARENT_HAS_ADLC" "$MODE" "$DRY_RUN" \
+    "${#CHILD_REPOS[@]}" "${#REGISTERED[@]}" "${#SKIPPED[@]}" "${#ERRORS[@]}" \
+    "$repos_json" "$errors_json" <<'PY'
+import json, sys
+parent_repo, parent_branch, has_adlc, mode, dry_run = sys.argv[1:6]
+discovered, registered, skipped, errors = (int(x) for x in sys.argv[6:10])
+repos, errs = (json.loads(sys.argv[10]), json.loads(sys.argv[11]))
+print(json.dumps({
+  "PARENT_REPO": parent_repo,
+  "PARENT_BRANCH": parent_branch,
+  "PARENT_HAS_ADLC": has_adlc == "true",
+  "MODE": mode,
+  "DRY_RUN": dry_run == "true",
+  "DISCOVERED_COUNT": discovered,
+  "REGISTERED_COUNT": registered,
+  "SKIPPED_COUNT": skipped,
+  "ERROR_COUNT": errors,
+  "REPOS": repos,
+  "ERRORS": errs
+}))
+PY
 else
   echo "=========================================="
   case "$MODE" in

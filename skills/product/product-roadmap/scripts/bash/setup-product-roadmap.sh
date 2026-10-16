@@ -24,9 +24,17 @@ mkdir -p "$PDR_DRAFTS_DIR"
 DRAFT_COUNT=$(find "$PDR_DRAFTS_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l)
 MEM_COUNT=$(( $(find "$PDR_MEMORY_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l) + $(find "$LEGACY_PDR_MEMORY_DIR" -name 'PDR-*.md' 2>/dev/null | wc -l) ))
 if $JSON_MODE; then
-  cat <<EOF
-{"REPO_ROOT":"$REPO_ROOT","PDR_DRAFTS_DIR":"$PDR_DRAFTS_DIR","PDR_MEMORY_DIR":"$PDR_MEMORY_DIR","PRD_FILE":"$PRD_FILE","draft_count":$DRAFT_COUNT,"memory_count":$MEM_COUNT}
-EOF
+  python3 - "$REPO_ROOT" "$PDR_DRAFTS_DIR" "$PDR_MEMORY_DIR" "$PRD_FILE" "$DRAFT_COUNT" "$MEM_COUNT" <<'PY'
+import json, sys
+print(json.dumps({
+  "REPO_ROOT": sys.argv[1],
+  "PDR_DRAFTS_DIR": sys.argv[2],
+  "PDR_MEMORY_DIR": sys.argv[3],
+  "PRD_FILE": sys.argv[4],
+  "draft_count": int(sys.argv[5]),
+  "memory_count": int(sys.argv[6])
+}))
+PY
 else
   echo "[INFO] product-roadmap setup"
   echo "  Draft PDRs: $DRAFT_COUNT"
