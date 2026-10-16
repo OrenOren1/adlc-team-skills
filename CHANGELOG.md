@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-10-16
+
 ### Added
 
 - **Factory-owned `issues-provider.yml` tracker config** (ADR-427) — the factory release ships a canonical provider template (`skills/factory/factory-mission/references/issues-provider.yml`, rename-only from spec-kit's `taskstoissues-provider.yml` schema, never-tokens rule retained); target repos carry a committed copy at `.adlc/issues-provider.yml`. `tracker-integration.md` §1 now resolves `{{params.tracker_provider}}` → new path → **loud halt**, deleting both the silent `github` default that mis-targeted repos without spec-kit and the legacy spec-kit path read (repos carrying only the old file must add the factory-canonical copy; spec-kit itself untouched). No shipped factory file references `.specify`. Pinned by `tests/unit/test_issues_provider_contract.py`.
@@ -22,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Class-boot contract fix: early-fire, 0-rows rendering, radar re-emission, workspace fallback** (#50) — class boots now invoke at the START of a matching task (before todo planning/implementation, never deferred); 0 rows matched emits heading + counts/searched line only with no table (a 0-row table header collapsed into unrendered single-line markdown); `tech-radar-boot` re-emits tool-channel script findings in the visible response; `radar-search.sh`/`.ps1` 0-match output drops the empty table; boots in memory-less submodule CWDs fall back to the workspace root memory (`.gitmodules` marker, ADR-401 dual-read order). Pinned by 5 new class-boot contract tests + 2 radar 0-match tests (`tests/unit/test_team_class_boots.py`, `tests/unit/test_tech_radar.py`).
 - **Memory centralization migration** (#51, ADR-412) — workspace `docs/adlc/memory/` is the sole ADR/PDR tracker; the 18 ADRs + 14 PDRs of the legacy untracked `.adlc/memory/` verified row-by-row against workspace equivalents (30 duplicates/subsumed, unique PDR-030 → PDR-108 agent-authored stamp and PDR-057 → PDR-109 deck↔code terminology imported); `docs/decision-memory.md` tombstone carries the record map.
 - **Sync-test mirror staleness** (#54) — regenerated install artifacts (`team-learn` → `team-levelup`); `test_generated_artifacts_sync.py` green again. Single-canonical-script guard added (`test_single_canonical_radar_search_script_pair`) after a stale `tech-radar-context` alias copy of `radar-search.sh` was found emitting the old 0-match table.
+- **Shell-to-Python injection hardening + unescaped JSON builders** (#74) — replaced all `python3 -c "... open('$VAR') ..."` interpolation with `sys.argv` passing, emit all `--json` output via `json.dumps`, dropped `eval $()` in favor of direct calls/parsed assignment, pinned radar fetch to HTTPS, and allowlisted submodule remotes; `setup-architect.sh` ~14 echo-built JSON emitters (+2 inner fragment builders) converted to `python3`/`json.dumps` via quoted heredocs, and `workspace.sh` `parent_sha_for` hardened with `|| true` under `set -euo pipefail`. Pinned by `tests/unit/test_shell_security_regression.py` (shellcheck `-S error` + `bash -n` clean).
 
 ## [0.30.0] - 2026-10-01
 
