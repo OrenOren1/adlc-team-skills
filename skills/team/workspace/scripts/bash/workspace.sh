@@ -94,7 +94,7 @@ count_unpushed() {
 
 parent_sha_for() {
   local name="$1"
-  git ls-tree HEAD "$name" 2>/dev/null | awk '{print $3}'
+  git ls-tree HEAD "$name" 2>/dev/null | awk '{print $3}' || true
 }
 
 child_head_sha() {
