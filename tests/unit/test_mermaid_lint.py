@@ -98,6 +98,33 @@ flowchart TD
 """
 
 
+# ── a declared type with no statement at all: renderable, so MEDIUM ────────
+#
+# mermaid renders a typed diagram whose body carries no statement (an empty
+# chart), so an empty body is a style finding — never a syntax break. Every
+# type behaves the same way, and the finding sits on the type declaration.
+
+EMPTY_TYPED = """\
+# A declared type with no statement
+
+```mermaid
+gantt
+```
+
+```mermaid
+sequenceDiagram
+```
+
+```mermaid
+erDiagram
+```
+
+```mermaid
+flowchart TD
+```
+"""
+
+
 def test_broken_corpus_finds_every_broken_block(tmp_path):
     code, findings = run_linter(tmp_path, BROKEN)
     assert code == 1, "a HIGH (syntax-break) must set exit code 1"
@@ -118,24 +145,27 @@ def test_syntax_breaks_are_high_and_style_is_medium(tmp_path):
     for rule in (
         "M001-fence-not-closed",
         "M004-empty-block",
-        "M005-empty-body",
         "M006-malformed-gantt-header",
     ):
         assert by_rule[rule]["severity"] == "HIGH", f"{rule} must be HIGH"
     assert by_rule["M009-non-mandated-keyword"]["severity"] == "MEDIUM", (
         "'graph' renders — a style finding, not a syntax break"
     )
+    assert by_rule["M005-empty-body"]["severity"] == "MEDIUM", (
+        "an empty typed diagram renders — a style finding, not a syntax break"
+    )
 
 
 def test_every_finding_carries_location_and_a_suggested_patch(tmp_path):
-    _, findings = run_linter(tmp_path, BROKEN)
-    assert findings, "expected findings"
-    for f in findings:
-        assert f["file"].endswith("artifact.md")
-        assert isinstance(f["line"], int) and f["line"] >= 1, "location line missing"
-        assert isinstance(f["fence"], int) and f["fence"] >= 1, "fence index missing"
-        assert f["suggestion"].strip(), f"no suggested patch for {f['rule']}"
-        assert f["offending"].strip(), f"no offending line for {f['rule']}"
+    for corpus in (BROKEN, EMPTY_TYPED):
+        _, findings = run_linter(tmp_path, corpus)
+        assert findings, "expected findings"
+        for f in findings:
+            assert f["file"].endswith("artifact.md")
+            assert isinstance(f["line"], int) and f["line"] >= 1, "location line missing"
+            assert isinstance(f["fence"], int) and f["fence"] >= 1, "fence index missing"
+            assert f["suggestion"].strip(), f"no suggested patch for {f['rule']}"
+            assert f["offending"].strip(), f"no offending line for {f['rule']}"
 
 
 def test_fence_index_counts_blocks_in_order(tmp_path):
@@ -361,12 +391,98 @@ def test_a_directive_only_block_is_an_empty_block(tmp_path):
     assert code == 1
 
 
-def test_a_type_with_only_a_comment_below_it_is_not_an_empty_body(tmp_path):
-    """The type line plus a comment is still a body: mermaid renders it."""
+def test_a_type_with_only_a_comment_below_it_is_an_empty_body(tmp_path):
+    """A comment carries no content, so a type with only a comment below it
+    has no statement either — it reads exactly like a type with nothing below
+    it. mermaid renders it (an empty chart), so the finding is MEDIUM: a
+    style finding, never a syntax break, and never silent."""
     text = "```mermaid\nflowchart TD\n  %% only a comment\n```\n"
     code, findings = run_linter(tmp_path, text)
-    assert findings == [], f"a commented body must not be flagged: {findings}"
-    assert code == 0
+    assert [f["rule"] for f in findings] == ["M005-empty-body"]
+    assert findings[0]["severity"] == "MEDIUM", (
+        "an empty typed diagram renders — never a false HIGH"
+    )
+    assert findings[0]["line"] == 2, "the finding sits on the type-declaration line"
+    assert code == 2, "MEDIUM-only findings exit 2"
+
+
+# ── a declared type with no statement: renderable, so MEDIUM (never HIGH) ──
+
+def test_an_empty_typed_diagram_renders_and_is_never_a_syntax_break(tmp_path):
+    """The rationale for the severity: mermaid renders a typed diagram that
+    carries no statement (an empty chart), so an empty body is not a syntax
+    break. HIGH stays reserved for a block that cannot render at all."""
+    text = "```mermaid\nflowchart TD\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert [f["rule"] for f in findings] == ["M005-empty-body"]
+    assert findings[0]["severity"] == "MEDIUM", (
+        "an empty typed diagram renders — never a false HIGH"
+    )
+    assert code == 2, "MEDIUM-only findings exit 2"
+
+
+@pytest.mark.parametrize(
+    "type_line",
+    ["gantt", "sequenceDiagram", "erDiagram", "flowchart TD"],
+    ids=["gantt", "sequence", "er", "flowchart"],
+)
+def test_a_typed_block_with_no_statement_is_reported_once_as_medium(tmp_path, type_line):
+    """The empty-body rule is type-agnostic: a declared type with no
+    statement produces exactly one finding — the same rule id for every
+    type — located on the type-declaration line, with a non-empty offending
+    text and a suggested patch. A finding never carries line 0."""
+    text = f"```mermaid\n{type_line}\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert [f["rule"] for f in findings] == ["M005-empty-body"], (
+        f"{type_line!r} with no statement must report exactly one finding, got {findings}"
+    )
+    finding = findings[0]
+    assert finding["severity"] == "MEDIUM", (
+        "an empty typed diagram renders — never a false HIGH"
+    )
+    assert finding["line"] == 2, "the finding sits on the type-declaration line"
+    assert finding["line"] >= 1, "a finding must never carry line 0"
+    assert finding["offending"].strip() == type_line, (
+        "the offending text is the type declaration itself"
+    )
+    assert finding["suggestion"].strip(), "a suggested patch is required"
+    assert code == 2, "MEDIUM-only findings exit 2"
+
+
+def test_a_trailing_blank_line_does_not_silence_the_empty_body_finding(tmp_path):
+    """The same condition must read the same: a body holding only a blank
+    line carries no statement either, so the verdict is identical to the
+    block with nothing below the type."""
+    empty = run_linter(tmp_path, "```mermaid\nflowchart TD\n```\n")[1]
+    blank = run_linter(tmp_path, "```mermaid\nflowchart TD\n\n```\n")[1]
+    assert blank, "a blank body must not silence the finding"
+    assert [(f["rule"], f["severity"], f["line"]) for f in empty] == [
+        (f["rule"], f["severity"], f["line"]) for f in blank
+    ]
+    assert blank[0]["rule"] == "M005-empty-body"
+    assert blank[0]["severity"] == "MEDIUM"
+
+
+@pytest.mark.parametrize(
+    ("type_line", "statement", "rule"),
+    [
+        ("sequenceDiagram", "this is not a participant", "M007-malformed-sequence-diagram"),
+        ("erDiagram", "this is not an entity", "M008-malformed-entity-diagram"),
+    ],
+    ids=["sequence", "er"],
+)
+def test_a_malformed_first_statement_keeps_the_per_type_rule_at_high(
+    tmp_path, type_line, statement, rule
+):
+    """The empty-body change softened only the *empty* case: a first
+    statement that exists but is malformed still trips the per-type rule at
+    HIGH — a syntax break, not a style finding."""
+    text = f"```mermaid\n{type_line}\n  {statement}\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert [f["rule"] for f in findings] == [rule]
+    assert findings[0]["severity"] == "HIGH"
+    assert findings[0]["line"] == 3, "the finding sits on the offending statement"
+    assert code == 1
 
 
 # ── read-only contract (the lifecycle write scope lifecycle write scope) ─────────────────────

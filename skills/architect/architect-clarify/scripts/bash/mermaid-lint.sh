@@ -11,8 +11,9 @@
 #
 # Severity (the mermaid detection pass):
 #   HIGH   = syntax-break — the block cannot render
-#   MEDIUM = style         — renderable but non-mandated form, or a type this
-#                            rule set cannot vouch for (never a false HIGH)
+#   MEDIUM = style         — renderable but non-mandated form, a body that
+#                            carries no statement at all, or a type this rule
+#                            set cannot vouch for (never a false HIGH)
 #
 # Comments and directives:
 #   `%% …` is a mermaid comment and `%%{ … }%%` is a mermaid directive. Both
@@ -133,9 +134,12 @@ first_word() {
 }
 
 # Is this line a mermaid comment (`%% …`) or directive (`%%{ … }%%`)?
-# The check is on the line's first non-space content: a `%%` inside a
-# statement (`A --> B %% note`) is a trailing comment on a real statement
-# and the statement still counts.
+# The check is on the line's first non-space content: only a line whose own
+# first non-space characters are `%%` is a comment. A `%%` *inside* a
+# statement (`A --> B %% note`) is not a comment — mermaid rejects that form
+# (it is a parse error, not a trailing comment). This rule set does not
+# model it: such a line is still read as a statement, and no rule is raised
+# for it here.
 is_comment() {
     case "$(printf '%s' "$1" | sed -e 's/^[[:space:]]*//')" in
         '%%'*) return 0 ;;
@@ -151,11 +155,12 @@ lint_file() {
     fi
 
     local lineno=0 fence_index=0 in_block=0 block_start=0 block_header="" block_header_line=0
-    # body_lines counts every line inside the block (the type declaration,
-    # blank lines and comments included); content_lines counts only the
-    # lines that carry diagram content — the type declaration and its
-    # statements. comment_lines counts the stripped comments/directives.
-    local body_lines=0 content_lines=0 comment_lines=0 body_first="" body_first_line=0 decl=""
+    # content_lines counts only the lines that carry diagram content — the
+    # type declaration and its statements; comment_lines counts the stripped
+    # comments/directives. A block's verdict is driven by content_lines: a
+    # blank line and a comment carry no content, so neither of them changes
+    # the count.
+    local content_lines=0 comment_lines=0 body_first="" body_first_line=0 decl=""
     local line
 
     while IFS= read -r line || [ -n "$line" ]; do
@@ -171,7 +176,6 @@ lint_file() {
                     block_start=$lineno
                     block_header=""
                     block_header_line=0
-                    body_lines=0
                     content_lines=0
                     comment_lines=0
                     body_first=""
@@ -224,59 +228,67 @@ lint_file() {
                                 "$block_header" \
                                 "use \`flowchart${block_header#graph}\` instead"
                         fi
-                        if [ "$body_lines" -eq 1 ] && [ -z "$body_first" ]; then
-                            :
+                        if [ "$content_lines" -le 1 ]; then
+                            # A declared type and nothing else: the block
+                            # carries no statement at all. mermaid renders it
+                            # (an empty chart), so it is NOT a syntax break —
+                            # MEDIUM, never HIGH. The count is driven by the
+                            # *content* lines (the type declaration plus its
+                            # statements), so a trailing blank line or a
+                            # trailing comment cannot change the verdict: the
+                            # block is reported the same whether its body is
+                            # empty, blank or comment-only.
+                            emit MEDIUM M005-empty-body "$file" "$block_header_line" "$fence_index" \
+                                "the block declares the '$type_kw' type but carries no statement" \
+                                "$block_header" \
+                                "add at least one statement for this type, e.g. \`A[Start] --> B[End]\`, \`Task : a1, 2026-01-01, 3d\`, \`participant A\`, \`CUSTOMER ||--o{ ORDER : places\`"
+                        else
+                            # A first statement exists: the per-type rules judge
+                            # whether it is well-formed. A malformed first
+                            # statement is a real syntax break (HIGH).
+                            case "$type_kw" in
+                                gantt)
+                                    local gantt_head
+                                    gantt_head=$(first_word "$body_first")
+                                    if has_word "$GANTT_KEYS" "$gantt_head"; then
+                                        :
+                                    elif printf '%s' "$body_first" | grep -qE "$GANTT_TASK_RE"; then
+                                        :
+                                    elif printf '%s' "$body_first" | grep -qE "$GANTT_TASK_LOOSE_RE"; then
+                                        emit MEDIUM M006-malformed-gantt-header "$file" "$body_first_line" "$fence_index" \
+                                            "gantt block's first statement looks like a task line but is incomplete" \
+                                            "$body_first" \
+                                            "write the task as \`<name> : <id>, <start>[, <end|duration>]\`"
+                                    else
+                                        emit HIGH M006-malformed-gantt-header "$file" "$body_first_line" "$fence_index" \
+                                            "gantt block's first statement is neither a gantt key nor a task line" \
+                                            "$body_first" \
+                                            "start with a gantt key (e.g. \`dateFormat YYYY-MM-DD\`) or a task line (e.g. \`Task : a1, 2024-01-01, 3d\`)"
+                                    fi
+                                    ;;
+                                sequenceDiagram)
+                                    local ok=false head
+                                    head=$(first_word "$body_first")
+                                    if has_word "$SEQ_KEYS" "$head" || printf '%s' "$body_first" | grep -qE '^[A-Za-z0-9_]+[[:space:]]*(->>|-->>|->|-->|-\)|--)'; then
+                                        ok=true
+                                    fi
+                                    if [ "$ok" = false ]; then
+                                        emit HIGH M007-malformed-sequence-diagram "$file" "$body_first_line" "$fence_index" \
+                                            "sequenceDiagram block has no participant or message statement" \
+                                            "$body_first" \
+                                            "add a participant or message, e.g. \`participant A\` or \`A->>B: hello\`"
+                                    fi
+                                    ;;
+                                erDiagram)
+                                    if ! printf '%s' "$body_first" | grep -qE '[{}]|\}\||\|o|o\{|\}\|--|\.\.'; then
+                                        emit HIGH M008-malformed-entity-diagram "$file" "$body_first_line" "$fence_index" \
+                                            "erDiagram block has no entity or relation" \
+                                            "$body_first" \
+                                            "add an entity or relation, e.g. \`CUSTOMER ||--o{ ORDER : places\`"
+                                    fi
+                                    ;;
+                            esac
                         fi
-                        case "$type_kw" in
-                            gantt)
-                                local gantt_head
-                                gantt_head=$(first_word "$body_first")
-                                if has_word "$GANTT_KEYS" "$gantt_head"; then
-                                    :
-                                elif printf '%s' "$body_first" | grep -qE "$GANTT_TASK_RE"; then
-                                    :
-                                elif printf '%s' "$body_first" | grep -qE "$GANTT_TASK_LOOSE_RE"; then
-                                    emit MEDIUM M006-malformed-gantt-header "$file" "$body_first_line" "$fence_index" \
-                                        "gantt block's first statement looks like a task line but is incomplete" \
-                                        "$body_first" \
-                                        "write the task as \`<name> : <id>, <start>[, <end|duration>]\`"
-                                else
-                                    emit HIGH M006-malformed-gantt-header "$file" "$body_first_line" "$fence_index" \
-                                        "gantt block's first statement is neither a gantt key nor a task line" \
-                                        "$body_first" \
-                                        "start with a gantt key (e.g. \`dateFormat YYYY-MM-DD\`) or a task line (e.g. \`Task : a1, 2024-01-01, 3d\`)"
-                                fi
-                                ;;
-                            sequenceDiagram)
-                                local ok=false head
-                                head=$(first_word "$body_first")
-                                if has_word "$SEQ_KEYS" "$head" || printf '%s' "$body_first" | grep -qE '^[A-Za-z0-9_]+[[:space:]]*(->>|-->>|->|-->|-\)|--)'; then
-                                    ok=true
-                                fi
-                                if [ "$ok" = false ]; then
-                                    emit HIGH M007-malformed-sequence-diagram "$file" "$body_first_line" "$fence_index" \
-                                        "sequenceDiagram block has no participant or message statement" \
-                                        "$body_first" \
-                                        "add a participant or message, e.g. \`participant A\` or \`A->>B: hello\`"
-                                fi
-                                ;;
-                            erDiagram)
-                                if ! printf '%s' "$body_first" | grep -qE '[{}]|\}\||\|o|o\{|\}\|--|\.\.'; then
-                                    emit HIGH M008-malformed-entity-diagram "$file" "$body_first_line" "$fence_index" \
-                                        "erDiagram block has no entity or relation" \
-                                        "$body_first" \
-                                        "add an entity or relation, e.g. \`CUSTOMER ||--o{ ORDER : places\`"
-                                fi
-                                ;;
-                            flowchart|graph)
-                                if [ "$body_lines" -le 1 ]; then
-                                    emit HIGH M005-empty-body "$file" "$block_header_line" "$fence_index" \
-                                        "flowchart declares a type but has no statements" \
-                                        "$block_header" \
-                                        "add at least one node or edge, e.g. \`A[Start] --> B[End]\`"
-                                fi
-                                ;;
-                        esac
                     fi
                 fi
                 in_block=0
@@ -285,13 +297,12 @@ lint_file() {
         esac
 
         # Content line inside the block.
-        body_lines=$((body_lines + 1))
         if is_comment "$line"; then
             # A comment (`%% …`) or a directive (`%%{ … }%%`) is not content:
             # mermaid strips it before it parses, so it is neither the block's
-            # type declaration nor one of its statements. It still counts as
-            # a line of the block (body_lines), so a body made of comments is
-            # not mistaken for an empty body.
+            # type declaration nor one of its statements. It is counted on its
+            # own (comment_lines) and never as content, so it can neither
+            # pass for a statement nor change the empty-body verdict.
             comment_lines=$((comment_lines + 1))
             continue
         fi

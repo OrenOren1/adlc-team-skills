@@ -121,10 +121,10 @@ Requires the `architect-clarify` skill (`adlc-cli skills add tikalk/adlc-team-sk
 | `M002-unknown-diagram-type` | the type keyword is outside the known set — review it, never a false HIGH |
 | `M003-missing-diagram-type` | the block declares no diagram type at all |
 | `M004-empty-block` | the block carries no diagram content — comments and directives do not count |
-| `M005-empty-body` | a type is declared but no statement follows |
-| `M006-malformed-gantt-header` | the gantt block's first statement (comments and directives skipped) is neither a gantt key nor a task line (a task-line-shaped statement is at most MEDIUM, never a false HIGH) |
-| `M007-malformed-sequence-diagram` | the sequenceDiagram has no participant and no message (comments and directives do not count as statements) |
-| `M008-malformed-entity-diagram` | the erDiagram has no entity and no relation (comments and directives do not count as statements) |
+| `M005-empty-body` | a type is declared but no statement follows — mermaid renders it (an empty chart), so it is a MEDIUM style finding, never a syntax break; the finding sits on the type declaration |
+| `M006-malformed-gantt-header` | the gantt block's first statement (comments and directives skipped) is neither a gantt key nor a task line — a malformed first statement is a syntax break (HIGH); a task-line-shaped statement is at most MEDIUM, never a false HIGH |
+| `M007-malformed-sequence-diagram` | the sequenceDiagram's first statement (comments and directives skipped) is neither a participant nor a message — a malformed first statement is a syntax break (HIGH) |
+| `M008-malformed-entity-diagram` | the erDiagram's first statement (comments and directives skipped) is neither an entity nor a relation — a malformed first statement is a syntax break (HIGH) |
 | `M009-non-mandated-keyword` | `graph` used where the product mandate requires `flowchart` |
 
 **Rules**:
@@ -133,6 +133,7 @@ Requires the `architect-clarify` skill (`adlc-cli skills add tikalk/adlc-team-sk
 - Fold its findings into the report verbatim — severity, location and suggested patch come from the validator; do not re-word or re-grade them.
 - The pass is **read-only** (the lifecycle write scope lifecycle write scope): remediation belongs to `/product-implement` or a human, never to this skill.
 - An unrecognised diagram type is MEDIUM, never HIGH — the rule set must not produce a false syntax break.
+- A declared type with **no statement at all** still renders (an empty chart): the validator reports it MEDIUM (`M005-empty-body`), located on the type declaration — never a syntax break. Only a *malformed* first statement is HIGH.
 - A mermaid comment (`%% …`) or directive (`%%{ … }%%`) is not content — the validator skips it wherever it reads a block's type or its first statement, so a comment-first diagram is valid.
 
 ### Phase 8: Severity Assignment
