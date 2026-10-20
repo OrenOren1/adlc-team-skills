@@ -9,7 +9,7 @@ Contract pinned here (bash helpers in skills/factory/factory-mission/scripts/bas
                   has it. Without ADLC_RUN_ID: no-op. Prints the branch.
   commit-step.sh  Acts on ADLC_RUN_ID, `adlc.commit_steps: true` in
                   .adlc/init-options.json, or --commit (ADR-431 §6). Stages only
-                  ADR-433-allowlisted paths, never .adlc/workflows/**, refuses
+                  paths inside the ADR-433 allowlist, never .adlc/workflows/**, refuses
                   paths outside the repo; needs a committer identity; one commit
                   with Run-Id/Step/Output-Type/Records trailers, else `sha: none`.
   open-mr.sh      With ADLC_RUN_ID: push the run branch only; reuse an open MR for

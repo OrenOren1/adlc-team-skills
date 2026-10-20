@@ -61,7 +61,7 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 
 ---
 
-## Run Branch, Step Commits and Draft MR (ADR-431, ADR-431-amendment, ADR-444)
+## Run Branch, Step Commits and Draft MR
 
 **Requires:** the `factory-mission` skill (provides the run helpers): `adlc-cli skills add tikalk/adlc-team-skills --skill factory-mission`
 
@@ -70,7 +70,7 @@ In a factory run (`ADLC_RUN_ID` set by the workflow engine) this orchestrator �
 1. **Before the first step:** `bash {REPO_ROOT}/.agents/skills/factory-mission/scripts/bash/run-branch.sh` — checks out `factory/<repo>-<iid>` (from `ADLC_ISSUE_REF`) in the project root, reusing it or continuing from `origin`. Shared with the other intent lane and with re-dispatches.
 2. **After each step** (`specify`/`init`, `clarify`, `implement`, `analyze` fixes):
    `bash {REPO_ROOT}/.agents/skills/factory-mission/scripts/bash/commit-step.sh --orchestrator factory-architect --step <step> --output-type <draft|decision|artifact-ref|findings> --summary "<one line, no issue text>" --records <IDs> -- <paths the step wrote>`
-   Pass only paths the step wrote, inside the ADR-433 allowlist (`.adlc/drafts/adr/`, `docs/adlc/memory/adr/`, `docs/adlc/architect/AD.md`, `docs/adlc/architect/views/`). It prints `sha: <sha>` or `sha: none`; put that `sha` in the step's bus marker (ADR-431 §3). Never stage `.adlc/workflows/**`.
-3. **At the end:** `bash {REPO_ROOT}/.agents/skills/factory-mission/scripts/bash/open-mr.sh` — pushes the run branch only, finds or opens one draft MR (merge commit, no squash; milestone/assignee per ADR-432) and writes `mr_url` to `ADLC_STEP_OUTPUT`, which the engine's gate links (`context.link`). Also write a one-line `conclusion` into the same JSON object if you have one (ADR-391-amendment-2 §4).
+   Pass only paths the step wrote, inside the lifecycle write allowlist (`.adlc/drafts/adr/`, `docs/adlc/memory/adr/`, `docs/adlc/architect/AD.md`, `docs/adlc/architect/views/`). It prints `sha: <sha>` or `sha: none`; put that `sha` in the step's bus marker (the bus carries pointers, not content). Never stage `.adlc/workflows/**`.
+3. **At the end:** `bash {REPO_ROOT}/.agents/skills/factory-mission/scripts/bash/open-mr.sh` — pushes the run branch only, finds or opens one draft MR (merge commit, no squash; milestone/assignee per the MR-ownership decision) and writes `mr_url` to `ADLC_STEP_OUTPUT`, which the engine's gate links (`context.link`). Also write a one-line `conclusion` into the same JSON object if you have one (the gate's intent-conclusion rule).
 
 Outside a factory run the helpers do nothing unless the user opted in (`adlc.commit_steps: true` in `.adlc/init-options.json`, or `--commit` passed to this skill, which you forward to `commit-step.sh`); `run-branch.sh` and `open-mr.sh` never act without `ADLC_RUN_ID`. A helper's non-zero exit (refused path, missing committer identity, tracker scope) stops the run — report it, do not work around it.
