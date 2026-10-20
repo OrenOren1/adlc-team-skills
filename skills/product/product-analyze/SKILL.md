@@ -15,6 +15,7 @@ Performs **read-only** product consistency analysis:
 3. **PRD→PDR Drift** — PRD elements without supporting PDRs
 4. **Cross-PDR Consistency** — conflicts between PDRs
 5. **Staleness** — outdated references, placeholders, deprecated PDRs still referenced
+6. **Mermaid Syntax** — invalid diagram blocks flagged with location + suggested patch (ADR-434)
 
 **Output**: Structured markdown analysis report (no files modified)
 
@@ -100,7 +101,40 @@ For each PDR, check if decision appears in PRD:
 3. **Date Inconsistencies**: PDR dates older than PRD last-updated
 4. **Orphaned References**: PDR IDs mentioned but file doesn't exist
 
-### Phase 7: Severity Assignment
+### Phase 7: Mermaid Syntax Validation (ADR-434)
+
+**Objective**: flag invalid Mermaid blocks in the PRD with a location and a suggested patch, so a broken diagram never ships unremarked.
+
+**Run the shared validator** — it owns the rule set (canonical in `architect-clarify`; the rules are documented once in AD v13.14.0). Do not re-derive or restate the thresholds here:
+
+```bash
+sh: {REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/mermaid-lint.sh --tsv <artifact>
+```
+
+Requires the `architect-clarify` skill (`adlc-cli skills add tikalk/adlc-team-skills --skill architect-clarify`). Exit code: `0` clean, `1` a HIGH (syntax-break) is present, `2` only MEDIUM (style) findings.
+
+**Rule vocabulary** — the validator's own ids; severity travels with each finding, never inferred here:
+
+| Rule | Meaning |
+|------|---------|
+| `M001-fence-not-closed` | the ` ```mermaid ` block is never closed |
+| `M002-unknown-diagram-type` | the type keyword is outside the known set — review it, never a false HIGH |
+| `M003-missing-diagram-type` | the block declares no diagram type at all |
+| `M004-empty-block` | the block has no content |
+| `M005-empty-body` | a type is declared but no statement follows |
+| `M006-malformed-gantt-header` | the gantt block's first statement is not a gantt key |
+| `M007-malformed-sequence-diagram` | the sequenceDiagram has no participant and no message |
+| `M008-malformed-entity-diagram` | the erDiagram has no entity and no relation |
+| `M009-non-mandated-keyword` | `graph` used where the product mandate requires `flowchart` |
+
+**Rules**:
+
+- Run it over the PRD and any product artifact that carries diagrams.
+- Fold its findings into the report verbatim — severity, location and suggested patch come from the validator; do not re-word or re-grade them.
+- The pass is **read-only** (ADR-433 lifecycle write scope): remediation belongs to `/product-implement` or a human, never to this skill.
+- An unrecognised diagram type is MEDIUM, never HIGH — the rule set must not produce a false syntax break.
+
+### Phase 8: Severity Assignment
 
 | Severity | Criteria |
 |----------|----------|
@@ -109,7 +143,7 @@ For each PDR, check if decision appears in PRD:
 | **MEDIUM** | Incomplete consequences, staleness, terminology drift |
 | **LOW** | Style improvements, minor documentation gaps |
 
-### Phase 8: Generate Report
+### Phase 9: Generate Report
 
 ```markdown
 ## Product Analysis Report
@@ -129,6 +163,7 @@ For each PDR, check if decision appears in PRD:
 | C1 | PDR→PRD | HIGH | PRD:5 | Persona not in PRD | Update PRD section 5 |
 | D1 | PRD→PDR | HIGH | PRD:6 | Feature has no PDR | Create PDR |
 | F1 | Staleness | LOW | PRD:1 | [PRODUCT_NAME] placeholder | Fill product name |
+| G1 | Mermaid Syntax | HIGH | PRD:42 (fence #3) | ` ```mermaid ` block has no content | add the diagram body, e.g. `flowchart TD / A[Start] --> B[End]` |
 
 ### Coverage Metrics
 | Metric | Value |
@@ -164,6 +199,7 @@ For each PDR, check if decision appears in PRD:
 - **NEVER hallucinate missing content** — report absences accurately
 - **Prioritize constitution violations** — always CRITICAL
 - **Use evidence-based findings** — cite specific locations
+- **The Mermaid pass writes nothing** — it reports; `/product-implement` or a human remediates (ADR-433)
 
 ### Reporting Standards
 - **Limit to 50 findings** — aggregate overflow in summary
@@ -176,6 +212,7 @@ For each PDR, check if decision appears in PRD:
 - `PDR_DRAFTS_DIR` — `{REPO_ROOT}/.adlc/drafts/pdr`
 - `PRD_FILE` — `{REPO_ROOT}/docs/adlc/product/PRD.md`
 - `CONSTITUTION` — `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `.adlc/memory/constitution.md` fallback)
+- `MERMAID_LINTER` — `{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/mermaid-lint.sh` (canonical in `architect-clarify`; requires that skill to be installed)
 
 ## 12-Factor Alignment
 
@@ -189,6 +226,7 @@ For each PDR, check if decision appears in PRD:
 - [ ] Cross-PDR consistency verified
 - [ ] Bidirectional drift detection completed
 - [ ] Staleness scan performed
+- [ ] Mermaid syntax validated (shared linter run; every broken block carries severity, location and a patch)
 - [ ] Severities assigned correctly
 - [ ] Report structured with findings table
 - [ ] Coverage metrics calculated

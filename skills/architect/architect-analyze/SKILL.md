@@ -16,6 +16,7 @@ Key analysis dimensions:
 2. **ADR to AD Consistency** — Bidirectional drift detection
 3. **Internal Consistency** — Cross-artifact coherence
 4. **Staleness Detection** — Outdated references and placeholders
+5. **Mermaid Syntax** — Deterministic validity check over diagram blocks, with location + suggested patch (ADR-434)
 
 This skill validates architecture artifacts for consistency, completeness, and quality.
 
@@ -243,9 +244,17 @@ For each ADR:
    - Core views included (Context, Functional, Information, Development, Deployment)
    - Perspectives addressed (Security, Performance)
 
-4. **Diagram Syntax Validation**:
+4. **Diagram Syntax Validation** (deterministic — ADR-434):
    - Mermaid syntax valid (no broken diagrams)
    - Consistent styling across diagrams
+   - Run the shared validator; it produces one finding per broken block with severity, location (file + line + fence index) and a suggested patch:
+
+     ```bash
+     sh: {REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh
+     sh: {REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/mermaid-lint.sh --tsv <artifact>
+     ```
+
+     The rule set is documented once in AD v13.14.0 (ADR-434) — read it there rather than re-deriving the rules here. Exit code: `0` clean, `1` a HIGH (syntax-break) is present, `2` only MEDIUM (style) findings. An unrecognised diagram type is MEDIUM, never HIGH: this rule set must not produce a false syntax break. The pass is read-only (ADR-433) — remediation belongs to `/architect-implement` or a human.
 
 5. **View File Consistency** (DAG State Validation):
    - Check if `.adlc/architect/state.json` exists and reports views as "completed"
@@ -461,5 +470,6 @@ Concrete outputs of this skill:
   - Constitution Alignment summary (compliant, violations, deviations)
   - Issue Distribution by severity (CRITICAL, HIGH, MEDIUM, LOW)
   - Next Actions tailored to finding types
+- **Mermaid syntax validation** run over the AD and every artifact carrying diagrams (shared linter, ADR-434) — every broken block reported with severity, location and a suggested patch.
 - **No files modified** — analysis is strictly read-only.
 - **User-approved remediation guidance** offered after the report.
