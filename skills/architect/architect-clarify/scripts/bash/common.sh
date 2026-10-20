@@ -3,7 +3,7 @@
 # Minimal common helpers for adlc-skills architect-* skills.
 # Bundled with the skill so it works standalone, outside the Spec Kit extension system.
 
-# ADR-401 shared layout constants (single definition in paths.sh).
+# shared layout constants (single definition in paths.sh).
 _common_sh_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$_common_sh_dir/../../../../team/workspace/scripts/bash/paths.sh" ]; then
     # shellcheck disable=SC1091

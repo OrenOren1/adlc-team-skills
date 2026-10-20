@@ -83,7 +83,7 @@ Extract product drivers:
 2. **Market Drivers**: Target segments, competitive landscape, trends
 3. **Business Drivers**: Revenue model, scaling expectations, strategic importance
 4. **Constraint Drivers**: Technology mandates, budget, team skills, regulatory
-5. **Load Constitution**: Read `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `{REPO_ROOT}/.adlc/memory/constitution.md` fallback — ADR-401 dual-read) if either exists
+5. **Load Constitution**: Read `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `{REPO_ROOT}/.adlc/memory/constitution.md` fallback — dual-read) if either exists
 6. **Check Existing Docs**: Scan `README.md`, `AGENTS.md`, `CONTRIBUTING.md` for context
 
 ### Phase 3: Product Exploration (Interactive)

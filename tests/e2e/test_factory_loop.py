@@ -7,7 +7,7 @@ import pytest
 ROOT = Path(__file__).parent.parent.parent
 
 def test_factory_mission_state_initialization(sandbox_project):
-    # Namespace v3 (ADR-391-amendment): the mission policy template is copied
+    # Namespace v3 (the workflow namespace): the mission policy template is copied
     # into the per-run directory as mission.yml — no .adlc/workflow/ anymore.
     run_id = "run-abc123"
     run_dir = sandbox_project / ".adlc" / "workflows" / "runs" / run_id
@@ -26,7 +26,7 @@ def test_factory_mission_state_initialization(sandbox_project):
     assert ".adlc/workflows/memory.jsonl" in content
 
 def test_factory_product_state_initialization(sandbox_project):
-    # Namespace v3 (ADR-395): step progress lives in the shared state.json,
+    # Namespace v3 (shared run state): step progress lives in the shared state.json,
     # run context in brief.md — no .factory-product-state.json anymore.
     run_dir = sandbox_project / ".adlc" / "workflows" / "runs" / "run-prod-1"
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -53,7 +53,7 @@ def test_factory_product_state_initialization(sandbox_project):
     assert loaded["current_step_id"] == "specify"
 
 def test_factory_architect_state_initialization(sandbox_project):
-    # Namespace v3 (ADR-395): shared state.json + brief.md in the run dir.
+    # Namespace v3 (shared run state): shared state.json + brief.md in the run dir.
     run_dir = sandbox_project / ".adlc" / "workflows" / "runs" / "run-arch-1"
     run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -78,7 +78,7 @@ def test_factory_architect_state_initialization(sandbox_project):
     assert loaded["current_step_id"] == "init"
 
 def test_factory_learn_state_initialization(sandbox_project):
-    # Namespace v3 (ADR-395): publish target is run context (brief.md),
+    # Namespace v3 (shared run state): publish target is run context (brief.md),
     # progress is the shared program counter (state.json).
     run_dir = sandbox_project / ".adlc" / "workflows" / "runs" / "run-learn-1"
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -105,7 +105,7 @@ def test_factory_learn_state_initialization(sandbox_project):
 
 def test_factory_queue_triage_flow(sandbox_project):
     # factory-queue is stateless (tracker is the system of record); triage
-    # output is a mission-brief-format brief, not a state file (ADR-389).
+    # output is a mission-brief-format brief, not a state file (the mission-brief format).
     run_dir = sandbox_project / ".adlc" / "workflows" / "runs" / "run-queue-1"
     run_dir.mkdir(parents=True, exist_ok=True)
 

@@ -4,7 +4,7 @@ Regression class: render/parse/resolve helpers assumed bare `NAME-<digits>.md`
 filenames. Suffixed variants (`-amendment`, `-amendment-2`, `-workspace-profile`)
 broke three ways: ID parse miss (whole filename as ID), corrupt render
 (`printf %03d` on non-numeric → `ADR-000`), and wrong-file targeting
-(digit-strip turned `386-amendment-2` into `3862`).
+(digit-strip turned `003-amendment-2` into `0032`).
 
 Contract under test (canonical helpers only — borrowers reference these):
 - IDs are filename stems verbatim; purely numeric stems keep legacy %03d display
@@ -61,10 +61,10 @@ def adlc_tree(tmp_path):
     drafts_pdr = tmp_path / ".adlc" / "drafts" / "pdr"
     drafts_adr.mkdir(parents=True)
     drafts_pdr.mkdir(parents=True)
-    _write_fm(drafts_adr / "ADR-386.md")
-    _write_fm(drafts_adr / "ADR-386-amendment-2.md")
-    _write_fm(drafts_pdr / "PDR-010.md")
-    _write_fm(drafts_pdr / "PDR-010-amendment-2.md")
+    _write_fm(drafts_adr / "ADR-003.md")
+    _write_fm(drafts_adr / "ADR-003-amendment-2.md")
+    _write_fm(drafts_pdr / "PDR-002.md")
+    _write_fm(drafts_pdr / "PDR-002-amendment-2.md")
     return tmp_path
 
 
@@ -81,18 +81,18 @@ def test_adr_render_preserves_suffixed_ids(adlc_tree):
     r = _run_bash(f'source "{harness}"; generate_adr_index drafts', adlc_tree)
     assert r.returncode == 0, r.stderr
     index = (adlc_tree / ".adlc/drafts/adr/adr.md").read_text(encoding="utf-8")
-    assert "| ADR-386-amendment-2 |" in index
-    assert "| ADR-386 |" in index
+    assert "| ADR-003-amendment-2 |" in index
+    assert "| ADR-003 |" in index
     assert "ADR-000" not in index
     # lexical order: amendment row precedes its base row
-    assert index.index("ADR-386-amendment-2") < index.index("| ADR-386 |")
+    assert index.index("ADR-003-amendment-2") < index.index("| ADR-003 |")
 
 
 def test_adr_resolve_never_strips_suffixes(adlc_tree):
     harness = _extract_adr_harness(adlc_tree)
     script = (f'source "{harness}"; '
-              'get_adr_by_id "386-amendment-2" drafts | grep -c "ADR-386-amendment-2"; '
-              'get_adr_by_id "386" drafts | grep -c "ADR-386"; '
+              'get_adr_by_id "003-amendment-2" drafts | grep -c "ADR-003-amendment-2"; '
+              'get_adr_by_id "003" drafts | grep -c "ADR-003"; '
               'get_adr_by_id "nope" drafts; echo "missing-rc=$?"')
     r = _run_bash(script, adlc_tree)
     assert r.returncode == 0, r.stderr
@@ -105,32 +105,32 @@ def test_adr_resolve_never_strips_suffixes(adlc_tree):
 
 def test_adr_move_and_list_preserve_stems(adlc_tree):
     harness = _extract_adr_harness(adlc_tree)
-    r = _run_bash(f'source "{harness}"; move_adr "386-amendment-2" drafts memory; '
+    r = _run_bash(f'source "{harness}"; move_adr "003-amendment-2" drafts memory; '
                   'list_adrs memory; echo "---"; list_adrs drafts', adlc_tree)
     assert r.returncode == 0, r.stderr
-    assert (adlc_tree / "docs/adlc/memory/adr/ADR-386-amendment-2.md").exists()
-    assert not (adlc_tree / ".adlc/drafts/adr/ADR-386-amendment-2.md").exists()
-    assert "386-amendment-2" in r.stdout
-    assert "3862" not in r.stdout  # the old strip-digits corruption
+    assert (adlc_tree / "docs/adlc/memory/adr/ADR-003-amendment-2.md").exists()
+    assert not (adlc_tree / ".adlc/drafts/adr/ADR-003-amendment-2.md").exists()
+    assert "003-amendment-2" in r.stdout
+    assert "0032" not in r.stdout  # the old strip-digits corruption
 
 
 def test_pdr_render_and_move_preserve_suffixed_ids(adlc_tree):
     r = _run_bash(f'source "{PDR_LIB}"; generate_pdr_index drafts', adlc_tree)
     assert r.returncode == 0, r.stderr
     index = (adlc_tree / ".adlc/drafts/pdr/pdr.md").read_text(encoding="utf-8")
-    assert "| PDR-010-amendment-2 |" in index
-    assert "| PDR-010 |" in index
+    assert "| PDR-002-amendment-2 |" in index
+    assert "| PDR-002 |" in index
     assert "PDR-000" not in index
-    assert "10#PDR" not in r.stdout + r.stderr
-    r2 = _run_bash(f'source "{PDR_LIB}"; move_pdr "010-amendment-2" drafts memory', adlc_tree)
+    assert "2#PDR" not in r.stdout + r.stderr
+    r2 = _run_bash(f'source "{PDR_LIB}"; move_pdr "002-amendment-2" drafts memory', adlc_tree)
     assert r2.returncode == 0, r2.stderr
-    assert (adlc_tree / "docs/adlc/memory/pdr/PDR-010-amendment-2.md").exists()
+    assert (adlc_tree / "docs/adlc/memory/pdr/PDR-002-amendment-2.md").exists()
 
 
 def _bare_fixture(base: Path):
     """Suffixed-free fixture: only bare numeric names."""
-    for d, names in (("adr", ["ADR-386.md", "ADR-007.md"]),
-                     ("pdr", ["PDR-010.md", "PDR-9.md"])):
+    for d, names in (("adr", ["ADR-003.md", "ADR-007.md"]),
+                     ("pdr", ["PDR-002.md", "PDR-9.md"])):
         dd = base / ".adlc" / "drafts" / d
         dd.mkdir(parents=True)
         for n in names:

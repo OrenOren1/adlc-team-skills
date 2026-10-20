@@ -45,7 +45,7 @@ if [[ -z "${REPO_ROOT:-}" ]]; then
   exit 1
 fi
 
-# ADR-401 shared layout constants (single definition in paths.sh; common.sh
+# shared layout constants (single definition in paths.sh; common.sh
 # already sources it — this block keeps the script correct standalone).
 if [ -f "$SCRIPT_DIR/../../../../team/workspace/scripts/bash/paths.sh" ]; then
     # shellcheck disable=SC1091
@@ -55,7 +55,7 @@ elif [ -f "$SCRIPT_DIR/../../../workspace/scripts/bash/paths.sh" ]; then
     . "$SCRIPT_DIR/../../../workspace/scripts/bash/paths.sh"
 fi
 
-# ADR-401 dual-read (R8): resolve a memory-relative artifact to the canonical
+# dual-read: resolve a memory-relative artifact to the canonical
 # docs/adlc/memory path, falling back to legacy .adlc/memory when only the
 # legacy file exists. Writers use the canonical path directly.
 _adlc_memory_path() {
@@ -159,7 +159,7 @@ if [[ -z "$ACTION" ]]; then
     fi
 fi
 
-# Ensure directories exist (ADR-401: compiled AD lives under docs/adlc/architect)
+# Ensure directories exist ( compiled AD lives under docs/adlc/architect)
 mkdir -p "$REPO_ROOT/.adlc/memory"
 mkdir -p "$REPO_ROOT/${ADLC_DRAFTS:-.adlc/drafts}"
 mkdir -p "$REPO_ROOT/${DOCS_ADLC_ARCHITECT:-docs/adlc/architect}"
@@ -635,7 +635,7 @@ generate_adr_index() {
     local scope="${1:-drafts}"
     local adr_dir="$REPO_ROOT/.adlc/$scope/adr"
 
-    # ADR-401 dual-read (R8): the memory scope indexes the canonical
+    # dual-read: the memory scope indexes the canonical
     # docs/adlc/memory root plus any records still in the legacy .adlc/memory
     # root (migration stragglers). The index is written where the records
     # live — docs preferred whenever it holds any record, else legacy.
@@ -718,7 +718,7 @@ get_adr_by_id() {
     local scope="${2:-drafts}"
     local adr_dir="$REPO_ROOT/.adlc/$scope/adr"
 
-    # ADR-401 dual-read (R8): the memory scope searches the canonical
+    # dual-read: the memory scope searches the canonical
     # docs/adlc/memory root first, then the legacy .adlc/memory root
     # (both are checked per file so migration stragglers are found even
     # when the docs dir already exists).
@@ -759,7 +759,7 @@ list_adrs() {
     local adr_dir="$REPO_ROOT/.adlc/$scope/adr"
 
     if [[ "$scope" == "memory" ]]; then
-        # ADR-401 dual-read (R8): list the canonical docs/adlc/memory root and
+        # dual-read: list the canonical docs/adlc/memory root and
         # the legacy .adlc/memory root.
         local _docs_dir="$REPO_ROOT/${DOCS_ADLC_MEMORY:-docs/adlc/memory}/adr"
         { ls -1 "$_docs_dir"/ADR-*.md "$adr_dir"/ADR-*.md 2>/dev/null || true; } | sed -E 's#.*/##; s/\.md$//' | LC_ALL=C sort
@@ -774,7 +774,7 @@ get_adr_count() {
     local adr_dir="$REPO_ROOT/.adlc/$scope/adr"
 
     if [[ "$scope" == "memory" ]]; then
-        # ADR-401 dual-read (R8): sum the canonical docs/adlc/memory root and
+        # dual-read: sum the canonical docs/adlc/memory root and
         # the legacy .adlc/memory root.
         local _docs_dir="$REPO_ROOT/${DOCS_ADLC_MEMORY:-docs/adlc/memory}/adr"
         echo $(( $(ls -1 "$_docs_dir"/ADR-*.md 2>/dev/null | wc -l) + $(ls -1 "$adr_dir"/ADR-*.md 2>/dev/null | wc -l) ))
@@ -816,7 +816,7 @@ move_adr() {
 
     local from_dir="$REPO_ROOT/.adlc/$from_scope/adr"
     local to_dir="$REPO_ROOT/.adlc/$to_scope/adr"
-    # ADR-401 R8: promotion writers write the NEW path only — the memory
+    # dual-read: promotion writers write the NEW path only — the memory
     # scope targets docs/adlc/memory (readers dual-read the legacy root).
     if [[ "$to_scope" == "memory" ]]; then
         to_dir="$REPO_ROOT/${DOCS_ADLC_MEMORY:-docs/adlc/memory}/adr"
@@ -1000,7 +1000,7 @@ action_clarify() {
 
 
     # Check drafts first (primary working location), fall back to memory if drafts is empty.
-    # ADR-401 dual-read (R8): the memory fallback prefers docs/adlc/memory and
+    # dual-read: the memory fallback prefers docs/adlc/memory and
     # falls back to legacy .adlc/memory.
     local adr_dir="$REPO_ROOT/${ADLC_DRAFTS:-.adlc/drafts}/adr"
     local adr_dir="$REPO_ROOT/${ADLC_DRAFTS:-.adlc/drafts}/adr"
@@ -1370,7 +1370,7 @@ action_review() {
         done
     fi
     
- # Check constitution alignment if it exists (ADR-401 dual-read)
+ # Check constitution alignment if it exists (dual-read)
  local constitution_file
  constitution_file=$(_adlc_memory_path "constitution.md")
     if [[ -f "$constitution_file" ]]; then
@@ -1380,7 +1380,7 @@ action_review() {
         echo "Manually verify that architecture adheres to constitutional principles" >&2
     fi
     
-    # Check for ADRs (ADR-401 dual-read)
+    # Check for ADRs (dual-read)
     local adr_mem_dir
     adr_mem_dir=$(_adlc_memory_path "adr")
     if [[ -d "$adr_mem_dir" ]]; then
@@ -1418,11 +1418,11 @@ action_analyze() {
     # Auto-migrate before analysis
 
 
-    # ADR-401 dual-read: compiled AD at docs/adlc/architect/AD.md, legacy
+    # dual-read: compiled AD at docs/adlc/architect/AD.md, legacy
     # repo-root AD.md fallback.
     local ad_file="$REPO_ROOT/${DOCS_ADLC_ARCHITECT:-docs/adlc/architect}/AD.md"
     if [[ ! -f "$ad_file" ]]; then ad_file="$REPO_ROOT/AD.md"; fi
-    # ADR-401 dual-read: canonical docs/adlc/memory first, legacy fallback.
+    # dual-read: canonical docs/adlc/memory first, legacy fallback.
     local adr_dir
     adr_dir=$(_adlc_memory_path "adr")
     local constitution_file
@@ -1525,7 +1525,7 @@ action_plan_dag() {
     fi
 
     # Ensure directories exist (state stays under .adlc/architect; views are
-    # published under docs/adlc/architect/views per ADR-401).
+    # published under docs/adlc/architect/views per the shared layout).
     mkdir -p "$REPO_ROOT/.adlc/architect"
     mkdir -p "$views_dir"
 
@@ -1734,7 +1734,7 @@ PY
 
 # Action: Validate (READ-ONLY architecture validation for plan alignment)
 action_validate() {
-    # ADR-401 dual-read: canonical docs/adlc/memory first, legacy fallback.
+    # dual-read: canonical docs/adlc/memory first, legacy fallback.
     local adr_dir
     adr_dir=$(_adlc_memory_path "adr")
 

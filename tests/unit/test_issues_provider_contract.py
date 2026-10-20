@@ -1,4 +1,4 @@
-"""issues-provider.yml release contract tests (ADR-427, RED gate).
+"""issues-provider.yml release contract tests (the factory-owned provider config, RED gate).
 
 Asserts the factory-owned tracker provider config contract:
 - canonical template ships in the factory release next to tracker-integration.md
@@ -6,7 +6,7 @@ Asserts the factory-owned tracker provider config contract:
 - tracker-integration.md resolves params > .adlc/issues-provider.yml > loud
   halt (no silent github default, no spec-kit path read)
 
-These tests MUST fail until the ADR-427 contract is implemented.
+These tests MUST fail until the factory-owned provider config contract is implemented.
 """
 from pathlib import Path
 

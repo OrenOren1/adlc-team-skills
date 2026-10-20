@@ -158,7 +158,7 @@ Emitted by `workspace.sh --json`:
 
 ### Phase 1: `.adlc/` Structure Creation
 
-The setup script creates the `.adlc/` directory tree if it doesn't exist (`product/`, `drafts/`, and the per-family draft subdirectories — ADR-401 scopes `.adlc/` to machine pipeline state). This is the shared context directory where other skills write drafts and pipeline state; published decision records and compiled deliverables live under `docs/adlc/`.
+The setup script creates the `.adlc/` directory tree if it doesn't exist (`product/`, `drafts/`, and the per-family draft subdirectories — the shared layout scopes `.adlc/` to machine pipeline state). This is the shared context directory where other skills write drafts and pipeline state; published decision records and compiled deliverables live under `docs/adlc/`.
 
 **Idempotent**: already-existing directories are not recreated.
 
@@ -166,7 +166,7 @@ The setup script creates the `.adlc/` directory tree if it doesn't exist (`produ
 
 The setup script checks `.gitignore` for workspace conventions and reports missing rules.
 
-**Allowlist model (ADR-401 R7)** — `.adlc/` is no longer ignored wholesale. Machine pipeline state is ignored via `.adlc/*` with tracked exceptions re-included; published content under `docs/adlc/` is always tracked:
+**Allowlist model** — `.adlc/` is no longer ignored wholesale. Machine pipeline state is ignored via `.adlc/*` with tracked exceptions re-included; published content under `docs/adlc/` is always tracked:
 
 ```gitignore
 # agent-install surface (regenerated)

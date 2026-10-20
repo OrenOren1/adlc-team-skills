@@ -111,7 +111,7 @@ if ($Json) {
 }
 
 # Markdown output. 0 matches → heading + source line only, no table: a 0-row
-# table header collapses into unrendered single-line markdown (ADR-413).
+# table header collapses into unrendered single-line markdown (the 6-column table).
 Write-Output "## Tikal Tech Radar Context"
 Write-Output ""
 if ($results.Count -gt 0) {

@@ -36,7 +36,7 @@ ps: scripts/powershell/setup-product-clarify.ps1
 ```
 
 2. **Read all PDR files** from `{REPO_ROOT}/.adlc/drafts/pdr/PDR-*.md`
-3. **Read constitution** from `{REPO_ROOT}/docs/adlc/memory/constitution.md`, falling back to legacy `{REPO_ROOT}/.adlc/memory/constitution.md` (ADR-401 dual-read), if either exists
+3. **Read constitution** from `{REPO_ROOT}/docs/adlc/memory/constitution.md`, falling back to legacy `{REPO_ROOT}/.adlc/memory/constitution.md` (dual-read), if either exists
 4. **Build inventory**:
 ```markdown
 | PDR | Title | Status | Category |

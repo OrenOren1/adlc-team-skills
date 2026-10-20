@@ -379,7 +379,7 @@ implementation, so the class context informs planning; never defer to session en
 or post-hoc. When no local memory index exists in the current working directory
 and the directory sits inside a workspace (detected via a \`.gitmodules\` marker
 in an ancestor), the boot reads the workspace root's \`docs/adlc/memory/\` index
-instead (ADR-401 dual-read order applies: \`docs/adlc/memory\` first, legacy
+instead (the dual-read order applies: \`docs/adlc/memory\` first, legacy
 \`.adlc/memory\` fallback).
 
 ## Class Boots

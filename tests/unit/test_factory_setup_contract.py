@@ -1,4 +1,4 @@
-"""factory-setup skill contract tests (ADR-428, RED gate).
+"""factory-setup skill contract tests (the provider config, RED gate).
 
 Asserts the first-run creation contract for the factory tracker config:
 - factory-setup skill ships with trigger-only description and mode references
@@ -6,7 +6,7 @@ Asserts the first-run creation contract for the factory tracker config:
 - tracker-integration.md halt names /factory-setup as the fix path
 - team-boot suggests factory-setup when no provider config resolves
 
-These tests MUST fail until the ADR-428 contract is implemented.
+These tests MUST fail until the provider configcontract is implemented.
 """
 from pathlib import Path
 

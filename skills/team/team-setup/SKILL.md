@@ -120,11 +120,11 @@ After any mode completes successfully, update the project configuration:
 2. Verify the team AI directives is accessible by running a quick health check:
    - `{TEAM_AI_DIRECTIVES}/context_modules/constitution.md` exists
    - `{TEAM_AI_DIRECTIVES}/.skills.json` exists and is valid JSON
-3. Check the `.gitignore` convention (ADR-401 R7 allowlist — see the Gitignore Convention Check step below).
+3. Check the `.gitignore` convention (layout allowlist — see the Gitignore Convention Check step below).
 4. Inject the project-level `AGENTS.md` directive — full command and managed-section contract in `references/post-setup-agents.md`.
 5. Install MCP config — merge details in `references/post-setup-mcp.md`.
 
-#### Gitignore Convention Check (ADR-401 R7)
+#### Gitignore Convention Check
 
 Verify `.gitignore` follows the ADLC allowlist — a fresh `team setup` must
 never leave a wholesale `.adlc/` ignore in place (it would hide the tracked
@@ -184,7 +184,7 @@ never leave a wholesale `.adlc/` ignore in place (it would hide the tracked
 - [ ] `{TEAM_AI_DIRECTIVES}/CDR.md` exists.
 - [ ] `{TEAM_AI_DIRECTIVES}/.skills.json` exists and is valid JSON.
 - [ ] `.adlc/init-options.json` contains a `team_ai_directives` field with the absolute path.
-- [ ] `.gitignore` follows the ADR-401 R7 allowlist (no wholesale `.adlc/` ignore; tracked exceptions `!.adlc/init-options.json`, `!.adlc/workspace.yml`, `!.adlc/drafts/`, `!.adlc/evals/`, `!.adlc/memory/evals/holdout.json` present).
+- [ ] `.gitignore` follows the layout allowlist (no wholesale `.adlc/` ignore; tracked exceptions `!.adlc/init-options.json`, `!.adlc/workspace.yml`, `!.adlc/drafts/`, `!.adlc/evals/`, `!.adlc/memory/evals/holdout.json` present).
 - [ ] Project-level `AGENTS.md` exists and contains the `<!-- TEAM_AI_DIRECTIVES START -->` managed section with the event-hook awareness note, fallback `team-boot` invocation, and the Team Context in Use output contract.
 - [ ] (Mode 3 only) `git rev-parse --is-inside-work-tree` succeeds inside `{TEAM_AI_DIRECTIVES}`.
 - [ ] Running `team-verify` (Phase 0 of team-repair) passes all 7 checks.

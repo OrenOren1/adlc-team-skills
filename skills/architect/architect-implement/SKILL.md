@@ -1075,7 +1075,7 @@ After generating AD.md, perform ALL of the following steps:
   set. If >0, STOP and fix before proceeding.
 
 **Step 2: Copy to Canonical Location (MANDATORY)**
-- Move Accepted ADR files into `{REPO_ROOT}/docs/adlc/memory/adr/` (ADR-401 canonical memory root)
+- Move Accepted ADR files into `{REPO_ROOT}/docs/adlc/memory/adr/` (the shared layout canonical memory root)
 - Create the file if it doesn't exist, or merge with existing content
 - **VERIFY**: Read the file back and confirm ADRs are present
 
@@ -1089,7 +1089,7 @@ After generating AD.md, perform ALL of the following steps:
 
 **Step 3b: Generate Memory ADR Index (MANDATORY)**
 
-After moving Accepted ADRs to `docs/adlc/memory/adr/`, generate a memory index file at `{REPO_ROOT}/docs/adlc/memory/adr/adr.md` using the `generate_adr_index` function from the setup script (the same function that generates the drafts index, but with scope=memory — ADR-401: the memory scope writes the index to the docs root whenever it holds records):
+After moving Accepted ADRs to `docs/adlc/memory/adr/`, generate a memory index file at `{REPO_ROOT}/docs/adlc/memory/adr/adr.md` using the `generate_adr_index` function from the setup script (the same function that generates the drafts index, but with scope=memory —  the memory scope writes the index to the docs root whenever it holds records):
 
 ```bash
 source "{REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/setup-architect.sh"
@@ -1108,7 +1108,7 @@ This writes `{REPO_ROOT}/docs/adlc/memory/adr/adr.md` with the 7-column schema, 
 
 | ID | Sub-System | Decision | Status | Date |
 |----|------------|----------|--------|------|
-| ADR-301 | System | Agent-Agnostic Container Architecture | Completed | 2026-08-08 |
+| ADR-009 | System | System Architecture Style | Completed | 2026-10-19 |
 ```
 
 This index is consumed by `team-boot` for session-start injection and by `architect-analyze` for architecture review (similar to how `CDR.md` is used for team-level context).

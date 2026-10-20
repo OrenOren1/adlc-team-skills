@@ -32,7 +32,7 @@ It implements the following key factory platform capabilities:
 - You want to run autonomously against a ticket queue.
 
 **When NOT to use**:
-- For non-factory standalone projects (run `adlc-cli workflow run <workflow.yml>` — the CLI engine, ADR-395).
+- For non-factory standalone projects (run `adlc-cli workflow run <workflow.yml>` — the CLI engine, shared run state).
 - Trivial 1-line changes (do them directly).
 
 ---
@@ -53,7 +53,7 @@ It implements the following key factory platform capabilities:
 5. Resolve hierarchical Context Parameters from `agent < workflow < repository < project < default` and embed the frozen value map in the brief.
 6. Generate the step list based on route classification (`spec`, `change`, `quick`). Each step declares `output_type` (`draft`/`decision`/`findings`/`artifact-ref`) and `reads_from` (markers or local paths) per the executor contract.
 
-**Team index fallback:** when no team record-class index was injected at session start, read the binding records directly from `docs/adlc/memory/` (ADR-401 dual-read order: `docs/adlc/memory` first, legacy `.adlc/memory` fallback) and state that fallback in one line. Never block on the missing injection.
+**Team index fallback:** when no team record-class index was injected at session start, read the binding records directly from `docs/adlc/memory/` (dual-read order: `docs/adlc/memory` first, legacy `.adlc/memory` fallback) and state that fallback in one line. Never block on the missing injection.
 
 ### Phase 5: Executing the Converge Loop
 Execute steps sequentially. When reaching `implement` / `converge`:
