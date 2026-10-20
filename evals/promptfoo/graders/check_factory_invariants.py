@@ -158,37 +158,40 @@ def check_provisioning_confirmed(output: str) -> dict:
 
 # Main get_assert function that delegates to the specific checkers
 def get_assert(output: str, context: dict = None) -> dict:
+    # Routing is by the criterion slug that PREFIXES the scenario string
+    # ("<slug>: <prose>"), never by a substring match: a prose sentence that
+    # merely mentions another slug must not mis-route.
     scenario = context.get("vars", {}).get("scenario", "")
-    
-    if "authorship-preservation" in scenario:
+
+    if scenario.startswith("authorship-preservation:"):
         return check_authorship_preservation(output)
-    if "committer-identity-validation" in scenario:
+    if scenario.startswith("committer-identity-validation:"):
         return check_committer_identity(output)
-    if "heartbeat-output-redirection" in scenario:
+    if scenario.startswith("heartbeat-output-redirection:"):
         return check_heartbeat_pipe_leak(output)
-    if "draft-locality" in scenario:
+    if scenario.startswith("draft-locality:"):
         return check_output_classification(output)
-    if "decision-audit" in scenario:
+    if scenario.startswith("decision-audit:"):
         return check_decision_audit_trail(output)
-    if "read-only" in scenario:
+    if scenario.startswith("read-only:"):
         return check_tickets_readonly(output)
-    if "liveness-recheck" in scenario:
+    if scenario.startswith("liveness-recheck:"):
         return check_clean_liveness_reverify(output)
-    if "ingestion-triage-comment-gating" in scenario:
+    if scenario.startswith("ingestion-triage-comment-gating:"):
         return check_unattended_triage(output)
-    if "scratchpad-staging" in scenario:
+    if scenario.startswith("scratchpad-staging:"):
         return check_scratchpad_staging(output)
-    if "tracker-agnostic-status-transitions" in scenario:
+    if scenario.startswith("tracker-agnostic-status-transitions:"):
         return check_status_transitions(output)
-    if "distributed-lease-locking" in scenario:
+    if scenario.startswith("distributed-lease-locking:"):
         return check_distributed_lease_collision(output)
-    if "layer-tagged-correction-routing" in scenario:
+    if scenario.startswith("layer-tagged-correction-routing:"):
         return check_sweep_layer_routing(output)
-    if "provider-config" in scenario:
+    if scenario.startswith("provider-config:"):
         return check_no_credential_in_provider(output)
-    if "label-mapping" in scenario:
+    if scenario.startswith("label-mapping:"):
         return check_label_mapping_respected(output, scenario)
-    if "label-provisioning" in scenario:
+    if scenario.startswith("label-provisioning:"):
         return check_provisioning_confirmed(output)
         
     return {

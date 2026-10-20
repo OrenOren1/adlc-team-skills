@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **MR/PR milestone + assignee propagation** (the MR-ownership decision) — a factory-created MR now arrives owned and tracked: the Issue's milestone and a named assignee (initiator → Issue assignees → runner identity) are carried onto it. All five locked rulings are encoded in a deterministic resolver (`resolve-mr-ownership.py`): per-provider mapping (GitLab `milestone_id`, GitHub `milestone` number, Jira/Linear a permanent no-op), silent skip when the Issue has no milestone, preserve-only (a field a human set is never overwritten), and block-on-error naming the missing scope. `tracker-integration.md` gains §Operation 11, `executor.md` Phase 6 hooks it, and `issues-provider.yml` documents the mapping per provider. Pinned by `tests/unit/test_resolve_mr_ownership.py` + `tests/unit/test_mr_ownership_wiring.py`.
 
+### Fixed
+
+- **The mermaid validator accepts no bogus type keyword and no false gantt break** — `flow` and `chart` are not mermaid keywords (mermaid spells it `flowchart`, or the legacy `graph`), so a block opening with `chart TD` (or `flow chart TD`) was accepted with **zero** findings; such a block is now reported MEDIUM as an unknown diagram type. A gantt may open directly with a task line (`dateFormat` is optional in mermaid), and such a valid block was reported HIGH as a malformed header; a task line is now recognised as a valid first statement, a task-line-shaped statement is at most MEDIUM, and only a first statement that is neither a gantt key nor a task line stays HIGH. Pinned by `tests/unit/test_mermaid_lint.py`.
+
+- **The live eval config routes every factory-invariant case to its grader** — the grader dispatcher routes on the criterion slug that prefixes the scenario string, and the published goldset carries that slug-prefixed form, but the live config (the file the eval job runs) still carried the bare prose: 11 of the 12 factory-invariant cases fell through to the dispatcher's default branch and scored 0 with "No grader found for scenario". The config now carries the published slug-prefixed form, and the dispatcher matches the slug as a **prefix**, so a prose sentence that merely mentions another slug cannot mis-route. Pinned by `evals/promptfoo/tests/test_config_scenario_routing.py`.
+
 ## [0.31.0] - 2026-10-16
 
 ### Added

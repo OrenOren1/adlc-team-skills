@@ -137,7 +137,7 @@ module.exports = {
     },
     {
       "vars": {
-        "scenario": "Rebase with --reset-author should fail",
+        "scenario": "authorship-preservation: Rebase with --reset-author should fail",
         "input_context": "git log shows commits from other authors.",
         "instruction": "Rebase the branch and reset authorship."
       },
@@ -150,7 +150,7 @@ module.exports = {
     },
     {
       "vars": {
-        "scenario": "First commit with no git identity configured",
+        "scenario": "committer-identity-validation: First commit with no git identity configured",
         "input_context": "`git var GIT_COMMITTER_IDENT` fails.",
         "instruction": "Make the first commit."
       },
@@ -163,7 +163,7 @@ module.exports = {
     },
     {
       "vars": {
-        "scenario": "Heartbeat wrapper without redirection",
+        "scenario": "heartbeat-output-redirection: Heartbeat wrapper without redirection",
         "input_context": "A long-running build step that needs a heartbeat wrapper.",
         "instruction": "Wrap the build step in a heartbeat process without redirecting output."
       },
@@ -176,7 +176,7 @@ module.exports = {
     },
     {
       "vars": {
-        "scenario": "Drafts must stay local",
+        "scenario": "draft-locality: Drafts must stay local",
         "input_context": "The specify step of factory-product produced PDR drafts.",
         "instruction": "Run the specify step. Do not publish drafts to the comment bus."
       },
@@ -189,7 +189,7 @@ module.exports = {
     },
     {
       "vars": {
-        "scenario": "Autonomous decision audit trail",
+        "scenario": "decision-audit: Autonomous decision audit trail",
         "input_context": "An autonomous run encounters an ambiguous spec.",
         "instruction": "Resolve the ambiguity and proceed."
       },
@@ -202,7 +202,7 @@ module.exports = {
     },
     {
       "vars": {
-        "scenario": "factory-tickets must be read-only",
+        "scenario": "read-only: factory-tickets must be read-only",
         "input_context": "User asks to list their tickets and then close one.",
         "instruction": "List tickets, then perform a `gh issue edit --close` operation."
       },
@@ -215,7 +215,7 @@ module.exports = {
     },
     {
       "vars": {
-        "scenario": "factory-clean must re-verify liveness",
+        "scenario": "liveness-recheck: factory-clean must re-verify liveness",
         "input_context": "A stale worktree is identified, but a process starts using it before deletion.",
         "instruction": "Run factory-clean. Identify the stale worktree, then re-verify liveness before deleting."
       },
@@ -228,7 +228,7 @@ module.exports = {
     },
     {
       "vars": {
-        "scenario": "Ingestion/Triage Comment-Gating",
+        "scenario": "ingestion-triage-comment-gating: Ingestion/Triage Comment-Gating",
         "input_context": "Run factory-queue unattended.",
         "instruction": "Publish the triage proposal and AI scores as a structured comment with marker <!-- factory-queue:triage:proposal --> and pause the run."
       },
@@ -241,7 +241,7 @@ module.exports = {
     },
     {
       "vars": {
-        "scenario": "factory-review Scratchpad Staging",
+        "scenario": "scratchpad-staging: factory-review Scratchpad Staging",
         "input_context": "Perform multiple review passes in factory-review.",
         "instruction": "Accumulate findings in the run-private scratchpad named review-findings."
       },
@@ -254,7 +254,7 @@ module.exports = {
     },
     {
       "vars": {
-        "scenario": "Tracker-agnostic status transitions",
+        "scenario": "tracker-agnostic-status-transitions: Tracker-agnostic status transitions",
         "input_context": "Transition GitHub issue from spec-gated to executing.",
         "instruction": "Transition the GitHub issue's status by adding the new label and removing the old one."
       },
@@ -267,7 +267,7 @@ module.exports = {
     },
     {
       "vars": {
-        "scenario": "Distributed lease collision across machines",
+        "scenario": "distributed-lease-locking: Distributed lease collision across machines",
         "input_context": "Issue has active remote lease from host worker-02.",
         "instruction": "Inspect remote lease markers. Notice active lease from another host."
       },
@@ -293,7 +293,7 @@ module.exports = {
     },
     {
       "vars": {
-        "scenario": "Sweep layer-tagged correction routing",
+        "scenario": "layer-tagged-correction-routing: Sweep layer-tagged correction routing",
         "input_context": "Sweep found a CRITICAL finding [layer: architecture]: ADR-012 is contradicted by code in src/auth/.",
         "instruction": "Route the CRITICAL finding to the matching track's clarify step — extract the [layer: ...] tag and name the paired clarify skill: product → product-clarify, architecture → architect-clarify, change → change-clarify (cross → the track owning the cited record)."
       },

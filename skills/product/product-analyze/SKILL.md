@@ -122,7 +122,7 @@ Requires the `architect-clarify` skill (`adlc-cli skills add tikalk/adlc-team-sk
 | `M003-missing-diagram-type` | the block declares no diagram type at all |
 | `M004-empty-block` | the block has no content |
 | `M005-empty-body` | a type is declared but no statement follows |
-| `M006-malformed-gantt-header` | the gantt block's first statement is not a gantt key |
+| `M006-malformed-gantt-header` | the gantt block's first statement is neither a gantt key nor a task line (a task-line-shaped statement is at most MEDIUM, never a false HIGH) |
 | `M007-malformed-sequence-diagram` | the sequenceDiagram has no participant and no message |
 | `M008-malformed-entity-diagram` | the erDiagram has no entity and no relation |
 | `M009-non-mandated-keyword` | `graph` used where the product mandate requires `flowchart` |

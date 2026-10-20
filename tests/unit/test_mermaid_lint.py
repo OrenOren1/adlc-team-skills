@@ -180,6 +180,11 @@ journey
   section Go
     Make tea: 5: Me
 ```
+
+```mermaid
+gantt
+    Task name : a1, 2024-01-01, 3d
+```
 """
 
 
@@ -206,6 +211,61 @@ def test_unknown_diagram_type_is_medium_not_high(tmp_path):
     assert len(findings) == 1
     assert findings[0]["rule"] == "M002-unknown-diagram-type"
     assert findings[0]["severity"] == "MEDIUM", "unknown type must never be a false HIGH"
+    assert code == 2, "MEDIUM-only findings exit 2"
+
+
+# ── the keyword table holds only real mermaid keywords ─────────────────────
+
+@pytest.mark.parametrize("header", ["chart TD", "flow chart TD"])
+def test_bogus_type_keywords_are_reported_never_silently_accepted(tmp_path, header):
+    """`flow` and `chart` are not mermaid keywords — mermaid spells it
+    `flowchart` (one word) or the legacy `graph`. A block that opens with
+    one of them is an unknown type: MEDIUM, never a false HIGH, never
+    silently accepted."""
+    text = f"```mermaid\n{header}\n  A --> B\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert len(findings) == 1, f"{header!r} must be reported, got {findings}"
+    assert findings[0]["rule"] == "M002-unknown-diagram-type"
+    assert findings[0]["severity"] == "MEDIUM", "a bogus type is never a false HIGH"
+    assert code == 2, "MEDIUM-only findings exit 2"
+
+
+# ── gantt: a task line is a valid first statement ──────────────────────────
+
+def test_gantt_may_open_with_a_task_line(tmp_path):
+    """`dateFormat` is optional in mermaid — a gantt may open directly with
+    a task line. Reporting it HIGH was a false syntax break."""
+    text = "```mermaid\ngantt\n    Task name : a1, 2024-01-01, 3d\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert findings == [], f"a valid gantt must not be flagged: {findings}"
+    assert code == 0
+
+
+def test_gantt_may_open_with_a_tagged_task_line(tmp_path):
+    """A task line carries optional tags before the id — still a task line."""
+    text = "```mermaid\ngantt\n    Completed task :done, des1, 2026-01-06, 2026-01-08\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert findings == [], f"a valid gantt must not be flagged: {findings}"
+    assert code == 0
+
+
+def test_malformed_gantt_header_is_still_high(tmp_path):
+    """A first statement that is neither a gantt key nor a task line is a
+    syntax break — the finding stays HIGH."""
+    text = "```mermaid\ngantt\n  this line is not a gantt key\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert [f["rule"] for f in findings] == ["M006-malformed-gantt-header"]
+    assert findings[0]["severity"] == "HIGH"
+    assert code == 1
+
+
+def test_task_line_shaped_gantt_statement_is_at_most_medium(tmp_path):
+    """An ambiguous task line is not a syntax break — never a false HIGH."""
+    text = "```mermaid\ngantt\n    Task : a1\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert findings, "an ambiguous task line must still be reported"
+    assert findings[0]["rule"] == "M006-malformed-gantt-header"
+    assert findings[0]["severity"] == "MEDIUM", "never a false HIGH"
     assert code == 2, "MEDIUM-only findings exit 2"
 
 

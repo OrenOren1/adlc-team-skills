@@ -62,15 +62,26 @@ fi
 # ── rule tables ──────────────────────────────────────────────────────────────
 # Known mermaid diagram keywords. A block whose first content line is not in
 # this set is MEDIUM (unknown-but-plausible -> review prompt), never HIGH.
-KNOWN_TYPES=" flow chart flowchart graph gantt journey erDiagram sequenceDiagram classDiagram stateDiagram stateDiagram-v2 pie mindmap timeline quadrantChart gitGraph requirementDiagram C4Context C4Container C4Component C4Dynamic C4Deployment zenuml block-beta sankey-beta packet-beta kanban architecture-beta xychart-beta treemap-beta radar-beta "
+# `flow` and `chart` are NOT keywords: mermaid spells it `flowchart` (one
+# word) or the legacy `graph`. A block opening with `chart TD` (or
+# `flow chart TD`) therefore falls through to the MEDIUM M002 branch.
+KNOWN_TYPES=" flowchart graph gantt journey erDiagram sequenceDiagram classDiagram stateDiagram stateDiagram-v2 pie mindmap timeline quadrantChart gitGraph requirementDiagram C4Context C4Container C4Component C4Dynamic C4Deployment zenuml block-beta sankey-beta packet-beta kanban architecture-beta xychart-beta treemap-beta radar-beta "
 
 # The product mandate (product-implement) requires `flowchart`, not `graph`.
 # `graph` still renders, so it is a style finding, not a syntax break.
-MANDATED_FLOWCHART_TYPES=" flow chart flowchart graph "
+MANDATED_FLOWCHART_TYPES=" flowchart graph "
 
-# gantt statements that are structurally meaningful (a task line is a bare
-# "Task name : a1, a2" — recognised separately).
+# gantt statements that are structurally meaningful.
 GANTT_KEYS=" dateFormat axisFormat excludes includes section todayMarker tickInterval weekday weekend title "
+
+# A gantt task line: "<name> : <id>, <start>[, <end|duration>]". The
+# `dateFormat` key is optional in mermaid, so a task line is a valid first
+# statement — recognised separately from the keys above.
+GANTT_TASK_RE='^[^:]+:[^,]+,[[:space:]]*[^,]+'
+
+# A task-line-shaped statement that is not a complete task line ("<name> :"
+# with no id/start): ambiguous, so it is reported MEDIUM, never a false HIGH.
+GANTT_TASK_LOOSE_RE='^[^:]+:'
 
 # sequenceDiagram statement heads.
 SEQ_KEYS=" participant actor boundary control entity database collections queue alt else opt loop par and rect activate deactivate note link links over right left of end "
@@ -181,11 +192,22 @@ lint_file() {
                         fi
                         case "$type_kw" in
                             gantt)
-                                if ! has_word "$GANTT_KEYS" "$(first_word "$body_first")"; then
-                                    emit HIGH M006-malformed-gantt-header "$file" "$body_first_line" "$fence_index" \
-                                        "gantt block's first statement is not a gantt key" \
+                                local gantt_head
+                                gantt_head=$(first_word "$body_first")
+                                if has_word "$GANTT_KEYS" "$gantt_head"; then
+                                    :
+                                elif printf '%s' "$body_first" | grep -qE "$GANTT_TASK_RE"; then
+                                    :
+                                elif printf '%s' "$body_first" | grep -qE "$GANTT_TASK_LOOSE_RE"; then
+                                    emit MEDIUM M006-malformed-gantt-header "$file" "$body_first_line" "$fence_index" \
+                                        "gantt block's first statement looks like a task line but is incomplete" \
                                         "$body_first" \
-                                        "start with a gantt key (e.g. \`dateFormat YYYY-MM-DD\`) or a section"
+                                        "write the task as \`<name> : <id>, <start>[, <end|duration>]\`"
+                                else
+                                    emit HIGH M006-malformed-gantt-header "$file" "$body_first_line" "$fence_index" \
+                                        "gantt block's first statement is neither a gantt key nor a task line" \
+                                        "$body_first" \
+                                        "start with a gantt key (e.g. \`dateFormat YYYY-MM-DD\`) or a task line (e.g. \`Task : a1, 2024-01-01, 3d\`)"
                                 fi
                                 ;;
                             sequenceDiagram)
