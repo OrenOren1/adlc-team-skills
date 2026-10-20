@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`REVIEW.md` — the repository's review policy as code** — the factory-review skill reads its passes, severity weights and skip lists from the repository root, so every PR is reviewed against one written policy instead of an implicit one. Ships the standard passes (bugs · security · spec-compliance · quality) plus the two integrity passes the factory-review hardening record calls for — **test-integrity** (assertions rewritten or weakened so a change passes) and **ci-integrity** (guardrails removed, or a green check that never ran because its step was skipped) — the evidence intake bar (intent · execution evidence · size sanity), and the verdict contract: a verdict certifies exactly one head SHA, lists what was and was not checked, never attests that the requirements are correct, and never approves or merges.
 ### Changed
 
 - **No decision-record ids are cited anywhere in this repository** — this repo owns no records (the catalogue is centralized in the adlc-workspace), so every id it named pointed at a file in another repository *and* at an id that can move under the citation (a workspace record was renumbered while a branch here was open). Every citation now names the **decision in prose**; the ids that remain are only the local example namespace — the ids the skills use for records they create in a consumer's workspace, and the parser fixtures. The rule is pinned by `tests/unit/test_no_record_id_citations.py`, which scans the shipped skills, the eval harness, the docs, the tests and the installed mirror. `docs/decision-memory.md` keeps the centralization record and now states the no-citation rule.
