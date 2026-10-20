@@ -14,6 +14,13 @@
 #   MEDIUM = style         — renderable but non-mandated form, or a type this
 #                            rule set cannot vouch for (never a false HIGH)
 #
+# Comments and directives:
+#   `%% …` is a mermaid comment and `%%{ … }%%` is a mermaid directive. Both
+#   are legal anywhere inside a block and carry no diagram content — mermaid
+#   strips them before it parses the block. This validator therefore skips
+#   them wherever it reads a block: they are never the block's type
+#   declaration and never one of its statements.
+#
 # Usage:
 #   mermaid-lint.sh [--tsv] <file> [file...]
 #
@@ -125,6 +132,17 @@ first_word() {
     printf '%s' "$1" | sed -e 's/^[[:space:]]*//' | awk '{print $1}'
 }
 
+# Is this line a mermaid comment (`%% …`) or directive (`%%{ … }%%`)?
+# The check is on the line's first non-space content: a `%%` inside a
+# statement (`A --> B %% note`) is a trailing comment on a real statement
+# and the statement still counts.
+is_comment() {
+    case "$(printf '%s' "$1" | sed -e 's/^[[:space:]]*//')" in
+        '%%'*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 lint_file() {
     local file="$1"
     if [ ! -f "$file" ]; then
@@ -133,7 +151,11 @@ lint_file() {
     fi
 
     local lineno=0 fence_index=0 in_block=0 block_start=0 block_header="" block_header_line=0
-    local body_lines=0 body_first="" body_first_line=0 decl=""
+    # body_lines counts every line inside the block (the type declaration,
+    # blank lines and comments included); content_lines counts only the
+    # lines that carry diagram content — the type declaration and its
+    # statements. comment_lines counts the stripped comments/directives.
+    local body_lines=0 content_lines=0 comment_lines=0 body_first="" body_first_line=0 decl=""
     local line
 
     while IFS= read -r line || [ -n "$line" ]; do
@@ -150,6 +172,8 @@ lint_file() {
                     block_header=""
                     block_header_line=0
                     body_lines=0
+                    content_lines=0
+                    comment_lines=0
                     body_first=""
                     body_first_line=0
                     decl=""
@@ -162,9 +186,22 @@ lint_file() {
         case "$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//')" in
             '```')
                 # ── classify the block that just closed ──────────────────
-                if [ "$body_lines" -eq 0 ]; then
+                if [ "$content_lines" -eq 0 ]; then
+                    # The block carries no diagram content — mermaid strips
+                    # comments and directives before it parses, so a block
+                    # holding only those is, to mermaid, an empty block: its
+                    # own parser refuses it with "No diagram type detected".
+                    # The block therefore cannot render, and HIGH stays the
+                    # honest severity (HIGH = the block cannot render) — this
+                    # is a real syntax break, not a false one. A MEDIUM
+                    # "nothing verifiable here" would misreport a block that
+                    # mermaid is certain about.
+                    local empty_msg="mermaid block has no content"
+                    if [ "$comment_lines" -gt 0 ]; then
+                        empty_msg="mermaid block holds only comments or directives — no diagram content to render"
+                    fi
                     emit HIGH M004-empty-block "$file" "$block_start" "$fence_index" \
-                        "mermaid block has no content" \
+                        "$empty_msg" \
                         "\`\`\`mermaid" \
                         "add the diagram body, e.g. \`\`\`mermaid / flowchart TD / A[Start] --> B[End] / \`\`\`"
                 else
@@ -249,15 +286,28 @@ lint_file() {
 
         # Content line inside the block.
         body_lines=$((body_lines + 1))
-        if [ "$block_header_line" -eq 0 ]; then
-            # First non-blank content line is the type declaration.
-            if [ -n "$(printf '%s' "$line" | tr -d '[:space:]')" ]; then
+        if is_comment "$line"; then
+            # A comment (`%% …`) or a directive (`%%{ … }%%`) is not content:
+            # mermaid strips it before it parses, so it is neither the block's
+            # type declaration nor one of its statements. It still counts as
+            # a line of the block (body_lines), so a body made of comments is
+            # not mistaken for an empty body.
+            comment_lines=$((comment_lines + 1))
+            continue
+        fi
+        if [ -n "$(printf '%s' "$line" | tr -d '[:space:]')" ]; then
+            content_lines=$((content_lines + 1))
+            if [ "$block_header_line" -eq 0 ]; then
+                # First content line is the type declaration — a comment
+                # ahead of it is skipped, so a leading comment never reads
+                # as the diagram's type.
                 block_header_line=$lineno
                 block_header="$line"
                 decl=$(printf '%s' "$line" | awk '{print $1}')
-            fi
-        else
-            if [ -z "$body_first" ] && [ -n "$(printf '%s' "$line" | tr -d '[:space:]')" ]; then
+            elif [ -z "$body_first" ]; then
+                # First statement after the type declaration — comments in
+                # between are skipped, so the first *statement* is read, not
+                # the first line that happens to follow the type.
                 body_first="$line"
                 body_first_line=$lineno
             fi

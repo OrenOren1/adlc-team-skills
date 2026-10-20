@@ -185,6 +185,44 @@ journey
 gantt
     Task name : a1, 2024-01-01, 3d
 ```
+
+```mermaid
+gantt
+  %% the roadmap
+  dateFormat YYYY-MM-DD
+  Task : a1, 2026-01-01, 3d
+```
+
+```mermaid
+sequenceDiagram
+  %% a note
+  participant A
+  A->>B: hi
+```
+
+```mermaid
+erDiagram
+  %% a note
+  CUSTOMER ||--o{ ORDER : places
+```
+
+```mermaid
+%% a leading comment
+flowchart TD
+  A --> B
+```
+
+```mermaid
+%%{init: {"theme":"dark"}}%%
+flowchart TD
+  A --> B
+```
+
+```mermaid
+flowchart TD
+  A --> B
+  %% a trailing comment
+```
 """
 
 
@@ -267,6 +305,68 @@ def test_task_line_shaped_gantt_statement_is_at_most_medium(tmp_path):
     assert findings[0]["rule"] == "M006-malformed-gantt-header"
     assert findings[0]["severity"] == "MEDIUM", "never a false HIGH"
     assert code == 2, "MEDIUM-only findings exit 2"
+
+
+# ── mermaid comments and directives carry no content ────────────────────────
+
+def test_a_comment_is_not_read_as_the_diagram_type(tmp_path):
+    """`%% …` is a comment and `%%{ … }%%` is a directive — mermaid strips
+    both before it parses. A comment ahead of the type must not be read as
+    the type, and a comment between the type and the first statement must not
+    be read as the first statement: both are valid diagrams."""
+    text = "```mermaid\n%% a leading comment\nflowchart TD\n  A --> B\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert findings == [], f"a comment-first diagram must not be flagged: {findings}"
+    assert code == 0
+
+
+def test_a_comment_is_not_read_as_the_first_statement(tmp_path):
+    """The first *statement* is read, not the first line after the type — for
+    every diagram type whose first statement is checked."""
+    text = (
+        "```mermaid\nsequenceDiagram\n  %% a note\n  participant A\n```\n"
+    )
+    code, findings = run_linter(tmp_path, text)
+    assert findings == [], f"a comment-first diagram must not be flagged: {findings}"
+    assert code == 0
+
+
+def test_a_comment_below_the_first_statement_changes_nothing(tmp_path):
+    """A comment after the first statement was already handled correctly —
+    it stays that way."""
+    text = "```mermaid\nflowchart TD\n  A --> B\n  %% a trailing comment\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert findings == [], f"a trailing comment must not be flagged: {findings}"
+    assert code == 0
+
+
+def test_a_comments_only_block_is_an_empty_block(tmp_path):
+    """mermaid strips comments before it parses, so a block holding only a
+    comment is an *empty* block to mermaid — and mermaid's own parser refuses
+    it ("No diagram type detected"). The block cannot render, so the finding
+    stays HIGH: a real syntax break, not a false one."""
+    text = "```mermaid\n  %% only a comment\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert [f["rule"] for f in findings] == ["M004-empty-block"]
+    assert findings[0]["severity"] == "HIGH"
+    assert code == 1
+
+
+def test_a_directive_only_block_is_an_empty_block(tmp_path):
+    """A directive carries no diagram content either — same verdict."""
+    text = "```mermaid\n%%{init: {\"theme\":\"dark\"}}%%\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert [f["rule"] for f in findings] == ["M004-empty-block"]
+    assert findings[0]["severity"] == "HIGH"
+    assert code == 1
+
+
+def test_a_type_with_only_a_comment_below_it_is_not_an_empty_body(tmp_path):
+    """The type line plus a comment is still a body: mermaid renders it."""
+    text = "```mermaid\nflowchart TD\n  %% only a comment\n```\n"
+    code, findings = run_linter(tmp_path, text)
+    assert findings == [], f"a commented body must not be flagged: {findings}"
+    assert code == 0
 
 
 # ── read-only contract (the lifecycle write scope lifecycle write scope) ─────────────────────
