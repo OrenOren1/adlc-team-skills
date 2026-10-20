@@ -6,7 +6,7 @@ from pathlib import Path
 def test_factory_mission_state_initialization(sandbox_project):
     """Verify the factory-mission world: brief construction (factory-mission
     Phase 2) copies the mission policy template into the per-run directory
-    (ADR-389-amendment: the mission-brief skill is removed; namespace v3)."""
+    (the mission-brief format-amendment: the mission-brief skill is removed; namespace v3)."""
     run_id = "run-def456"
     run_dir = sandbox_project / ".adlc" / "workflows" / "runs" / run_id
     config_file = run_dir / "mission.yml"

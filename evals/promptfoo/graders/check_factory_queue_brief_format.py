@@ -3,7 +3,7 @@ import re
 
 def get_assert(output: str, context: dict = None) -> dict:
     """Grader for factory-queue plan mode: generated gate/task issues must use
-    the mission-brief format (ADR-389)."""
+    the mission-brief format (the mission-brief format)."""
     fields = ["**Goal**", "**Constraints**", "**Non-Goals**", "**Success Criteria**"]
     missing = [f for f in fields if f not in output]
     prefixed = re.search(r"^\s*#{0,3}\s*\[(G\d+|M\d+)[^\]]*\]", output, re.MULTILINE)
@@ -23,7 +23,7 @@ def get_assert(output: str, context: dict = None) -> dict:
     return {
         "pass": False,
         "score": 0.0,
-        "reason": "Plan-mode output violates the mission-brief contract (ADR-389) — "
+        "reason": "Plan-mode output violates the mission-brief contract (the mission-brief format) — "
         + "; ".join(problems)
         + f". Output was: {output}"
     }

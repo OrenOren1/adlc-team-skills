@@ -1,5 +1,5 @@
-# Curated lifecycle definition — factory-architect (ADR-391-amendment).
-# Plan-of-record for the architecture lifecycle; dual-executor (ADR-395):
+# Curated lifecycle definition — factory-architect (the workflow namespace).
+# Plan-of-record for the architecture lifecycle; dual-executor (shared run state):
 # in-session the LLM executor drives these steps via `workflow state` helpers
 # (gates inline); headless `adlc-cli workflow run` executes this file directly.
 # Twin: skills/factory/factory-product/workflow.yml (same shape, product-*).

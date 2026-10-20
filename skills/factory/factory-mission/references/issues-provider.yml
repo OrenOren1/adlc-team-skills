@@ -62,6 +62,8 @@
 # field_mapping:
 #   labels: true              # Create labels matching task tags
 #   milestone_from_feature: true  # Use feature name as milestone title
+#   milestone: true            # the MR-ownership decision: carry the Issue's milestone onto the MR
+#   assignee: true             # the MR-ownership decision: assign the MR (initiator -> Issue assignees -> runner)
 #
 # ---
 #
@@ -76,6 +78,8 @@
 #   project_id: ""            # Override auto-detected GitLab project ID
 #   labels: true              # Create labels from task tags
 #   milestone_from_feature: true
+#   milestone: true            # the MR-ownership decision: milestone_id is carried verbatim
+#   assignee: true             # the MR-ownership decision: assignee_ids, resolved from the fallback chain
 #
 # ---
 #
@@ -96,6 +100,8 @@
 #     P4: low
 #   feature_as_project: false # Create a Linear project per feature
 #   feature_as_epic: true     # Create an epic per feature (default)
+#   milestone: false           # the MR-ownership decision: Linear has no milestone concept — permanent no-op
+#   assignee: true             # the MR-ownership decision: assigneeId from the fallback chain
 #
 # ---
 #
@@ -119,3 +125,5 @@
 #     P3: Medium
 #     P4: Low
 #   component_from_tag: true  # Create Jira components from task tags
+#   milestone: false           # the MR-ownership decision: Jira sprint mapping is out of scope here — permanent no-op
+#   assignee: true             # the MR-ownership decision: assignee from the fallback chain

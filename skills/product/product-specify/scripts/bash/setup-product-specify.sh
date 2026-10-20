@@ -12,7 +12,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../../../product-clarify/scripts/bash/pdr
 # product-clarify) instead of dying later on a missing function.
 command -v generate_pdr_index >/dev/null 2>&1 || { echo "ERROR: pdr-lib.sh not loaded — install the product-clarify skill: adlc-cli skills add tikalk/adlc-team-skills --skill product-clarify" >&2; return 1 2>/dev/null || exit 1; }
 
-# ADR-401 shared layout constants (single definition in paths.sh; pdr-lib.sh
+# shared layout constants (single definition in paths.sh; pdr-lib.sh
 # sources it too — this block keeps the script correct standalone).
 _pd_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$_pd_dir/../../../../team/workspace/scripts/bash/paths.sh" ]; then

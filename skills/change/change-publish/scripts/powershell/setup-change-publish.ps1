@@ -2,7 +2,7 @@
 # setup-change-publish.ps1 — Setup for change-publish (self-contained)
 $ErrorActionPreference = "Stop"
 
-# ADR-401 shared layout constants (single definition in paths.ps1).
+# shared layout constants (single definition in paths.ps1).
 $AdlcPathsPs1 = "$PSScriptRoot/../../../../team/workspace/scripts/powershell/paths.ps1"
 if (-not (Test-Path $AdlcPathsPs1)) {
     $AdlcPathsPs1 = "$PSScriptRoot/../../../workspace/scripts/powershell/paths.ps1"
@@ -24,7 +24,7 @@ function Resolve-ProjectRoot {
 
 $ProjectRoot = Resolve-ProjectRoot
 $ChdrDraftsDir = Join-Path $projectRoot ".adlc/drafts/chdr"
-# ADR-401: published ChDRs live under docs/adlc/memory — promotion writes the
+#  published ChDRs live under docs/adlc/memory — promotion writes the
 # new path only; legacy .adlc/memory/chdr stays read-compatible (dual-read).
 $MemoryDir = Join-Path $projectRoot "docs/adlc/memory/chdr"
 $MemoryIndex = Join-Path $projectRoot "docs/adlc/memory/chdr.md"
@@ -45,7 +45,7 @@ foreach ($f in $draftFiles) {
         $PublishedCount++
     }
 }
-# Dual-read (ADR-401 R8): count records in both the new and the legacy root.
+# Dual-read: count records in both the new and the legacy root.
 $MemoryCount = @(Get-ChildItem -Path $MemoryDir -Filter "ChDR-*.md" -ErrorAction SilentlyContinue).Count + @(Get-ChildItem -Path $LegacyMemoryDir -Filter "ChDR-*.md" -ErrorAction SilentlyContinue).Count
 $MemoryIndexExists = Test-Path $MemoryIndex
 

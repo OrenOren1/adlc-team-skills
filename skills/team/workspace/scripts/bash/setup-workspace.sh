@@ -14,7 +14,7 @@ for arg in "$@"; do
 done
 
 ###############################################################################
-# ADR-401 shared layout constants (single definition in paths.sh)
+# shared layout constants (single definition in paths.sh)
 ###############################################################################
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -77,7 +77,7 @@ create_adlc_structure() {
 
 # Rules that should be in .gitignore for workspace conventions.
 #
-# ADR-401 R7: the wholesale `.adlc/` ignore is replaced by an allowlist —
+# layout allowlist: the wholesale `.adlc/` ignore is replaced by an allowlist —
 # `.adlc/*` ignored EXCEPT the tracked exceptions (`init-options.json`,
 # `workspace.yml`, `drafts/`, `evals/` config, `memory/evals/holdout.json`)
 # plus the generated-report and graphify rules. The allowlist has a single

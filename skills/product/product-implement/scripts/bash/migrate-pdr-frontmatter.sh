@@ -7,7 +7,7 @@
 # 2. Generates the new memory/pdr/pdr.md index (INSIDE the pdr/ directory)
 # 3. Deletes the old memory/pdr.md (superseded by memory/pdr/pdr.md)
 # 4. Moves drafts/adr/adr.md → memory/adr/adr.md (Bug 2: ADR index was in wrong directory)
-# 5. Deletes the 12 duplicated drafts/pdr/PDR-034..045.md files (Bug 3: PDR duplication)
+# 5. Deletes the 12 duplicated drafts/pdr/PDR-<n>..<n>.md files (Bug 3: PDR duplication)
 # 6. Regenerates drafts/pdr/pdr.md as a Proposed-only stub (Bug 3: boundary clarification)
 # 7. Creates drafts/adr/adr.md Proposed-only stub (for symmetry with the PDR side)
 #
@@ -104,7 +104,7 @@ else
 fi
 
 # ============================================================================
-# Step 5: Delete the 12 duplicated drafts/pdr/PDR-034..045.md files (Bug 3 fix)
+# Step 5: Delete the 12 duplicated drafts/pdr/PDR-<n>..<n>.md files (Bug 3 fix)
 # ============================================================================
 echo ""
 echo "=== Step 5: Delete duplicated draft PDR files ==="

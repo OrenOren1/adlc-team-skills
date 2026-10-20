@@ -128,7 +128,7 @@ if [ "$OUTPUT_JSON" = true ]; then
 fi
 
 # Format as markdown table. 0 matches → heading + source line only, no table:
-# a 0-row table header collapses into unrendered single-line markdown (ADR-413).
+# a 0-row table header collapses into unrendered single-line markdown (the 6-column table).
 if [ -z "$ALL_RESULTS" ]; then
   echo "## Tikal Tech Radar Context"
   echo ""

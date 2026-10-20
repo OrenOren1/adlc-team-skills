@@ -41,7 +41,7 @@ ps: scripts/powershell/setup-product-roadmap.ps1
 ```
 
 **Read PDR files** (memory first, drafts fallback; memory dual-reads
-`docs/adlc/memory/pdr/` then legacy `.adlc/memory/pdr/` per ADR-401):
+`docs/adlc/memory/pdr/` then legacy `.adlc/memory/pdr/` per the shared layout):
 1. `{REPO_ROOT}/docs/adlc/memory/pdr/PDR-*.md` + legacy `{REPO_ROOT}/.adlc/memory/pdr/PDR-*.md` (Accepted/Completed)
 2. `{REPO_ROOT}/.adlc/drafts/pdr/PDR-*.md` (Proposed/Discovered)
 

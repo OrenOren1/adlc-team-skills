@@ -208,7 +208,7 @@ def test_delegation_prompt_empty_fallback(sandbox_project):
 
 
 def test_mission_state_json_includes_local_skills(sandbox_project):
-    """Run discovery output lands in the run dir (namespace v3, ADR-395) —
+    """Run discovery output lands in the run dir (namespace v3, shared run state) —
     the old `.adlc/workflow/.mission-state.json` single file is gone."""
     skills_dir = sandbox_project / ".claude" / "skills"
     skills_dir.mkdir(parents=True)

@@ -1,4 +1,4 @@
-"""ADR-401 layout contract tests (RED gate).
+"""the shared layout layout contract tests (RED gate).
 
 Asserts the docs/adlc layout contract outcomes:
 - shared path constants defined in paths.sh / paths.ps1
@@ -9,7 +9,7 @@ Asserts the docs/adlc layout contract outcomes:
 - architect-boot primary ADR index under docs/adlc/memory (legacy fallback)
 - AD-template links memory via relative memory/ paths
 
-These tests MUST fail until the ADR-401 layout contract is implemented.
+These tests MUST fail until the shared layout layout contract is implemented.
 """
 import re
 from pathlib import Path
@@ -36,7 +36,7 @@ def _read(path):
 
 
 def test_paths_sh_defines_constants():
-    """paths.sh/paths.ps1 must define the ADR-401 shared layout constants and gitignore allowlist."""
+    """paths.sh/paths.ps1 must define the shared layout shared layout constants and gitignore allowlist."""
     bash = _read(PATHS_SH)
     assert bash is not None, f"missing shared path constants script: {PATHS_SH.relative_to(ROOT)}"
     expected = {

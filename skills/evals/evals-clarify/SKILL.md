@@ -77,11 +77,11 @@ If already full format, proceed with normal review.
 - Balance pass/fail examples (~50/50 ratio).
 
 #### Phase 3: Holdout Isolation
-- Isolate exactly 20% of examples as a reserved holdout set (saved to `.adlc/memory/evals/holdout.json` — machine data stays under `.adlc/` per ADR-401).
+- Isolate exactly 20% of examples as a reserved holdout set (saved to `.adlc/memory/evals/holdout.json` — machine data stays under `.adlc/` per the shared layout).
 - Ensure holdout set is never used in implementation or training.
 
 #### Phase 4: Publish Goldset
-- Copy accepted drafts to `docs/adlc/memory/evals/` (ADR-401 memory root; `holdout.json` alone stays at `.adlc/memory/evals/holdout.json`) and update status to `accepted`.
+- Copy accepted drafts to `docs/adlc/memory/evals/` (the shared layout memory root; `holdout.json` alone stays at `.adlc/memory/evals/holdout.json`) and update status to `accepted`.
 - Compile published goldset to `evals/{system}/goldset.md` (human-readable) and `evals/{system}/goldset.json` (machine-readable).
 
 #### Phase 5: Auto-Handoff

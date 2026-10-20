@@ -129,7 +129,7 @@ Output: `[OK]` or `[FAIL]` with reason
 #### Check 5: Constitution Alignment
 
 1. Read team constitution from `{TEAM_AI_DIRECTIVES}/context_modules/constitution.md`
-2. Locate project constitution: the project root (where `.adlc/` lives) → `{REPO_ROOT}/docs/adlc/memory/constitution.md`, falling back to legacy `{REPO_ROOT}/.adlc/memory/constitution.md` (ADR-401 dual-read)
+2. Locate project constitution: the project root (where `.adlc/` lives) → `{REPO_ROOT}/docs/adlc/memory/constitution.md`, falling back to legacy `{REPO_ROOT}/.adlc/memory/constitution.md` (dual-read)
 3. If project constitution exists:
    - Check if it references team-ai-directives (e.g., "Based on team-ai-directives", "Inherits from")
    - Check if team principles are present in project constitution (compare principle titles)
@@ -1149,8 +1149,8 @@ For each violation, record:
 
 | Severity | File | Line | Issue |
 |----------|------|------|-------|
-| Error | .adlc/drafts/adr/ADR-301.md | 3 | Missing required field: evidence |
-| Error | .adlc/drafts/adr/ADR-301.md | 0 | Missing required body section: Reason |
+| Error | .adlc/drafts/adr/ADR-001.md | 3 | Missing required field: evidence |
+| Error | .adlc/drafts/adr/ADR-001.md | 0 | Missing required body section: Reason |
 | Error | .adlc/drafts/pdr/PDR-005.md | 7 | Invalid status value: 'draft' — expected one of: proposed, accepted, rejected, deferred, superseded, discovered |
 | Warning | adlc branch drafts/cdr/CDR-010.md | 15 | Rejected Alternatives section is empty for decision type — must list at least one rejected alternative |
 

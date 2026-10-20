@@ -3,7 +3,7 @@
 # Pure shell (grep/sed), no runtime dependencies.
 set -euo pipefail
 
-# ADR-401 shared layout constants (single definition in paths.sh).
+# shared layout constants (single definition in paths.sh).
 _boot_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$_boot_dir/../../workspace/scripts/bash/paths.sh" ]; then
   # shellcheck disable=SC1091
@@ -148,7 +148,7 @@ echo ""
 # content is ever read (progressive disclosure intact): published indexes are
 # counted, never loaded into context. Arithmetic normalization strips wc -l
 # padding (a regex guard would zero real counts — wc pads with spaces).
-# ADR-401 dual-read (R8): read docs/adlc/memory first, then legacy
+# dual-read: read docs/adlc/memory first, then legacy
 # .adlc/memory; counts sum both roots (migration overlap tolerated).
 ADR_COUNT=$(ls "${DOCS_ADLC_MEMORY:-docs/adlc/memory}"/adr/ADR-*.md .adlc/memory/adr/ADR-*.md 2>/dev/null | wc -l || true); ADR_COUNT=$((ADR_COUNT))
 PDR_COUNT=$(ls "${DOCS_ADLC_MEMORY:-docs/adlc/memory}"/pdr/PDR-*.md .adlc/memory/pdr/PDR-*.md 2>/dev/null | wc -l || true); PDR_COUNT=$((PDR_COUNT))
