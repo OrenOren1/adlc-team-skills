@@ -11,6 +11,7 @@ both halves of it:
     into CI.
 """
 
+import json
 import os
 import re
 import shutil
@@ -57,6 +58,137 @@ def review_marker_templates(text):
     """
     joined = re.sub(r"\s*\n\s*", " ", text)
     return [m for m in re.findall(r"<!--.*?-->", joined) if MARKER in m]
+
+
+# ── the live path: a mocked `gh` on PATH ───────────────────────────────────
+#
+# `fetch_bodies` is the only code that talks to GitHub, so it is the only part
+# of the checker the offline fixtures cannot reach. The mock serves canned
+# payloads and applies the `--jq` filter with jq — the same engine gh uses.
+
+MOCK_GH = '''#!/usr/bin/env python3
+"""A mock `gh` for the verdict-head checker: serves canned PR payloads."""
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+def emulate(filt, data):
+    """Fallback rendering of the record filters the checker uses."""
+    key = "submitted_at" if "submitted_at" in filt else "created_at"
+    out = []
+    for item in data:
+        ts = item.get(key) or item.get("created_at") or ""
+        out.append("%%%s\\n%s\\n" % (ts, item.get("body") or ""))
+    return "".join(out)
+
+
+def main(argv):
+    endpoint = None
+    filt = None
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg == "--jq":
+            filt = argv[i + 1]
+            i += 2
+            continue
+        if arg in ("api", "--paginate") or arg.startswith("-"):
+            i += 1
+            continue
+        endpoint = arg
+        i += 1
+
+    if endpoint is None:
+        print("mock gh: no endpoint", file=sys.stderr)
+        return 1
+    if endpoint.endswith("/comments"):
+        kind = "comments"
+    elif endpoint.endswith("/reviews"):
+        kind = "reviews"
+    else:
+        print("mock gh: unexpected endpoint %s" % endpoint, file=sys.stderr)
+        return 1
+
+    if os.environ.get("MOCK_FAIL") == kind:
+        print("gh: API rate limit exceeded for %s" % endpoint, file=sys.stderr)
+        return 1
+
+    payload = Path(os.environ["MOCK_" + kind.upper()]).read_text(encoding="utf-8")
+    if not filt:
+        sys.stdout.write(payload)
+        return 0
+
+    jq = shutil.which("jq")
+    if jq:
+        proc = subprocess.run(
+            [jq, "-r", filt], input=payload, capture_output=True, text=True
+        )
+        if proc.returncode != 0:
+            sys.stderr.write(proc.stderr)
+            return proc.returncode
+        sys.stdout.write(proc.stdout)
+        return 0
+
+    sys.stdout.write(emulate(filt, json.loads(payload)))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
+'''
+
+
+def comment(ts, body):
+    """An issue comment, as the comments API returns it."""
+    return {"created_at": ts, "body": body}
+
+
+def review(ts, body):
+    """A review, as the reviews API returns it."""
+    return {"submitted_at": ts, "body": body}
+
+
+def run_checker_live(tmp_path, comments, reviews, pr_head, fail=None):
+    """Run the checker against a mocked GitHub; return (rc, output)."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    mock = bin_dir / "gh"
+    mock.write_text(MOCK_GH, encoding="utf-8")
+    mock.chmod(0o755)
+
+    comments_file = tmp_path / "comments.json"
+    comments_file.write_text(json.dumps(comments), encoding="utf-8")
+    reviews_file = tmp_path / "reviews.json"
+    reviews_file.write_text(json.dumps(reviews), encoding="utf-8")
+
+    env = dict(os.environ)
+    env["PATH"] = f"{bin_dir}{os.pathsep}{env['PATH']}"
+    env["MOCK_COMMENTS"] = str(comments_file)
+    env["MOCK_REVIEWS"] = str(reviews_file)
+    if fail:
+        env["MOCK_FAIL"] = fail
+
+    proc = subprocess.run(
+        [
+            "bash",
+            str(CHECKER),
+            "--repo",
+            "tikalk/adlc-team-skills",
+            "--pr",
+            "79",
+            "--pr-head",
+            pr_head,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        env=env,
+    )
+    return proc.returncode, proc.stdout + proc.stderr
 
 
 # ── the marker the skill tells the reviewer to post ────────────────────────
@@ -175,6 +307,130 @@ def test_missing_pr_head_is_a_usage_error(tmp_path):
     assert proc.returncode == 2, proc.stdout + proc.stderr
 
 
+def test_a_trailing_flag_without_a_value_is_a_usage_error(tmp_path):
+    """A flag with no value must not hang the parser."""
+    for flag in ("--repo", "--pr", "--pr-head", "--verdicts"):
+        proc = subprocess.run(
+            ["bash", str(CHECKER), flag],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        out = proc.stdout + proc.stderr
+        assert proc.returncode == 2, f"{flag} did not exit 2: {out}"
+        assert "requires a value" in out, out
+
+
+def test_a_head_that_is_not_a_full_sha_is_rejected(tmp_path):
+    """A short SHA certifies nothing — it cannot be compared to a head."""
+    rc, out = run_checker(tmp_path, verdict("abc1234"), "a" * 40)
+    assert rc == 1, out
+    assert "40-character SHA" in out
+
+
+def test_a_missing_verdicts_file_is_an_error(tmp_path):
+    """The offline path must not read a missing file as "no verdict"."""
+    proc = subprocess.run(
+        [
+            "bash",
+            str(CHECKER),
+            "--verdicts",
+            str(tmp_path / "nope.txt"),
+            "--pr-head",
+            "a" * 40,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert proc.returncode == 2, proc.stdout + proc.stderr
+    assert "nothing to verify" not in proc.stdout + proc.stderr
+
+
+# ── the live path (a mocked gh on PATH) ────────────────────────────────────
+
+def test_the_live_path_picks_the_newest_verdict(tmp_path):
+    """The newest verdict wins — an older one must not shadow it."""
+    rc, out = run_checker_live(
+        tmp_path,
+        comments=[
+            comment("2026-10-20T10:00:00Z", "A human note: we now add `head=<sha>` to the marker."),
+            comment("2026-10-20T10:30:00Z", verdict("a" * 40)),
+            comment("2026-10-20T11:40:45Z", verdict("b" * 40)),
+        ],
+        reviews=[],
+        pr_head="b" * 40,
+    )
+    assert rc == 0, out
+    assert "OK" in out
+
+
+def test_the_live_path_reports_a_stale_verdict(tmp_path):
+    rc, out = run_checker_live(
+        tmp_path,
+        comments=[comment("2026-10-20T11:40:45Z", verdict("a" * 40))],
+        reviews=[],
+        pr_head="b" * 40,
+    )
+    assert rc == 1, out
+    assert "FAIL" in out
+    assert "a" * 40 in out and "b" * 40 in out, "the failure must name both heads"
+
+
+def test_a_review_body_newer_than_an_issue_comment_wins(tmp_path):
+    """A verdict posted as a review is newer than one in the comment thread."""
+    rc, out = run_checker_live(
+        tmp_path,
+        comments=[comment("2026-10-20T11:40:45Z", verdict("a" * 40))],
+        reviews=[review("2026-10-20T12:00:00Z", verdict("b" * 40))],
+        pr_head="b" * 40,
+    )
+    assert rc == 0, out
+
+
+def test_prose_that_mentions_head_does_not_hijack_the_parse(tmp_path):
+    """Only a head named INSIDE the marker counts."""
+    rc, out = run_checker_live(
+        tmp_path,
+        comments=[
+            comment(
+                "2026-10-20T10:00:00Z",
+                "We now write `head=<sha>` into the marker, so the check can read it back.",
+            ),
+            comment("2026-10-20T11:40:45Z", verdict("b" * 40)),
+        ],
+        reviews=[],
+        pr_head="b" * 40,
+    )
+    assert rc == 0, out
+
+
+def test_a_failed_comments_call_fails_closed(tmp_path):
+    """A transient API error must never read as "there is no verdict"."""
+    rc, out = run_checker_live(
+        tmp_path,
+        comments=[comment("2026-10-20T11:40:45Z", verdict("b" * 40))],
+        reviews=[],
+        pr_head="b" * 40,
+        fail="comments",
+    )
+    assert rc == 2, out
+    assert "could not read" in out
+    assert "nothing to verify" not in out
+
+
+def test_a_failed_reviews_call_fails_closed(tmp_path):
+    rc, out = run_checker_live(
+        tmp_path,
+        comments=[comment("2026-10-20T11:40:45Z", verdict("b" * 40))],
+        reviews=[],
+        pr_head="b" * 40,
+        fail="reviews",
+    )
+    assert rc == 2, out
+    assert "could not read" in out
+
+
 # ── CI wiring ─────────────────────────────────────────────────────────────
 
 def test_ci_workflow_runs_the_checker():
@@ -186,3 +442,29 @@ def test_ci_workflow_runs_the_checker():
         "the workflow must re-run when the head moves — that is the whole point"
     )
     assert "pull-requests: read" in content, "the workflow must stay read-only"
+
+
+def test_the_workflow_re_runs_when_the_verdict_lands():
+    """The verdict is posted as an issue comment — the check must hear it."""
+    content = WORKFLOW.read_text(encoding="utf-8")
+    assert "issue_comment" in content, (
+        "the verdict is posted with `gh pr comment`, so the workflow must "
+        "listen for issue_comment or it can never turn green after a fix"
+    )
+    assert "github.event.pull_request.number || github.event.issue.number" in content, (
+        "the PR number must be read from the payload of every trigger — a "
+        "pull_request_review payload carries no top-level number"
+    )
+    assert ".head.sha" in content and "pulls/" in content, (
+        "an issue_comment payload carries no head SHA, so the head must be "
+        "resolved from the API when the event does not carry one"
+    )
+
+
+def test_the_workflow_stays_read_only():
+    content = WORKFLOW.read_text(encoding="utf-8")
+    assert "pull_request_target" not in content, (
+        "pull_request_target runs with write access to the base branch"
+    )
+    for scope in ("contents: read", "issues: read", "pull-requests: read"):
+        assert scope in content, f"the workflow must keep `{scope}`"
