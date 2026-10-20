@@ -33,8 +33,30 @@ MEMORY_DIR="${PROJECT_ROOT}/docs/adlc/memory/chdr"
 
 mkdir -p "$CHDR_DRAFTS_DIR" 2>/dev/null || true
 
-ACCEPTED_CHDRS=$( { grep -l '^### Status: \*\*Accepted\*\*' "$CHDR_DRAFTS_DIR"/ChDR-*.md 2>/dev/null || true; } | wc -l | tr -d ' ')
-PENDING_CHDRS=$( { grep -lE '^### Status: \*\*(Discovered|Proposed)\*\*' "$CHDR_DRAFTS_DIR"/ChDR-*.md 2>/dev/null || true; } | wc -l | tr -d ' ')
+# A ChDR draft carries its status in YAML frontmatter (the canonical draft
+# template) or, in a full record, in a "### Status: **X**" heading. Both
+# forms count -- matching only the heading form hid every template-written
+# draft, including the ones team-boot's continuous capture produces.
+chdr_status() {
+    local file="$1" status=""
+    status=$(grep -m1 -E '^status:[[:space:]]*(discovered|proposed|accepted|rejected|deferred|published|deprecated)[[:space:]]*$' "$file" 2>/dev/null \
+        | sed -E 's/^status:[[:space:]]*//; s/[[:space:]]+$//')
+    if [ -z "$status" ]; then
+        status=$(grep -m1 -oE '^### Status: \*\*[A-Za-z]+\*\*' "$file" 2>/dev/null \
+            | sed -E 's/^### Status: \*\*//; s/\*\*$//' | tr '[:upper:]' '[:lower:]')
+    fi
+    printf '%s' "$status"
+}
+
+ACCEPTED_CHDRS=0
+PENDING_CHDRS=0
+for f in "$CHDR_DRAFTS_DIR"/ChDR-*.md; do
+    [ -f "$f" ] || continue
+    case "$(chdr_status "$f")" in
+        accepted|published) ACCEPTED_CHDRS=$((ACCEPTED_CHDRS + 1)) ;;
+        discovered|proposed) PENDING_CHDRS=$((PENDING_CHDRS + 1)) ;;
+    esac
+done
 EXISTING_CHDRS=$( { ls -1 "$CHDR_DRAFTS_DIR"/ChDR-*.md 2>/dev/null || true; } | wc -l | tr -d ' ')
 
 python3 - "$PROJECT_ROOT" "$CHDR_DRAFTS_DIR" "$MEMORY_DIR" "$ACCEPTED_CHDRS" "$PENDING_CHDRS" "$EXISTING_CHDRS" << 'PY'
