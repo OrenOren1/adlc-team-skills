@@ -7,7 +7,7 @@
 #
 # Usage:
 #   . .\pdr-lib.ps1                        # load functions
-# ADR-401 note: memory-scope readers dual-read the legacy .adlc/memory root
+# note: memory-scope readers dual-read the legacy .adlc/memory root
 # (back-compat); Generate-PdrIndex memory additionally indexes
 # docs/adlc/memory/pdr/ (the canonical promotion target) and writes the index
 # there whenever that root holds records; Move-Pdr promotes INTO
@@ -15,11 +15,11 @@
 #
 #   Generate-PdrIndex memory              # regenerate the memory pdr.md (docs root preferred)
 #   Generate-PdrIndex drafts               # regenerate .adlc/drafts/pdr/pdr.md
-#   Move-Pdr 020 drafts memory             # atomically move PDR-020 drafts→memory
+#   Move-Pdr 020 drafts memory             # atomically move the planning-mode decision drafts→memory
 #   Migrate-PdrToFrontmatter .adlc\memory\pdr\PDR-001.md   # one-time legacy migration
 $ErrorActionPreference = "Stop"
 
-# ADR-401 shared layout constants (single definition in paths.ps1).
+# shared layout constants (single definition in paths.ps1).
 $PdrLibPathsPs1 = "$PSScriptRoot/../../../../team/workspace/scripts/powershell/paths.ps1"
 if (-not (Test-Path $PdrLibPathsPs1)) {
     $PdrLibPathsPs1 = "$PSScriptRoot/../../../workspace/scripts/powershell/paths.ps1"
@@ -110,7 +110,7 @@ function Parse-PdrHeadingTitle {
     if (-not (Test-Path $File)) { return "" }
     $lines = Get-Content $File
     foreach ($line in $lines) {
-        # Suffixed variants (e.g. PDR-010-amendment-2) must match, not just bare numerics.
+        # Suffixed variants (e.g. PDR-<id>-amendment-2) must match, not just bare numerics.
         if ($line -match '^#+\s*PDR-[0-9A-Za-z-]+:\s*(.*)$') {
             return $Matches[1].Trim()
         }
@@ -150,7 +150,7 @@ function Generate-PdrIndex {
     param([string]$Scope = "drafts")
     $pdrDir = Join-Path $REPO_ROOT ".adlc/$Scope/pdr"
 
-    # ADR-401 dual-read (R8): the memory scope indexes the canonical
+    # dual-read: the memory scope indexes the canonical
     # docs/adlc/memory root plus any records still in the legacy .adlc/memory
     # root (migration stragglers). The index is written where the records
     # live — docs preferred whenever it holds any record, else legacy.
@@ -164,7 +164,7 @@ function Generate-PdrIndex {
     $indexFile = Join-Path $scanDirs[0] "pdr.md"
     if (-not (Test-Path $scanDirs[0])) { return }
 
-    # ADR-401 publication closure: the Source line must name the directory
+    # publication closure: the Source line must name the directory
     # this index file actually lives in (docs for migrated repos).
     $indexRelDir = $scanDirs[0].Replace("$REPO_ROOT/", "").Replace("$REPO_ROOT\", "")
     $header = "# Product Decision Records"
@@ -221,7 +221,7 @@ function Move-Pdr {
     $fromDir = Join-Path $REPO_ROOT ".adlc/$FromScope/pdr"
     $toDir = Join-Path $REPO_ROOT ".adlc/$ToScope/pdr"
     if ($ToScope -eq "memory") {
-        # ADR-401 R8: promotion writers write the NEW path only.
+        # dual-read: promotion writers write the NEW path only.
         $toDir = Join-Path $REPO_ROOT "docs/adlc/memory/pdr"
     }
     New-Item -ItemType Directory -Force -Path $toDir | Out-Null

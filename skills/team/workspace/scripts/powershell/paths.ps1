@@ -1,4 +1,4 @@
-﻿# paths.ps1 — ADR-401 shared layout constants (single definition).
+﻿# paths.ps1 — shared layout constants (single definition).
 #
 # Dot-sourced, never executed. PowerShell mirror of paths.sh: defines the
 # .adlc/ + docs/adlc/ path roots and the R7 gitignore allowlist consumed by
@@ -11,7 +11,7 @@ $DOCS_ADLC_PRODUCT = "docs/adlc/product"
 $DOCS_ADLC_ARCHITECT = "docs/adlc/architect"
 $ADLC_DRAFTS = ".adlc/drafts"
 
-# Gitignore allowlist (ADR-401 R7, verbatim). Replaces the legacy wholesale
+# Gitignore allowlist (layout allowlist, verbatim). Replaces the legacy wholesale
 # `.adlc/` ignore. Order matters: negations must follow the `.adlc/*` blanket
 # ignore. The report pair `.adlc/team-learn-report.md` AND
 # `.adlc/team-levelup-report.md` keeps the legacy name ignored during the

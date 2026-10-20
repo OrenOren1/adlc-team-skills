@@ -2,7 +2,7 @@
 # setup-change-clarify.sh — Setup for change-clarify (self-contained)
 set -euo pipefail
 
-# ADR-401 shared layout constants (single definition in paths.sh).
+# shared layout constants (single definition in paths.sh).
 _ch_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$_ch_dir/../../../../team/workspace/scripts/bash/paths.sh" ]; then
   # shellcheck disable=SC1091
@@ -27,7 +27,7 @@ resolve_project_root() {
 
 PROJECT_ROOT=$(resolve_project_root)
 CHDR_DRAFTS_DIR="${PROJECT_ROOT}/${ADLC_DRAFTS:-.adlc/drafts}/chdr"
-# ADR-401: published ChDRs live under docs/adlc/memory (legacy .adlc/memory/chdr
+#  published ChDRs live under docs/adlc/memory (legacy .adlc/memory/chdr
 # stays read-compatible — dual-read).
 MEMORY_DIR="${PROJECT_ROOT}/docs/adlc/memory/chdr"
 

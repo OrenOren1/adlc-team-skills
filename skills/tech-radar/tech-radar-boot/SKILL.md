@@ -206,7 +206,7 @@ do not fabricate radar placements.
 A technology selection is an **ADR-class decision**. When no local memory index
 exists in the current working directory and the directory sits inside a workspace
 (detected via a `.gitmodules` marker in an ancestor), read the workspace root's
-`docs/adlc/memory/` index instead (ADR-401 dual-read order applies:
+`docs/adlc/memory/` index instead (the dual-read order applies:
 `docs/adlc/memory` first, legacy `.adlc/memory` fallback).
 
 | Trigger | Action |

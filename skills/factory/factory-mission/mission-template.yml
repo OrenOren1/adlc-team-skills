@@ -1,6 +1,6 @@
 # factory-mission — mission policy
 #
-# Mission policy (ex-workflow-config.yml — ADR-395). The executor copies this into
+# Mission policy (ex-workflow-config.yml — shared run state). The executor copies this into
 # .adlc/workflows/runs/<run_id>/mission.yml at `workflow state start`; edit
 # per-run from there. Re-read live on LLM-executor resume (frozen on the CLI side).
 # Every field is optional; defaults are shown below.

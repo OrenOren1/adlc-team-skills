@@ -22,7 +22,7 @@ Show the user the resolved team AI directives path and validation results.
 No writes needed — the team AI directives is already configured. Then:
 
 1. Run the **Gitignore Convention Check** (Post-Setup Configuration step 3 in
-   `SKILL.md`): verify `.gitignore` carries the ADR-401 R7 allowlist and not a
+   `SKILL.md`): verify `.gitignore` carries the layout allowlist and not a
    wholesale `.adlc/` ignore; add missing rules when absent.
 2. Run the **MCP config install** (Post-Setup Configuration step 5): merge
    `.mcp.json` servers into the project's config if not already present.

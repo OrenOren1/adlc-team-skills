@@ -6,38 +6,40 @@ this project live exclusively in the parent workspace:
 - **Workspace memory**: `docs/adlc/memory/` in `adlc-workspace`
   (`adr/` for architecture decisions, `pdr/` for product decisions)
 
-Policy: workspace ADR-412 (workspace-centralized decision memory). Rationale:
-per-submodule memories produced colliding ID sequences (this repo's legacy
-`.adlc/memory/` ADR-317–326 duplicated different decisions than the
-workspace's same-numbered records) and format drift. `.adlc/` is gitignored
-here — any records created under it exist only on local disk and will not be
-reviewed or merged.
+Policy: **workspace-centralized decision memory**. Rationale: per-submodule
+memories produced colliding ID sequences (this repo's legacy `.adlc/memory/`
+records duplicated different decisions than the workspace's same-numbered
+records) and format drift. `.adlc/` is gitignored here — any records created
+under it exist only on local disk and will not be reviewed or merged.
 
-## Record map (pre-centralization `.adlc/memory/` → workspace)
+## Why this repo cites no record IDs
 
-The 18 ADRs + 14 PDRs formerly kept here map to workspace records as follows.
-All duplicates were verified semantically (decision-statement spot-check) before
-removal; unique records were imported with new workspace IDs.
+A shipped skill that names a record id points at a file it does not own, at an
+id that can move under it (a workspace record was renumbered while a branch
+here was open), and at a decision whose id a reader cannot resolve in this
+repository. So the shipped skills name the **decision** in prose and never by
+id; `tests/unit/test_no_record_id_citations.py` pins that rule, with the
+local-example namespace (the ids the skills use for records they create
+themselves) as the only exception.
 
-| Former record | Workspace equivalent | Relation |
-|--|--|--|
-| ADR-317 stateless queue | ADR-317 | same decision |
-| ADR-318 label gate | ADR-318 | same decision |
-| ADR-319 comment bus | ADR-330 | relocated |
-| ADR-320 worker brief | ADR-331 | relocated |
-| ADR-321 worktree isolation | ADR-332 | relocated |
-| ADR-322 lease TTL | ADR-333 | relocated |
-| ADR-323 stall detection | ADR-334 | relocated |
-| ADR-324 exact-head review | ADR-335 | relocated |
-| ADR-325 lanes | ADR-336 | relocated |
-| ADR-326 runtime independence | ADR-337 | relocated |
-| ADR-338…345 (8 records) | ADR-338…345 | same decisions |
-| PDR-020 planning mode | PDR-020 | duplicate |
-| PDR-021 cleanup bot | PDR-021 | duplicate |
-| PDR-030 agent-authored stamp | **PDR-108** (new) | unique — imported |
-| PDR-040 findings→directives | PDR-040 | subsumed (twice-mistake class) |
-| PDR-048…056 (9 records) | PDR-048…056 | duplicates |
-| PDR-057 deck↔code terminology | **PDR-109** (new) | unique — imported |
+The same rule applies to this file: the record IDs of the pre-centralization
+migration are gone, and the migration outcome is recorded below in words.
+
+## The pre-centralization migration (outcome)
+
+The 18 ADRs + 14 PDRs formerly kept under `.adlc/memory/` were migrated to
+the workspace. All duplicates were verified semantically (decision-statement
+spot-check) before removal.
+
+| Former records | Outcome |
+|--|--|
+| stateless queue, label gate, comment bus, worker brief, worktree isolation, lease TTL, stall detection, exact-head review, lanes, runtime independence | Relocated to the workspace catalogue — same decisions, different numbers |
+| authorship preservation and 7 sibling execution-harness decisions | Same decisions, same numbers |
+| planning mode, cleanup bot | Duplicates — the workspace already carried them |
+| 9 product decisions (triage and siblings) | Duplicates of the workspace's records |
+| findings→directives | Subsumed (twice-mistake class) |
+| agent-authored stamp | Unique — imported into the workspace under a new id |
+| deck↔code terminology | Unique — imported into the workspace under a new id |
 
 ## Working with decisions
 

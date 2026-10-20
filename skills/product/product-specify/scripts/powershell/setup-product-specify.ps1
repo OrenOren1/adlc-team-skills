@@ -2,7 +2,7 @@
 param([switch]$Json)
 $ErrorActionPreference = "Stop"
 
-# ADR-401 shared layout constants (single definition in paths.ps1).
+# shared layout constants (single definition in paths.ps1).
 $AdlcPathsPs1 = "$PSScriptRoot/../../../../team/workspace/scripts/powershell/paths.ps1"
 if (-not (Test-Path $AdlcPathsPs1)) {
     $AdlcPathsPs1 = "$PSScriptRoot/../../../workspace/scripts/powershell/paths.ps1"

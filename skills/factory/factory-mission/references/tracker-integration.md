@@ -297,6 +297,80 @@ issue matching `factory-<orchestrator>:lease`:
   `<!-- factory-<orchestrator>:lease status=released run=<run_id> host=<hostname> -->`
 - Immediately unblocks other machines without waiting for TTL expiration.
 
+### Operation 11 — Create MR/PR with Milestone + Assignee Propagation (the MR-ownership decision)
+
+**When**: the orchestrator opens (or reuses) a draft MR/PR for a run
+(the git-changeset review). The MR must arrive owned and tracked: it carries the Issue's
+milestone and a named assignee.
+
+**Inputs**: the Issue payload already fetched for the brief (cached — do
+not re-read it), the MR's current milestone/assignee state, the initiator
+identity, the runner's validated committer identity, and the connector's
+pre-flight scope check.
+
+**Decision**: resolve the propagation deterministically before mutating
+anything:
+
+```bash
+python3 {REPO_ROOT}/.agents/skills/factory-mission/scripts/resolve-mr-ownership.py <payload.json>
+```
+
+The resolver returns `action` = `set` | `skip` | `block`, the milestone and
+the field it belongs in, the assignee and its field, and a human-readable
+reason. **The resolver owns the decision** — the connector only performs the
+calls.
+
+#### The five rulings (the MR-ownership decision — all encoded in the resolver)
+
+| Ruling | Behaviour |
+|--------|-----------|
+| All providers | One connector path; the provider mapping is an adapter table, never a per-provider skill fork |
+| Silent skip | An Issue with no milestone → no milestone work, no error |
+| Fallback chain | Assignee = initiator → Issue assignees → runner identity (hierarchical context parameters order) |
+| Preserve-only | Set a field **only** when the MR's field is empty — human triage is never overwritten |
+| Block on error | A missing read/write scope blocks the run with an actionable error naming the scope |
+
+#### Provider mapping
+
+| Provider | Milestone field | Value from the Issue | Assignee field |
+|----------|-----------------|----------------------|----------------|
+| GitLab | `milestone_id` | `issue.milestone_id` | `assignee_ids` |
+| GitHub | `milestone` | `issue.milestone.number` | `assignees` |
+| Jira | — (permanent no-op) | — | `assignee` |
+| Linear | — (permanent no-op) | — | `assigneeId` |
+
+A provider without a milestone concept is a permanent no-op for that field —
+never an error, never a guess.
+
+#### Order of operations
+
+1. **Pre-flight scopes** before any mutation. A missing scope → `block`
+   (the run stops with the scope named; the factory never invents a
+   milestone or an assignee it could not verify).
+2. **Read** the Issue's `milestone`/`milestone_id` and `assignees` via the
+   connector (use the cached payload when the brief already carries it).
+3. **Resolve** with `resolve-mr-ownership.py`.
+4. **Create or reuse** the draft MR, passing the resolved milestone and
+   assignee. On reuse, read the MR's current fields first — the preserve-only
+   guard depends on them.
+5. **Set the merge method** to *merge commit* where the provider allows it
+   (the git-changeset review); state it in the MR description where it does not.
+
+#### Tool paths
+
+| Path | Command |
+|------|---------|
+| MCP (github) | `create_pull_request` / `update_pull_request` |
+| MCP (gitlab-mcp) | `create_merge_request` / `update_merge_request` |
+| CLI (gh) | `gh pr create --milestone <n> --assignee <login>` / `gh pr edit --milestone <n> --add-assignee <login>` |
+| CLI (glab) | `glab mr create --milestone <id> --assignee <id>` / `glab mr update --milestone <id> --assignee-id <id>` |
+| CLI (jira) | `jira issue create/update` with the sprint mapped to the provider's field, or no-op |
+| CLI (linear) | `linear issue create/update` — milestone is a permanent no-op |
+
+**Scope errors**: a permission failure on the Issue read, the MR write, or
+the milestone/assignee field is a **block**, not a warning. Name the missing
+scope in the error and stop the run.
+
 ### Tool selection order
 
 1. **MCP server** — if connected (detected via MCP capabilities), use

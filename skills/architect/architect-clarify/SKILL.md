@@ -68,7 +68,7 @@ Each ADR should have:
 
 ### Outline
 
-1. **Load Current State**: Parse ADRs from `{REPO_ROOT}/.adlc/drafts/adr/` (individual file format) and `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `{REPO_ROOT}/.adlc/memory/constitution.md` fallback — ADR-401 dual-read)
+1. **Load Current State**: Parse ADRs from `{REPO_ROOT}/.adlc/drafts/adr/` (individual file format) and `{REPO_ROOT}/docs/adlc/memory/constitution.md` (legacy `{REPO_ROOT}/.adlc/memory/constitution.md` fallback — dual-read)
 
 **IMPORTANT - Path Resolution**:
 

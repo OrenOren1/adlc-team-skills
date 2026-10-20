@@ -6,7 +6,7 @@
 $ErrorActionPreference = "Stop"
 
 ###############################################################################
-# ADR-401 shared layout constants (single definition in paths.ps1)
+# shared layout constants (single definition in paths.ps1)
 ###############################################################################
 
 $PathsPs1 = Join-Path $PSScriptRoot "paths.ps1"
@@ -69,7 +69,7 @@ function New-AdlcStructure {
 
 # Rules that should be in .gitignore for workspace conventions.
 #
-# ADR-401 R7: the wholesale `.adlc/` ignore is replaced by an allowlist —
+# layout allowlist: the wholesale `.adlc/` ignore is replaced by an allowlist —
 # `.adlc/*` ignored EXCEPT the tracked exceptions (`init-options.json`,
 # `workspace.yml`, `drafts/`, `evals/` config, `memory/evals/holdout.json`)
 # plus the generated-report and graphify rules. The allowlist has a single
