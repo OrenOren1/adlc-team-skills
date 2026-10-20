@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Mermaid syntax validation pass in product/architect analyze** (ADR-434) — a shared, deterministic fenced-block validator (`mermaid-lint.sh`, canonical in `architect-clarify`; bash-only, no new dependencies) reports one finding per broken block with a severity (HIGH = syntax-break, MEDIUM = style), a location (file + line + fence index) and a suggested patch. `product-analyze` gains the pass as a new dimension; `architect-analyze`'s Pass E.4 becomes the same deterministic call. The rule set lives once in AD v13.14.0 — both skills reference it, neither forks it — and an unrecognised diagram type is MEDIUM, never a false HIGH. `evals-analyze` stays untouched. Read-only: the pass writes nothing (ADR-433). Pinned by `tests/unit/test_mermaid_lint.py` + `tests/unit/test_analyze_mermaid_pass.py`.
+
+- **MR/PR milestone + assignee propagation** (ADR-432) — a factory-created MR now arrives owned and tracked: the Issue's milestone and a named assignee (initiator → Issue assignees → runner identity) are carried onto it. All five locked rulings are encoded in a deterministic resolver (`resolve-mr-ownership.py`): per-provider mapping (GitLab `milestone_id`, GitHub `milestone` number, Jira/Linear a permanent no-op), silent skip when the Issue has no milestone, preserve-only (a field a human set is never overwritten), and block-on-error naming the missing scope. `tracker-integration.md` gains §Operation 11, `executor.md` Phase 6 hooks it, and `issues-provider.yml` documents the mapping per provider. Pinned by `tests/unit/test_resolve_mr_ownership.py` + `tests/unit/test_mr_ownership_wiring.py`.
+
 ## [0.31.0] - 2026-10-16
 
 ### Added
