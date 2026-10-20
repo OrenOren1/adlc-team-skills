@@ -1,0 +1,91 @@
+name: Verdict Head Binding
+
+# A factory-review verdict certifies exactly ONE head SHA — the one in its
+# `head=<sha>` marker. Any push after the verdict (a fix, a rebase, a
+# force-push) moves the head and invalidates it, so the review must run again
+# on the new head before merge-readiness can be claimed.
+#
+# The rule is stated in the factory-review skill. This job makes it
+# mechanical, so a stale verdict cannot quietly sit on a PR until someone
+# notices: the job reads the verdict back and compares the head it names with
+# the head being merged.
+#
+# The verdict is published as an ISSUE COMMENT (factory-review posts it with
+# `gh pr comment`), so the job listens for issue_comment as well as for
+# pull_request_review. Without it the check would never re-run after the
+# verdict lands, and could never turn green.
+#
+# Read-only token: the job only reads comments, reviews and the PR head.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted, edited]
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+# The issue_comment trigger makes the run user-triggerable on this public
+# repository: any account that comments a body carrying the marker starts a
+# run. The run is read-only and bounded, and this group keeps a pile of such
+# runs from stacking up: only the newest state of the PR is worth checking.
+concurrency:
+  group: verdict-head-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  verdict-head:
+    name: Verdict names the current head
+    # An issue_comment event also fires for plain issues, which never carry a
+    # verdict, and for every ordinary comment, which is noise. Re-check when a
+    # verdict lands on the PR.
+    if: >-
+      ${{ github.event_name != 'issue_comment' ||
+          (github.event.issue.pull_request != null &&
+           contains(github.event.comment.body, 'factory-review:step=review')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Resolve the PR and its head
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          EVENT_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PR_NUMBER" ]; then
+            echo "no PR number in the event payload" >&2
+            exit 1
+          fi
+          # pull_request and pull_request_review carry the head; an
+          # issue_comment carries none, so it is read back from the API.
+          if [ -n "$EVENT_HEAD" ]; then
+            head="$EVENT_HEAD"
+          else
+            head=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')
+          fi
+          echo "sha=$head" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v6
+        with:
+          # Check out the PR's own head: that is the revision the verdict has
+          # to name, and an issue_comment event would otherwise check out the
+          # repository's default branch.
+          ref: ${{ steps.pr.outputs.sha }}
+
+      - name: Compare the verdict's head with the PR head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_HEAD: ${{ steps.pr.outputs.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          bash skills/factory/factory-review/scripts/check-verdict-head.sh \
+            --repo "$GITHUB_REPOSITORY" \
+            --pr "$PR_NUMBER" \
+            --pr-head "$PR_HEAD"
