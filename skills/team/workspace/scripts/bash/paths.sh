@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# paths.sh — ADR-401 shared layout constants (single definition).
+# paths.sh — shared layout constants (single definition).
 #
 # Sourced, never executed. Defines the .adlc/ + docs/adlc/ path roots and the
 # R7 gitignore allowlist consumed by the setup scripts (workspace, boot,
@@ -10,7 +10,7 @@
 [ -n "${_ADLC_PATHS_SH:-}" ] && return 0
 _ADLC_PATHS_SH=1
 
-# --- Layout roots (ADR-401 R2/R3) -------------------------------------------
+# --- Layout roots -------------------------------------------
 # .adlc/ holds the machine pipeline; docs/adlc/ holds published, human-facing
 # deliverables (memory records, PRD/AD, views, roadmap).
 ADLC_DIR=".adlc"
@@ -20,7 +20,7 @@ DOCS_ADLC_PRODUCT="docs/adlc/product"
 DOCS_ADLC_ARCHITECT="docs/adlc/architect"
 ADLC_DRAFTS=".adlc/drafts"
 
-# --- Gitignore allowlist (ADR-401 R7, verbatim) ------------------------------
+# --- Gitignore allowlist (verbatim) ------------------------------
 # Replaces the legacy wholesale `.adlc/` ignore. Order matters: negations must
 # follow the `.adlc/*` blanket ignore. The report pair
 # `.adlc/team-learn-report.md` AND `.adlc/team-levelup-report.md` keeps the

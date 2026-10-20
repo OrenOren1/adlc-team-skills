@@ -15,7 +15,7 @@ Performs **read-only** product consistency analysis:
 3. **PRD→PDR Drift** — PRD elements without supporting PDRs
 4. **Cross-PDR Consistency** — conflicts between PDRs
 5. **Staleness** — outdated references, placeholders, deprecated PDRs still referenced
-6. **Mermaid Syntax** — invalid diagram blocks flagged with location + suggested patch (ADR-434)
+6. **Mermaid Syntax** — invalid diagram blocks flagged with location + suggested patch (the mermaid detection pass)
 
 **Output**: Structured markdown analysis report (no files modified)
 
@@ -41,9 +41,9 @@ ps: scripts/powershell/setup-product-analyze.ps1
 ```
 
 **Read**:
-- `docs/adlc/product/PRD.md` (legacy repo-root `PRD.md` fallback — ADR-401 dual-read)
+- `docs/adlc/product/PRD.md` (legacy repo-root `PRD.md` fallback — dual-read)
 - `{REPO_ROOT}/.adlc/drafts/pdr/PDR-*.md` (individual PDR files)
-- `{REPO_ROOT}/docs/adlc/memory/constitution.md`, falling back to legacy `{REPO_ROOT}/.adlc/memory/constitution.md` (ADR-401 dual-read; if either exists)
+- `{REPO_ROOT}/docs/adlc/memory/constitution.md`, falling back to legacy `{REPO_ROOT}/.adlc/memory/constitution.md` (dual-read; if either exists)
 
 **Build inventory**:
 ```markdown
@@ -101,11 +101,11 @@ For each PDR, check if decision appears in PRD:
 3. **Date Inconsistencies**: PDR dates older than PRD last-updated
 4. **Orphaned References**: PDR IDs mentioned but file doesn't exist
 
-### Phase 7: Mermaid Syntax Validation (ADR-434)
+### Phase 7: Mermaid Syntax Validation (the mermaid detection pass)
 
 **Objective**: flag invalid Mermaid blocks in the PRD with a location and a suggested patch, so a broken diagram never ships unremarked.
 
-**Run the shared validator** — it owns the rule set (canonical in `architect-clarify`; the rules are documented once in AD v13.14.0). Do not re-derive or restate the thresholds here:
+**Run the shared validator** — it owns the rule set (canonical in `architect-clarify`; the rules are documented once, in the validator itself). Do not re-derive or restate the thresholds here:
 
 ```bash
 sh: {REPO_ROOT}/.agents/skills/architect-clarify/scripts/bash/mermaid-lint.sh --tsv <artifact>
@@ -131,7 +131,7 @@ Requires the `architect-clarify` skill (`adlc-cli skills add tikalk/adlc-team-sk
 
 - Run it over the PRD and any product artifact that carries diagrams.
 - Fold its findings into the report verbatim — severity, location and suggested patch come from the validator; do not re-word or re-grade them.
-- The pass is **read-only** (ADR-433 lifecycle write scope): remediation belongs to `/product-implement` or a human, never to this skill.
+- The pass is **read-only** (the lifecycle write scope lifecycle write scope): remediation belongs to `/product-implement` or a human, never to this skill.
 - An unrecognised diagram type is MEDIUM, never HIGH — the rule set must not produce a false syntax break.
 
 ### Phase 8: Severity Assignment
@@ -199,7 +199,7 @@ Requires the `architect-clarify` skill (`adlc-cli skills add tikalk/adlc-team-sk
 - **NEVER hallucinate missing content** — report absences accurately
 - **Prioritize constitution violations** — always CRITICAL
 - **Use evidence-based findings** — cite specific locations
-- **The Mermaid pass writes nothing** — it reports; `/product-implement` or a human remediates (ADR-433)
+- **The Mermaid pass writes nothing** — it reports; `/product-implement` or a human remediates (the lifecycle write scope)
 
 ### Reporting Standards
 - **Limit to 50 findings** — aggregate overflow in summary

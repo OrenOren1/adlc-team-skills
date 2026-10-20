@@ -2,7 +2,7 @@
 # PowerShell native (ConvertFrom-Json).
 $ErrorActionPreference = "Stop"
 
-# ADR-401 shared layout constants (single definition in paths.ps1).
+# shared layout constants (single definition in paths.ps1).
 $BootPathsPs1 = "$PSScriptRoot/../../workspace/scripts/powershell/paths.ps1"
 if (Test-Path $BootPathsPs1) { . $BootPathsPs1 }
 
@@ -148,7 +148,7 @@ Write-Output "_Total: $SkillTotal skills available._"
 Write-Output ""
 
 # Scope counts — accepted-record inventory per class (cheap globs, no content).
-# ADR-401 dual-read (R8): count docs/adlc/memory first, then legacy
+# dual-read: count docs/adlc/memory first, then legacy
 # .adlc/memory; counts sum both roots (migration overlap tolerated).
 $AdrCount = @(Get-ChildItem "docs/adlc/memory/adr/ADR-*.md" -ErrorAction SilentlyContinue).Count + @(Get-ChildItem ".adlc/memory/adr/ADR-*.md" -ErrorAction SilentlyContinue).Count
 $PdrCount = @(Get-ChildItem "docs/adlc/memory/pdr/PDR-*.md" -ErrorAction SilentlyContinue).Count + @(Get-ChildItem ".adlc/memory/pdr/PDR-*.md" -ErrorAction SilentlyContinue).Count

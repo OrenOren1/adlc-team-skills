@@ -1,4 +1,4 @@
-"""ADR-434 wiring: one canonical rule set, two analyze skills, evals-analyze untouched.
+"""the mermaid detection pass wiring: one canonical rule set, two analyze skills, evals-analyze untouched.
 
 The mermaid rule set is owned by exactly one script (canonical in
 ``architect-clarify``). ``product-analyze`` and ``architect-analyze`` both
@@ -75,10 +75,15 @@ def test_analyze_skill_states_the_read_only_contract(doc):
 
 @pytest.mark.parametrize("doc", [PRODUCT_ANALYZE, ARCHITECT_ANALYZE], ids=["product", "architect"])
 def test_analyze_skill_names_the_rule_owner(doc):
-    """The rules live in the AD delta + the script, not in each skill."""
+    """The rules live in the validator, not in each skill — so the skill points
+    at the validator and never re-derives the thresholds."""
     content = doc.read_text(encoding="utf-8")
-    assert "ADR-434" in content, f"{doc.parent.name}/SKILL.md must cite ADR-434"
-    assert "v13.14.0" in content, f"{doc.parent.name}/SKILL.md must point at the AD delta that documents the rules"
+    assert "documented once" in content, (
+        f"{doc.parent.name}/SKILL.md must say the rule set is documented once"
+    )
+    assert CANONICAL_DOC_PATH in content, (
+        f"{doc.parent.name}/SKILL.md must point at the validator that owns the rules"
+    )
 
 
 # ── the rule vocabulary does not drift between the script and the doc ───────
@@ -101,11 +106,11 @@ def test_linter_emits_every_rule_id_it_documents():
 # ── evals-analyze is out of scope by ruling ─────────────────────────────────
 
 def test_evals_analyze_is_untouched():
-    """ADR-434 scopes the pass to product-analyze + architect-analyze only."""
+    """the mermaid detection pass scopes the pass to product-analyze + architect-analyze only."""
     content = EVALS_ANALYZE.read_text(encoding="utf-8")
     assert "mermaid-lint" not in content, "evals-analyze must not gain the mermaid pass"
     assert "M00" not in content, "evals-analyze must not reference the rule vocabulary"
-    assert "ADR-434" not in content, "evals-analyze is out of ADR-434's scope"
+    assert "the mermaid detection pass" not in content, "evals-analyze is out of the mermaid detection pass's scope"
 
 
 def test_no_other_skill_gained_the_pass():

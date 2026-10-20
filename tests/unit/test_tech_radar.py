@@ -224,7 +224,7 @@ def test_radar_search_zero_match_has_no_table():
   """0-match markdown output = heading + source line only — no table.
 
   An empty table header collapses into unrendered single-line markdown when
-  re-emitted; the script must emit nothing table-shaped on 0 matches (ADR-413).
+  re-emitted; the script must emit nothing table-shaped on 0 matches (the 6-column table).
   """
   out = _run_radar_search("zzz-no-such-technology-xyz")
   assert "## Tikal Tech Radar Context" in out

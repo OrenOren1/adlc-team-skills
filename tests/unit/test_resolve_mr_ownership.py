@@ -1,6 +1,6 @@
-"""MR/PR milestone + assignee propagation resolver (ADR-432).
+"""MR/PR milestone + assignee propagation resolver (the MR-ownership decision).
 
-The resolver is the deterministic half of ADR-432: it answers what the
+The resolver is the deterministic half of the MR-ownership decision: it answers what the
 connector should set, what it should skip, and what it should block on. All
 five locked rulings are pinned here — all providers, silent skip, fallback
 chain, preserve-only, block-on-error — plus the per-provider mapping.
@@ -34,7 +34,7 @@ def test_resolver_exists():
     assert RESOLVER.exists(), f"resolver missing at {RESOLVER}"
 
 
-# ── per-provider milestone mapping (ADR-432 "all providers") ───────────────
+# ── per-provider milestone mapping (the MR-ownership decision "all providers") ───────────────
 
 def test_gitlab_maps_milestone_id_verbatim():
     out = resolve(

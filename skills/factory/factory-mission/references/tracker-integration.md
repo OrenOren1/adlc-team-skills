@@ -297,10 +297,10 @@ issue matching `factory-<orchestrator>:lease`:
   `<!-- factory-<orchestrator>:lease status=released run=<run_id> host=<hostname> -->`
 - Immediately unblocks other machines without waiting for TTL expiration.
 
-### Operation 11 — Create MR/PR with Milestone + Assignee Propagation (ADR-432)
+### Operation 11 — Create MR/PR with Milestone + Assignee Propagation (the MR-ownership decision)
 
 **When**: the orchestrator opens (or reuses) a draft MR/PR for a run
-(ADR-431). The MR must arrive owned and tracked: it carries the Issue's
+(the git-changeset review). The MR must arrive owned and tracked: it carries the Issue's
 milestone and a named assignee.
 
 **Inputs**: the Issue payload already fetched for the brief (cached — do
@@ -320,13 +320,13 @@ the field it belongs in, the assignee and its field, and a human-readable
 reason. **The resolver owns the decision** — the connector only performs the
 calls.
 
-#### The five rulings (ADR-432 — all encoded in the resolver)
+#### The five rulings (the MR-ownership decision — all encoded in the resolver)
 
 | Ruling | Behaviour |
 |--------|-----------|
 | All providers | One connector path; the provider mapping is an adapter table, never a per-provider skill fork |
 | Silent skip | An Issue with no milestone → no milestone work, no error |
-| Fallback chain | Assignee = initiator → Issue assignees → runner identity (ADR-343 order) |
+| Fallback chain | Assignee = initiator → Issue assignees → runner identity (hierarchical context parameters order) |
 | Preserve-only | Set a field **only** when the MR's field is empty — human triage is never overwritten |
 | Block on error | A missing read/write scope blocks the run with an actionable error naming the scope |
 
@@ -354,7 +354,7 @@ never an error, never a guess.
    assignee. On reuse, read the MR's current fields first — the preserve-only
    guard depends on them.
 5. **Set the merge method** to *merge commit* where the provider allows it
-   (ADR-431); state it in the MR description where it does not.
+   (the git-changeset review); state it in the MR description where it does not.
 
 #### Tool paths
 

@@ -1,9 +1,9 @@
-"""Mermaid syntax validator (ADR-434) — corpus, severity, location, read-only.
+"""Mermaid syntax validator (the mermaid detection pass) — corpus, severity, location, read-only.
 
 The validator is a deterministic static scan over ```mermaid fenced blocks:
 one finding per broken block, each carrying a severity, a location and a
 suggested patch. These tests pin the rule set once so product-analyze and
-architect-analyze can reference it instead of forking the prose (ADR-434
+architect-analyze can reference it instead of forking the prose (the mermaid detection pass
 mitigation for rule drift).
 """
 
@@ -198,7 +198,7 @@ def test_indented_diagram_lines_are_accepted(tmp_path):
     assert code == 0
 
 
-# ── unknown type: MEDIUM, never a false HIGH (ADR-434) ─────────────────────
+# ── unknown type: MEDIUM, never a false HIGH (the mermaid detection pass) ─────────────────────
 
 def test_unknown_diagram_type_is_medium_not_high(tmp_path):
     text = "```mermaid\nsomeFutureDiagram\n  whatever\n```\n"
@@ -209,7 +209,7 @@ def test_unknown_diagram_type_is_medium_not_high(tmp_path):
     assert code == 2, "MEDIUM-only findings exit 2"
 
 
-# ── read-only contract (ADR-433 lifecycle write scope) ─────────────────────
+# ── read-only contract (the lifecycle write scope lifecycle write scope) ─────────────────────
 
 def test_linter_does_not_modify_the_artifact(tmp_path):
     artifact = tmp_path / "artifact.md"

@@ -5,7 +5,7 @@ JSON_MODE=false
 for arg in "$@"; do case "$arg" in --json) JSON_MODE=true ;; esac; done
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 
-# ADR-401 shared layout constants (single definition in paths.sh).
+# shared layout constants (single definition in paths.sh).
 _pd_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$_pd_dir/../../../../team/workspace/scripts/bash/paths.sh" ]; then
   # shellcheck disable=SC1091
@@ -15,7 +15,7 @@ elif [ -f "$_pd_dir/../../../workspace/scripts/bash/paths.sh" ]; then
   . "$_pd_dir/../../../workspace/scripts/bash/paths.sh"
 fi
 PDR_DRAFTS_DIR="$REPO_ROOT/${ADLC_DRAFTS:-.adlc/drafts}/pdr"
-# ADR-401: canonical memory root is docs/adlc/memory; legacy .adlc/memory
+#  canonical memory root is docs/adlc/memory; legacy .adlc/memory
 # stays read-compatible — memory counts sum both roots (dual-read R8).
 PDR_MEMORY_DIR="$REPO_ROOT/docs/adlc/memory/pdr"
 LEGACY_PDR_MEMORY_DIR="$REPO_ROOT/.adlc/memory/pdr"

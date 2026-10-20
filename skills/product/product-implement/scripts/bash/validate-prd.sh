@@ -23,7 +23,7 @@ NC='\033[0m' # No Color
 STRICT_MODE=false
 WARN_MODE=true
 PRD_FILE="${1:-docs/adlc/product/PRD.md}"
-# ADR-401 dual-read: bare invocation on a legacy-only repo falls back to the
+# dual-read: bare invocation on a legacy-only repo falls back to the
 # repo-root PRD.md (mirrors the dual-check in setup-product-analyze.sh).
 # An explicit path argument is always honored verbatim.
 if [ -z "${1:-}" ] && [ ! -f "$PRD_FILE" ] && [ -f "PRD.md" ]; then
@@ -358,7 +358,7 @@ if grep -qi "Constitution Alignment\|Aligns with Constitution" "$PRD_FILE"; then
     pass "Constitution alignment section found"
     
     # Check if constitution is populated (not just template)
-    # ADR-401 dual-read: canonical docs/adlc/memory first, legacy fallback.
+    # dual-read: canonical docs/adlc/memory first, legacy fallback.
     CONST_FILE="docs/adlc/memory/constitution.md"
     if [ ! -f "$CONST_FILE" ]; then
         CONST_FILE=".adlc/memory/constitution.md"

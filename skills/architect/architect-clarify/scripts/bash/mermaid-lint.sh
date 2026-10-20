@@ -1,15 +1,15 @@
 #!/bin/bash
-# Mermaid syntax validator (ADR-434) — flag + suggest, never write.
+# Mermaid syntax validator (the mermaid detection pass) — flag + suggest, never write.
 #
 # Scans a markdown artifact for ```mermaid fenced blocks and reports one
 # finding per broken block: location (file + line + fence index), severity,
 # the rule violated, the offending line, and a minimal suggested patch.
 #
-# Read-only by contract (ADR-433 lifecycle write scope): this script never
+# Read-only by contract (the lifecycle write scope lifecycle write scope): this script never
 # writes, moves or reformats an artifact. Remediation stays with
 # implement/human.
 #
-# Severity (ADR-434):
+# Severity (the mermaid detection pass):
 #   HIGH   = syntax-break — the block cannot render
 #   MEDIUM = style         — renderable but non-mandated form, or a type this
 #                            rule set cannot vouch for (never a false HIGH)
@@ -24,7 +24,7 @@
 #             severity \t rule \t file \t line \t fence \t message \t
 #             offending \t suggestion
 #             (no JSON: this script builds no JSON by hand, and pulls in no
-#             runtime dependency — ADR-337)
+#             runtime dependency — runtime independence)
 #
 # Exit codes:
 #   0 = no findings
@@ -32,7 +32,7 @@
 #   2 = only MEDIUM (style) findings
 #   3 = usage error (missing file)
 #
-# Rule set is documented once in AD v13.14.0 (ADR-434) and referenced by
+# Rule set is documented once in AD v13.14.0 (the mermaid detection pass) and referenced by
 # product-analyze and architect-analyze — not forked per skill.
 
 set -u

@@ -44,7 +44,7 @@ From the current working directory (do NOT walk up parent directories):
 
 1. Primary: `docs/adlc/memory/adr/adr.md` (generated `/architect-implement`;
    rows start `| ADR`)
-2. Fallback: `.adlc/memory/adr/adr.md` (legacy layout, pre-ADR-401)
+2. Fallback: `.adlc/memory/adr/adr.md` (legacy layout, legacy)
 
 If neither exists but `docs/adlc/memory/adr/ADR-*.md` or legacy
 `.adlc/memory/adr/ADR-*.md` files do, synthesize a
@@ -55,7 +55,7 @@ report `0 ADRs` — never fabricate rows.
 When no local memory index exists in the current working directory and the
 directory sits inside a workspace (detected via a `.gitmodules` marker in an
 ancestor), read the workspace root's `docs/adlc/memory/` index instead
-(ADR-401 dual-read order applies: `docs/adlc/memory` first, legacy
+(the dual-read order applies: `docs/adlc/memory` first, legacy
 `.adlc/memory` fallback).
 
 ### Step 1b: Read the ADR Drafts Index
@@ -78,7 +78,7 @@ Emit before the task answer:
 
 | ID | Sub-System | Decision | Status |
 |--|--|--|--|
-| ADR-325 | lanes | Workflow lanes over flat queue | Accepted |
+| ADR-001 | lanes | Workflow lanes over flat queue | Accepted |
 
 _Searched N ADRs, K matched._
 

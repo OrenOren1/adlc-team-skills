@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve MR/PR milestone + assignee propagation (ADR-432).
+"""Resolve MR/PR milestone + assignee propagation (the MR-ownership decision).
 
 The orchestrator opens (or reuses) a draft MR. This resolver decides what
 ownership fields that MR should carry, so the decision is a deterministic
@@ -34,7 +34,7 @@ Output (JSON on stdout):
       "reason": "<human-readable, actionable>"
     }
 
-Rules (ADR-432 — all five user rulings are encoded here):
+Rules (the MR-ownership decision — all five user rulings are encoded here):
 
   * all providers    — the mapping lives in the provider adapter table below.
   * silent skip      — an Issue with no milestone produces no milestone work
@@ -48,9 +48,9 @@ Rules (ADR-432 — all five user rulings are encoded here):
 import json
 import sys
 
-# Provider adapter (ADR-432 §Decision Outcome step 2). A provider without a
+# Provider adapter (the MR-ownership decision §Decision Outcome step 2). A provider without a
 # milestone concept gets None — a permanent no-op for that field, never an
-# error (ADR-432 "providers without a milestone concept are permanent no-ops").
+# error (the MR-ownership decision "providers without a milestone concept are permanent no-ops").
 PROVIDERS = {
     "gitlab": {"milestone_field": "milestone_id", "milestone_source": "milestone_id", "assignee_field": "assignee_ids"},
     "github": {"milestone_field": "milestone", "milestone_source": "milestone.number", "assignee_field": "assignees"},
@@ -152,7 +152,7 @@ def resolve(payload):
 
 
 def _first_candidate(initiator, issue_assignees, runner):
-    """initiator -> Issue assignees -> runner identity (ADR-432 step 3)."""
+    """initiator -> Issue assignees -> runner identity (the MR-ownership decision step 3)."""
     if initiator:
         return initiator
     if isinstance(issue_assignees, list):

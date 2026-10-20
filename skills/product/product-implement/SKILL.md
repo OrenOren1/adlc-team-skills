@@ -15,9 +15,9 @@ Transforms **accepted PDRs** into a comprehensive, self-contained `PRD.md` using
 3. **Summarize Agent**: Aggregate sections, resolve conflicts, produce unified `PRD.md`
 
 **Output**:
-- `docs/adlc/product/PRD.md` — self-contained product requirements (ADR-401; legacy repo-root `PRD.md` stays read-compatible)
+- `docs/adlc/product/PRD.md` — self-contained product requirements (the shared layout; legacy repo-root `PRD.md` stays read-compatible)
 - `{REPO_ROOT}/.adlc/product/sections/{feature-area}/{section}.md` — intermediate section files
-- Accepted PDRs **moved** to `{REPO_ROOT}/docs/adlc/memory/pdr/` (ADR-401 canonical memory root)
+- Accepted PDRs **moved** to `{REPO_ROOT}/docs/adlc/memory/pdr/` (the shared layout canonical memory root)
 
 ## When to use
 
@@ -230,7 +230,7 @@ D) Cancel — Stop execution
 > - ALL diagrams embedded IN-SECTION
 > - ZERO reader-facing links to `.adlc/` paths
 > - Use in-document anchors only: `[Section 2.4](#24-feature-hierarchy)`
-> - PDR references as plain text: `PDR-078` (NOT linked)
+> - PDR references as plain text: `plain-text PDR references` (NOT linked)
 
 **PRD structure** (must match template):
 ```markdown

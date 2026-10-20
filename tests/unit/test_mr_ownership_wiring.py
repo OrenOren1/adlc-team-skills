@@ -1,4 +1,4 @@
-"""ADR-432 wiring: the connector operation, the executor hook, the provider config.
+"""the MR-ownership decision wiring: the connector operation, the executor hook, the provider config.
 
 The resolver holds the decision; the connector performs the calls; the
 executor hooks the publish step. These tests pin that the three stay
@@ -23,7 +23,9 @@ RESOLVER_REL = "skills/factory/factory-mission/scripts/resolve-mr-ownership.py"
 def test_connector_documents_the_operation():
     content = TRACKER.read_text(encoding="utf-8")
     assert "Operation 11" in content, "the connector must document the MR-ownership operation"
-    assert "ADR-432" in content
+    assert "Create MR/PR with Milestone + Assignee Propagation" in content, (
+        "the operation must name what it does"
+    )
 
 
 def test_connector_encodes_all_five_rulings():
@@ -65,7 +67,7 @@ def test_resolver_path_in_the_connector_resolves():
 
 def test_executor_hooks_the_publish_step():
     content = EXECUTOR.read_text(encoding="utf-8")
-    assert "ADR-432" in content, "the executor must hook the MR-ownership step"
+    assert "Draft MR/PR ownership" in content, "the executor must hook the MR-ownership step"
     assert "Operation 11" in content, "the executor must point at the connector operation"
     assert "resolve-mr-ownership.py" in content
 

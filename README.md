@@ -548,17 +548,17 @@ All skills write to `.adlc/` (project root) and the team AI directives repo.
 **Missions** (inside `.adlc/` of the target project):
 
 - `.adlc/workflows/runs/<run_id>/` — the durable run archive: `brief.md`
-  (ADR-331), `mission.yml` (execution/supervision/budgets policy),
+  (the worker brief), `mission.yml` (execution/supervision/budgets policy),
   `state.json` (program counter, written via the `adlc-cli workflow state`
-  helpers), `lease.json` (strict run lease, ADR-395), `scratchpads/`,
+  helpers), `lease.json` (strict run lease, shared run state), `scratchpads/`,
   `findings/`, `decisions/`, `artifacts/`, `iterations.md`
 - `.adlc/workflows/<run_id>/workflow.yml` — generated-by-slug workflow
-  definition (ADR-391-amendment)
+  definition (the workflow namespace)
 - `.adlc/workflows/memory.jsonl` — cross-run workflow memory
   (workspace-global; read/write by `factory-learn` retrospectives)
 - `.adlc/worktrees/<run_id>/` — isolated mission worktrees
 - `refs/factory-runs/<run_id>` — git-refs Tier-3 transport of the run
-  archive (ADR-393)
+  archive (git-refs run state)
 
 **Governance** (inside target project and repo root):
 
@@ -673,7 +673,7 @@ This repo implements the [Twelve-Factor Agentic SDLC](https://github.com/tikalk/
 | **XI — Directives as Code** | Team + team-levelup + Product + Architecture | All directive lifecycles (CDR, PDR, ADR) live in version-controlled repos; CDR drafts and usage reports live in the `adlc` orphan branch of team-ai-directives (`drafts/cdr/` + `reports/`); each lifecycle has extract → review → publish → analyze stages |
 | **XII — Build to Delete** | team-repair + evals-analyze | `--build-to-delete` runs evals without directives via LLM calls; if model passes, proposes deletion (Harness Decay); `--update-confidence` aggregates usage data into OKF frontmatter confidence scores; `evals-analyze` routes spec failures to `team-levelup` (rules) and generalization failures to the evaluator backlog — the feedback loop that makes build-to-delete verifiable |
 
-### Deck ↔ code glossary (PDR-057)
+### Deck ↔ code glossary (the deck-code glossary)
 
 Canonical names live in code; deck terms map to them (code is ground truth, except Pair 1 where the concept itself is harness-agnostic):
 

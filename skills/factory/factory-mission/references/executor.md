@@ -4,7 +4,7 @@
 
 This is the canonical executor contract for all Kind-A factory orchestrators (`factory-mission`, `factory-product`, `factory-architect`, `factory-learn`, `factory-init`). It defines how to compile a feature or lifecycle task into a structured step list, execute steps sequentially with state tracking, handle supervision gates, and run correction loops.
 
-## Shared Run State (ADR-395 — read this first)
+## Shared Run State (shared run state — read this first)
 
 The executor is the **LLM interpreter** of a dual-executor architecture. It shares one program (`workflow.yml`) and one program counter (`state.json`) with the CLI engine (`adlc-cli workflow`):
 
@@ -21,7 +21,7 @@ The executor is the **LLM interpreter** of a dual-executor architecture. It shar
 3. **Strict lease.** Every state-writing session acquires the lease first (`state start/advance` fold this in). Set `ADLC_WORKFLOW_SESSION=<session-id>` once per executor session — the lease then persists across sequential helper invocations and blocks concurrent writers. `state pause`/`state fail`/terminal advance release it: the run becomes claimable by any executor (exit-and-resume handoff).
 4. **Gates.** In-session, a gate is an inline human Q&A: `state pause <run_id> --step <gate_id>` → ask the human → `state advance <run_id> --step <gate_id> --status completed --output-json '{"choice":"<answer>"}'`. Headless (CI) the same gate is engine-PAUSED + `verdict_input`; the human's answer arrives as `resume --input verdict=<choice>`.
 5. **Frozen vs live policy (the executor difference).** This executor re-reads `runs/<run_id>/mission.yml` live on resume — operators may adjust budgets/supervision mid-run. The CLI engine executes the frozen `workflow.yml` copy deterministically.
-6. **Run context home.** Everything the run needs lives in `runs/<run_id>/`: `brief.md` (ADR-331), `mission.yml` (policy), `scratchpads/`, `findings/`, `decisions/`, `artifacts/`, `iterations.md`. Cross-run memory is global: `.adlc/workflows/memory.jsonl`. There is no `.adlc/workflow/` directory anymore.
+6. **Run context home.** Everything the run needs lives in `runs/<run_id>/`: `brief.md`, `mission.yml` (policy), `scratchpads/`, `findings/`, `decisions/`, `artifacts/`, `iterations.md`. Cross-run memory is global: `.adlc/workflows/memory.jsonl`. There is no `.adlc/workflow/` directory anymore.
 
 The execution loop below is annotated with the helper calls at each write point.
 
@@ -42,7 +42,7 @@ The executor is runtime-independent: it works with any agent CLI in any session.
 
 ### Phase 0.5 — Workspace Isolation & Atomic Git Ref Lock
 
-1. Derive the run id (`<orchestrator>-<target-slug>`; append `-2`, `-3`… if taken under `.adlc/workflows/runs/`), then the worktree path: `<worktree_root>/<run_id>/` (run_id-prefixed — the registry link is mechanical, ADR-391-amendment). Default `worktree_root` is `.adlc/worktrees`.
+1. Derive the run id (`<orchestrator>-<target-slug>`; append `-2`, `-3`… if taken under `.adlc/workflows/runs/`), then the worktree path: `<worktree_root>/<run_id>/` (run_id-prefixed — the registry link is mechanical, the workflow namespace). Default `worktree_root` is `.adlc/worktrees`.
 2. If worktree exists (resume): reuse it. Never remove or reset it. Inspect status and commits; if it holds work, confirm before continuing.
 3. If worktree doesn't exist: `git worktree add <path> -b <branch> <remote>/<base-branch>`. Branch named per project convention or `factory/<orchestrator>/<target-slug>`.
 4. **Atomic Git Ref Lock**: To eliminate race conditions where two machines read the tracker concurrently, the claiming machine pushes an atomic lock ref: `git push origin HEAD:refs/heads/factory/locks/<orchestrator>-<target-slug>`. If the ref already exists, the Git server rejects the push; the runner immediately halts before making code changes or running LLM steps.
@@ -66,7 +66,7 @@ The executor is runtime-independent: it works with any agent CLI in any session.
 
 1. **Tier 1 (Shared-State Check — any machine, any executor)**:
    - `adlc-cli workflow state show <run_id>` — the shared program counter (`.adlc/workflows/runs/<run_id>/state.json`).
-   - The strict lease (`runs/<run_id>/lease.json`, ADR-395) replaces the old local state-file heartbeat: if a live lease is held by another session → HALT & REFUSE (the helper errors with the holder). Expired/absent → claim and continue.
+   - The strict lease (`runs/<run_id>/lease.json`, shared run state) replaces the old local state-file heartbeat: if a live lease is held by another session → HALT & REFUSE (the helper errors with the holder). Expired/absent → claim and continue.
 
 2. **Tier 2 (Remote Distributed Check - Cross-Machine)**:
    - If tracker-integrated: execute `tracker-integration.md` §Operation 10 (`Acquire Remote Lease`).
@@ -83,7 +83,7 @@ The executor is runtime-independent: it works with any agent CLI in any session.
 3. **Read the brief**: if `runs/<run_id>/brief.md` exists, read it to restore full run context (goal, constraints, success criteria, run ID, route, supervision, target, worktree, step inputs).
 4. If state is empty and no marker comments exist: start fresh.
 5. If marker comments exist with incomplete steps: load outputs, skip to the first pending step (`state show` → `current_step_index`), passing the previous step's findings as input.
-6. Completed runs need no archiving — the run directory **is** the archive (`status: completed` persists; git-refs `refs/factory-runs/<run_id>` is the transport, ADR-393). Marker comments remain on the PR/MR/issue as a permanent audit trail.
+6. Completed runs need no archiving — the run directory **is** the archive (`status: completed` persists; git-refs `refs/factory-runs/<run_id>` is the transport, git-refs run state). Marker comments remain on the PR/MR/issue as a permanent audit trail.
 
 ### Phase 2 — Brief Construction
 
@@ -125,10 +125,10 @@ A resumed run reads the brief from disk. A `cli:` lane worker reads the brief fr
 
 **Emit the workflow definition (the plan of record).** In the same phase, compile the step list (Phase 4 schema) into a `workflow.yml` and start the shared run:
 
-1. Write the compiled definition to `.adlc/workflows/<run_id>/workflow.yml` (generated-by-slug home, ADR-391-amendment) — steps as `command`/`prompt` entries carrying the step's skill + prompt, supervision gates as `gate` steps with `verdict_input`, correction loops as `do-while` with `max_iterations` from mission budgets, models from tiers.
+1. Write the compiled definition to `.adlc/workflows/<run_id>/workflow.yml` (generated-by-slug home, the workflow namespace) — steps as `command`/`prompt` entries carrying the step's skill + prompt, supervision gates as `gate` steps with `verdict_input`, correction loops as `do-while` with `max_iterations` from mission budgets, models from tiers.
 2. Validate: `adlc-cli workflow validate <run_id>` — a failed validation is a Phase 2 defect; fix the definition, never skip the gate.
 3. Create the shared run: `adlc-cli workflow state start --workflow <run_id> --run-id <run_id> --input …` (lease acquired; frozen copy + mission.yml land in the run dir).
-4. The emitted file is dual-executor (ADR-395): CI can run the identical loop headless later; drift between prose and program is impossible because both consume one file.
+4. The emitted file is dual-executor (shared run state): CI can run the identical loop headless later; drift between prose and program is impossible because both consume one file.
 
 ### Phase 3 — Route Classification
 
@@ -286,7 +286,7 @@ On successful convergence of all steps:
    - `local`: Write to `.adlc/` and project root.
    - `external-repo`: Open a PR on the `team-ai-directives` repository (used by `factory-learn`).
    - `tracker`: Post a completion summary comment on the PR/MR/issue with the final audit trail.
-4. **Draft MR/PR ownership (ADR-432)**: whenever the publish target opens or reuses a draft MR/PR, that MR must arrive owned and tracked — it carries the Issue's milestone and a named assignee. Apply `tracker-integration.md` §Operation 11: resolve the propagation with `resolve-mr-ownership.py`, then create or reuse the MR and set the resolved fields. Preserve-only (never overwrite a field a human set), silent skip when the Issue has no milestone, block the run with an actionable error when a read/write scope is missing. Never guess a milestone or an assignee.
+4. **Draft MR/PR ownership (the MR-ownership decision)**: whenever the publish target opens or reuses a draft MR/PR, that MR must arrive owned and tracked — it carries the Issue's milestone and a named assignee. Apply `tracker-integration.md` §Operation 11: resolve the propagation with `resolve-mr-ownership.py`, then create or reuse the MR and set the resolved fields. Preserve-only (never overwrite a field a human set), silent skip when the Issue has no milestone, block the run with an actionable error when a read/write scope is missing. Never guess a milestone or an assignee.
 5. No archiving move — the run directory (`.adlc/workflows/runs/<run_id>/`) is the durable archive; git-refs Tier-3 transports it. The final `state advance` (last step, completed) closes the run and releases the lease. Marker comments on the PR/MR/issue remain as a permanent, human-visible audit trail.
 6. Print the audit trail.
 

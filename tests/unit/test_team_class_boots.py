@@ -133,7 +133,7 @@ def test_class_boot_ledger_integration():
         assert "Session Decision Ledger" not in content, f"{name}: stale standalone ledger"
 
 
-# ── Single-table merge — ADR-417 (issue #56) ─────────────────────────────────
+# ── Single-table merge (issue #56) ──────────────────────────────────────────
 # Team Context in Use + Session Decision Ledger merge into one
 # "Team Context & Decisions" section (shared 6-col grammar). Status carries
 # the accepted-vs-pending distinction; no draft row may carry `in use`.
@@ -405,7 +405,7 @@ def test_boot_pending_decisions_consolidated_table(tmp_path, monkeypatch):
     assert UNIFIED_HEADER in out
 
 
-# ── Class-boot contract v2 — ADR-412/413 (issue #50 + workspace-fallback scope) ─
+# ── Class-boot contract v2 — workspace-centralized decision memory/413 (issue #50 + workspace-fallback scope) ─
 # Early-fire: class boots invoke at the START of matching work (before todo
 # planning/implementation), never deferred to session end.
 # 0-rows rendering: heading + counts/searched line only — NO table (a 0-row table

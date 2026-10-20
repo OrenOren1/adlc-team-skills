@@ -11,7 +11,7 @@
 # Bundled with each product-* skill so it works standalone.
 # Sourced by setup-product-*.sh scripts and callable directly.
 #
-# ADR-401 note: memory-scope readers dual-read the legacy .adlc/memory root
+# note: memory-scope readers dual-read the legacy .adlc/memory root
 # (back-compat); generate_pdr_index memory additionally indexes
 # docs/adlc/memory/pdr/ (the canonical promotion target) and writes the index
 # there whenever that root holds records; move_pdr promotes INTO
@@ -21,14 +21,14 @@
 #   source pdr-lib.sh                          # load functions
 #   generate_pdr_index memory                  # regenerate the memory pdr.md (docs root preferred)
 #   generate_pdr_index drafts                  # regenerate .adlc/drafts/pdr/pdr.md
-#   move_pdr 020 drafts memory                # atomically move PDR-020 drafts→memory
+#   move_pdr 020 drafts memory                # atomically move the planning-mode decision drafts→memory
 #   migrate_pdr_to_frontmatter .adlc/memory/pdr/PDR-001.md   # one-time legacy migration
 #
 
 set -euo pipefail
 
 # ============================================================================
-# ADR-401 shared layout constants (single definition in paths.sh)
+# shared layout constants (single definition in paths.sh)
 # ============================================================================
 
 _pdr_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -211,7 +211,7 @@ generate_pdr_index() {
     local scope="${1:-drafts}"
     local pdr_dir="$REPO_ROOT/.adlc/$scope/pdr"
 
-    # ADR-401 dual-read (R8): the memory scope indexes the canonical
+    # dual-read: the memory scope indexes the canonical
     # docs/adlc/memory root plus any records still in the legacy .adlc/memory
     # root (migration stragglers). The index is written where the records
     # live — docs preferred whenever it holds any record, else legacy.
@@ -229,7 +229,7 @@ generate_pdr_index() {
         return 0
     fi
 
-    # ADR-401 publication closure: the Source line must name the directory
+    # publication closure: the Source line must name the directory
     # this index file actually lives in (docs for migrated repos).
     local index_rel_dir="${scan_dirs[0]#"$REPO_ROOT"/}"
 
@@ -322,7 +322,7 @@ move_pdr() {
 
     local from_dir="$REPO_ROOT/.adlc/$from_scope/pdr"
     local to_dir="$REPO_ROOT/.adlc/$to_scope/pdr"
-    # ADR-401 R8: promotion writers write the NEW path only — the memory
+    # dual-read: promotion writers write the NEW path only — the memory
     # scope targets docs/adlc/memory (readers dual-read the legacy root).
     if [ "$to_scope" = "memory" ]; then
         to_dir="$REPO_ROOT/${DOCS_ADLC_MEMORY:-docs/adlc/memory}/pdr"

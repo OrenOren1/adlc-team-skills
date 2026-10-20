@@ -2,7 +2,7 @@
 
 ## Overview
 
-This reference defines the converge loop controller for `factory-review --self-heal` mode. It mirrors `factory-mission` Phase 5's test/code/converge pattern, applying it to review/fix/converge. The loop controller runs inline (like factory-mission's executor), dispatching three sub-agents per iteration via ADR-336 lanes, communicating only through the comment bus (ADR-330).
+This reference defines the converge loop controller for `factory-review --self-heal` mode. It mirrors `factory-mission` Phase 5's test/code/converge pattern, applying it to review/fix/converge. The loop controller runs inline (like factory-mission's executor), dispatching three sub-agents per iteration via lane-based dispatch, communicating only through the comment bus.
 
 ---
 
@@ -13,7 +13,7 @@ The loop controller (factory-review, inline) is responsible for:
 2. **Reading** each sub-agent's output from the comment bus via `reads_from` markers.
 3. **Interpreting** the converge step's return value (`DONE` / `CONTINUE` / `SPEC_CORRECTION_NEEDED`).
 4. **Managing** the circuit breaker and score-regression counters.
-5. **Managing** detached checkouts (ADR-335) for review and converge dispatches.
+5. **Managing** detached checkouts for review and converge dispatches.
 6. **Waiting** for CI between the fix step and the converge step.
 7. **Exiting** cleanly on `DONE`, circuit-breaker trip, or `SPEC_CORRECTION_NEEDED`.
 
@@ -29,9 +29,9 @@ The loop controller does **not** review, fix, or judge — it only orchestrates.
 
 **Lane:** `cli:<other-runtime>` (preferred for cross-runtime independence) or `agent` (fallback). Degradation is disclosed if `cli:<other-runtime>` is unavailable.
 
-**Identity:** Review Agent — own validated login (ADR-339).
+**Identity:** Review Agent — own validated login.
 
-**Worktree:** Detached checkout at exact head SHA (ADR-335). The checkout is unique to this dispatch — never reused from another run or dispatch. Define the reviewed revision as `(head SHA, base SHA, merge base)`.
+**Worktree:** Detached checkout at exact head SHA. The checkout is unique to this dispatch — never reused from another run or dispatch. Define the reviewed revision as `(head SHA, base SHA, merge base)`.
 
 **Permissions:**
 | src/ | tests/ | spec.md | REVIEW.md | Can push? | Can approve? |
@@ -50,7 +50,7 @@ The loop controller does **not** review, fix, or judge — it only orchestrates.
 5. Classify findings into **Important** (bugs, security, spec deviation) and **Nit** (formatting, style).
 6. Compile findings into a severity-ranked report.
 
-**Output type:** `findings` (published to comment bus per ADR-330).
+**Output type:** `findings` (published to comment bus).
 
 **Marker:**
 ```
@@ -75,9 +75,9 @@ The loop controller does **not** review, fix, or judge — it only orchestrates.
 
 **Lane:** `agent` (fresh session of same CLI).
 
-**Identity:** Fix Agent — own validated committer identity (ADR-339). Never the original PR author's identity. Never a reviewer's identity. The pushing login is not the commit author.
+**Identity:** Fix Agent — own validated committer identity. Never the original PR author's identity. Never a reviewer's identity. The pushing login is not the commit author.
 
-**Worktree:** Own worktree (ADR-332), separate from the review checkout. Writeable src/.
+**Worktree:** Own worktree, separate from the review checkout. Writeable src/.
 
 **Permissions:**
 | src/ | tests/ | spec.md | REVIEW.md | Can push? | Can approve? |
@@ -93,8 +93,8 @@ The loop controller does **not** review, fix, or judge — it only orchestrates.
 3. **Validate before fixing:** Read the code the finding points at. Judge: is it correct, does it improve the code, does it fit the ticket's intent, does it break nothing else? Only a fix that passes validation gets implemented.
 4. Implement the fix in the worktree.
 5. Run tests locally in the worktree. If tests fail, do not push — attempt another fix or return `failed`.
-6. Commit with the Fix Agent's own identity (ADR-339). Preserve original PR author's commits during any rebase (ADR-338).
-7. Push to the PR branch using `--force-with-lease` for the exact previously observed remote SHA (ADR-338). If the remote moved (human pushed), the push is rejected — re-fetch and rebuild the fix.
+6. Commit with the Fix Agent's own identity. Preserve original PR author's commits during any rebase.
+7. Push to the PR branch using `--force-with-lease` for the exact previously observed remote SHA. If the remote moved (human pushed), the push is rejected — re-fetch and rebuild the fix.
 8. Wait for CI to pass. If CI fails, record the failure as a finding for the converge step.
 
 **Output type:** `artifact-ref` (published to comment bus).
@@ -121,7 +121,7 @@ The loop controller does **not** review, fix, or judge — it only orchestrates.
 
 **Identity:** Converge Agent — own login.
 
-**Worktree:** Detached checkout at the NEW head SHA (after fix push, ADR-335). All read-only.
+**Worktree:** Detached checkout at the NEW head SHA (after a fix push). All read-only.
 
 **Permissions:**
 | src/ | tests/ | spec.md | REVIEW.md | Can push? | Can approve? |
@@ -188,7 +188,7 @@ review_self_heal:
 
 ---
 
-## Lane Preferences (extends ADR-336)
+## Lane Preferences
 
 | Step | Preferred Lane | Fallback Lane | Why |
 |------|---------------|---------------|-----|
@@ -196,7 +196,7 @@ review_self_heal:
 | `fix` | `agent` | `agent` | Fresh session prevents context contamination |
 | `converge` | `agent` | `agent` | Independent judge in fresh session |
 
-**Degradation rule (ADR-336):** If `cli:<other-runtime>` is unavailable (command missing, runtime refuses, quota spent, auth expired), review falls back to `agent` on same runtime. The degradation is disclosed in the loop controller's status output and recorded in the state file. The run continues — losing cross-runtime independence is not a stop condition.
+**Degradation rule:** If `cli:<other-runtime>` is unavailable (command missing, runtime refuses, quota spent, auth expired), review falls back to `agent` on same runtime. The degradation is disclosed in the loop controller's status output and recorded in the state file. The run continues — losing cross-runtime independence is not a stop condition.
 
 ---
 
@@ -261,7 +261,7 @@ Each step is defined as a step in the executor's step list (follows `factory-mis
 
 ## Inter-Agent Communication
 
-**Comment bus only (ADR-330).** Sub-agents don't share session context. Each dispatch:
+**Comment bus only.** Sub-agents don't share session context. Each dispatch:
 1. Reads previous step's output via `reads_from` marker — fetched from the PR/MR/issue via `tracker-integration.md` §5 (Read Step Outputs).
 2. Publishes its own output via `tracker-integration.md` §4 (Post Step Output) with its `output_marker`.
 3. The full subagent response is discarded from session context after the marker is published (same as `executor.md` Phase 5 §7-8).
@@ -282,8 +282,8 @@ Before posting any comment, the loop controller searches the PR/MR/issue thread 
 
 ## Worktree Management
 
-- **Review and converge dispatches:** Each creates a new detached checkout (ADR-335) at the exact head SHA. Previous iteration's checkouts are discarded. Never reuse another dispatch's checkout — its tree moves under you mid-review.
-- **Fix dispatch:** Uses its own worktree (ADR-332) with writeable src/. The worktree may persist across iterations if the loop controller passes the same worktree path to successive fix dispatches (same as factory-mission's worktree persistence under parent-held lease).
+- **Review and converge dispatches:** Each creates a new detached checkout at the exact head SHA. Previous iteration's checkouts are discarded. Never reuse another dispatch's checkout — its tree moves under you mid-review.
+- **Fix dispatch:** Uses its own worktree with writeable src/. The worktree may persist across iterations if the loop controller passes the same worktree path to successive fix dispatches (same as factory-mission's worktree persistence under parent-held lease).
 - **Cleanup:** On loop exit (`DONE`, circuit-breaker trip, or `SPEC_CORRECTION_NEEDED`), all checkouts and worktrees are cleaned up. If a worktree holds unpushed work, it is retained and the path is reported.
 
 ---
@@ -299,7 +299,7 @@ After the Fix Agent pushes, the loop controller waits for CI to pass before disp
 When converge returns `SPEC_CORRECTION_NEEDED`:
 
 1. The loop controller posts a comment on the PR/issue: "Spec correction needed: the governing ticket/spec is wrong or ambiguous. Finding <id>: <description>. No code fix can resolve this — the spec needs correction."
-2. If tracker-integrated: stamp `lifecycle=intent` label on the issue (back to spec gate, ADR-318).
+2. If tracker-integrated: stamp `lifecycle=intent` label on the issue (back to spec gate).
 3. Route to `factory-queue` for re-triage — the issue will be re-evaluated and potentially routed to `product-clarify` or `architect-clarify`.
 4. Exit the loop. The PR is left in its current state (the fix step's fixes are pushed; the spec issue is documented).
 
