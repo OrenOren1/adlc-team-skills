@@ -30,6 +30,14 @@ permissions:
   issues: read
   pull-requests: read
 
+# The issue_comment trigger makes the run user-triggerable on this public
+# repository: any account that comments a body carrying the marker starts a
+# run. The run is read-only and bounded, and this group keeps a pile of such
+# runs from stacking up: only the newest state of the PR is worth checking.
+concurrency:
+  group: verdict-head-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
 jobs:
   verdict-head:
     name: Verdict names the current head
