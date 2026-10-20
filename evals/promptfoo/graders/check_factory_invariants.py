@@ -160,36 +160,36 @@ def check_provisioning_confirmed(output: str) -> dict:
 def get_assert(output: str, context: dict = None) -> dict:
     scenario = context.get("vars", {}).get("scenario", "")
     
-    if "authorship preservation" in scenario:
+    if "authorship-preservation" in scenario:
         return check_authorship_preservation(output)
-    if "committer identity validation" in scenario:
+    if "committer-identity-validation" in scenario:
         return check_committer_identity(output)
-    if "heartbeat output redirection" in scenario:
+    if "heartbeat-output-redirection" in scenario:
         return check_heartbeat_pipe_leak(output)
-    if "the draft-locality" in scenario:
+    if "draft-locality" in scenario:
         return check_output_classification(output)
-    if "the decision-audit" in scenario:
+    if "decision-audit" in scenario:
         return check_decision_audit_trail(output)
-    if "the read-only" in scenario:
+    if "read-only" in scenario:
         return check_tickets_readonly(output)
-    if "the liveness" in scenario:
+    if "liveness-recheck" in scenario:
         return check_clean_liveness_reverify(output)
-    if "ingestion/triage comment gating" in scenario:
+    if "ingestion-triage-comment-gating" in scenario:
         return check_unattended_triage(output)
-    if "the scratchpad-staging" in scenario:
+    if "scratchpad-staging" in scenario:
         return check_scratchpad_staging(output)
-    if "tracker-agnostic status transitions" in scenario:
+    if "tracker-agnostic-status-transitions" in scenario:
         return check_status_transitions(output)
-    if "distributed lease locking" in scenario:
+    if "distributed-lease-locking" in scenario:
         return check_distributed_lease_collision(output)
-    if "layer-tagged correction routing" in scenario:
+    if "layer-tagged-correction-routing" in scenario:
         return check_sweep_layer_routing(output)
-    if "the provider config" in scenario:
+    if "provider-config" in scenario:
         return check_no_credential_in_provider(output)
-    if "label provisioning" in scenario:
-        if "provision" in scenario.lower():
-            return check_provisioning_confirmed(output)
+    if "label-mapping" in scenario:
         return check_label_mapping_respected(output, scenario)
+    if "label-provisioning" in scenario:
+        return check_provisioning_confirmed(output)
         
     return {
         "pass": False,
