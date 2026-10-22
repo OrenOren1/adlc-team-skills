@@ -58,7 +58,9 @@ When triggered with `--pr <id>` (without `--self-heal`):
 When triggered with `--pr <id> --self-heal`, factory-review enters a three-sub-agent converge loop mirroring `factory-mission` Phase 5. The detailed specification are in `references/review-loop.md`.
 
 
-The `review` step runs an adversarial trio in parallel — **Auditor** (correctness, logic), **Adversary** (security, abuse cases), **Pragmatist** (maintainability, design) — each stay-in-lane in Round 1, then Round-2 cross-examination (validate, challenge, add) with deterministic synthesis; only cross-validated + consensus Important findings trigger `fix`. Full rules in `references/review-loop.md`; `--single-round` skips Round 2 (findings tagged `solo`).
+The `review` step runs an adversarial trio in parallel — **Auditor** (correctness, logic), **Adversary** (security, abuse cases), **Pragmatist** (maintainability, design) — each stay-in-lane in Round 1, then Round-2 cross-examination (validate, challenge, add) with deterministic synthesis; `fix` is gated on synthesis-tagged actionable Important findings
+(cross-validated + consensus, plus `solo` in `--single-round` mode — a degraded pass, disclosed;
+`disputed` Important skip `fix` for converge adjudication). Full rules in `references/review-loop.md`; `--single-round` skips Round 2 (findings tagged `solo`).
 **Architecture:**
 
 ```

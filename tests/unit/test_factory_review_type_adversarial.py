@@ -216,12 +216,14 @@ def test_review_loop_documents_synthesis_counting_rule():
             f"review-loop.md must define the '{tag}' synthesis tag"
         )
     assert re.search(
-        r"cross-validated.*consensus.*Important|only.*cross-validated.*consensus",
+        r"cross-validated.*consensus.*Important|only.*cross-validated.*consensus"
+        r"|actionable.*Important|cross-validated \+ consensus.*actionable",
         content,
         re.IGNORECASE | re.DOTALL,
     ), (
-        "the synthesis rule must state that only cross-validated + "
-        "consensus Important findings trigger `fix`"
+        "the synthesis rule must state which tagged Important findings trigger "
+        "`fix` (cross-validated + consensus actionable; solo only in "
+        "--single-round; disputed held for converge)"
     )
 
 
