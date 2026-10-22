@@ -503,3 +503,52 @@ def test_orchestrators_always_call_open_mr_and_leave_approval_to_the_gate(skill)
     assert "**Before you return, always:**" in text
     assert "even when nothing was committed" in text
     assert "do not ask for approval yourself" in text
+
+
+# ── deletions inside the allowlist ─────────────────────────────────────────
+
+def test_commit_step_commits_a_promoted_drafts_deletion(repo):
+    # A promotion moves .adlc/drafts/pdr/X.md to docs/adlc/memory/pdr/X.md. The
+    # agent passes the new path only; the old draft's deletion must still be
+    # committed, or the engine's gate refuses the "uncommitted draft".
+    w = repo["work"]
+    write(w, ".adlc/drafts/pdr/PDR-7.md", "draft\n")
+    git(w, "add", "-A")
+    git(w, "commit", "-q", "-m", "draft")
+    (w / ".adlc/drafts/pdr/PDR-7.md").unlink()
+    write(w, "docs/adlc/memory/pdr/PDR-7.md", "accepted\n")
+    r = run(COMMIT_STEP, w, *STEP_ARGS, "docs/adlc/memory/pdr/PDR-7.md", env=RUN_ENV)
+    assert r.returncode == 0, r.stderr
+    assert git(w, "status", "--short") == ""
+    changed = git(w, "show", "--name-status", "--format=", "HEAD").splitlines()
+    assert "D\t.adlc/drafts/pdr/PDR-7.md" in changed
+    assert "A\tdocs/adlc/memory/pdr/PDR-7.md" in changed
+
+
+def test_commit_step_leaves_deletions_outside_the_allowlist(repo):
+    w = repo["work"]
+    (w / "README.md").unlink()
+    write(w, ".adlc/drafts/pdr/PDR-8.md", "d\n")
+    r = run(COMMIT_STEP, w, *STEP_ARGS, ".adlc/drafts/pdr/PDR-8.md", env=RUN_ENV)
+    assert r.returncode == 0, r.stderr
+    assert "README.md" not in git(w, "show", "--name-only", "--format=", "HEAD")
+    assert git(w, "status", "--short") == "D README.md"
+
+
+def test_commit_step_commits_a_deletion_alone(repo):
+    # A step whose only change is removing a draft still makes its commit.
+    w = repo["work"]
+    write(w, ".adlc/drafts/adr/ADR-9.md", "x\n")
+    git(w, "add", "-A")
+    git(w, "commit", "-q", "-m", "draft")
+    (w / ".adlc/drafts/adr/ADR-9.md").unlink()
+    r = run(COMMIT_STEP, w, *STEP_ARGS, ".adlc/drafts/adr/ADR-9.md", env=RUN_ENV)
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.startswith("sha: ") and r.stdout.strip() != "sha: none"
+    assert git(w, "status", "--short") == ""
+
+
+@pytest.mark.parametrize("skill", ["factory-product", "factory-architect"])
+def test_orchestrators_pass_moved_and_deleted_paths(skill):
+    text = (ROOT / f"skills/factory/{skill}/SKILL.md").read_text()
+    assert "every path the step wrote, moved or deleted" in text

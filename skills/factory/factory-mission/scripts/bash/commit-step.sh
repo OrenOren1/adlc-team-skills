@@ -10,7 +10,8 @@
 # in .adlc/init-options.json, or --commit (ADR-431 §6); otherwise prints
 # `sha: none` and changes nothing. Stages ONLY the given paths, and only when
 # they are inside the ADR-433 lifecycle write allowlist; run state
-# (.adlc/workflows/**, ADR-393) is never staged. Requires an explicit committer
+# (.adlc/workflows/**, ADR-393) is never staged. Deletions inside the
+# allowlist (a promoted draft's old path) are committed with the step. Requires an explicit committer
 # identity (ADR-339). Prints `sha: <sha>`, or `sha: none` when nothing changed.
 set -euo pipefail
 
@@ -73,6 +74,16 @@ for p in "${paths[@]}"; do
   esac
   rel+=("$p")
 done
+
+# Deletions inside the allowlist belong to the step too: a promotion moves a
+# draft into memory, and the agent passes the new path only. Without this the
+# old draft stays an uncommitted deletion and the engine's gate refuses it.
+allow=(.adlc/drafts/pdr .adlc/drafts/adr docs/adlc/memory/pdr docs/adlc/memory/adr
+  docs/adlc/product/PRD.md docs/adlc/architect/AD.md docs/adlc/architect/views
+  .adlc/product/sections .adlc/product/state.json)
+while IFS= read -r -d '' d; do
+  rel+=("$d")
+done < <(git ls-files -z --deleted -- "${allow[@]}"; git diff --cached -z --name-only --diff-filter=D -- "${allow[@]}")
 
 name="${GIT_COMMITTER_NAME:-$(git config user.name || true)}"
 email="${GIT_COMMITTER_EMAIL:-$(git config user.email || true)}"
