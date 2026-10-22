@@ -65,6 +65,28 @@ The loop controller does **not** review, fix, or judge — it only orchestrates.
 - `head_sha`: the reviewed head SHA
 - If `verdict` is `all-pass` or `nits-only` → skip to Step 3 (converge) with `DONE`.
 
+**Adversarial depth (Auditor / Adversary / Pragmatist):** the `review` step runs an
+adverse-style three-persona pass before compiling the report:
+
+- **Round 1 (parallel, stay-in-lane):** Auditor owns correctness and logic; Adversary
+  owns security and abuse cases; Pragmatist owns maintainability and design. Each persona
+  reports its own findings without crossing into another lane.
+- **Round 2 (cross-exam):** each persona re-reads the other two reports and for each
+  finding emits **validate** (independent confirmation), **challenge** (counter-evidence),
+  or **add** (new angle the first report missed).
+- **Synthesis:** `scripts/synthesize-findings.py` tags every finding deterministically
+  (same input → byte-identical output, exit 0; accepts a findings JSON file arg or stdin):
+  `cross-validated` (≥2 reporters), `consensus` (1 report + ≥1 validate, no challenge),
+  `disputed` (1 report + ≥1 challenge), `solo` (everything else). Only cross-validated +
+  consensus Important findings trigger `fix`.
+- **Adversary lane:** the Adversary prefers the `cli:<other-runtime>` lane for true
+  runtime independence; any lane degradation is disclosed in the loop status output.
+- **`--single-round` fallback:** skips Round 2 — every finding is tagged `solo` and the
+  `fix` gate treats `solo` Important findings as actionable (a degraded pass, disclosed).
+
+**Converge reads synthesis:** the converge step (Step 3) reads the synthesis output —
+not single-agent findings — when it verifies which Important findings are resolved.
+
 ---
 
 ### Step 2: `fix` (Fix Agent)
