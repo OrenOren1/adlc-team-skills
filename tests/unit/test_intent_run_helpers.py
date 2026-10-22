@@ -124,6 +124,54 @@ def test_run_branch_continues_from_origin(repo, tmp_path):
     assert git(repo["work"], "log", "-1", "--format=%s") == "from another pod"
 
 
+def _push_from_other_pod(repo, tmp_path, msg):
+    other = tmp_path / "other"
+    if not other.exists():
+        subprocess.run(["git", "clone", "-q", str(repo["bare"]), str(other)], check=True)
+        git(other, "config", "user.email", "o@t.local")
+        git(other, "config", "user.name", "o")
+        git(other, "switch", "-q", "factory/intent/adlc-workspace-12")
+    (other / f"{msg}.txt").write_text("x\n")
+    git(other, "add", "-A")
+    git(other, "commit", "-q", "-m", msg)
+    git(other, "push", "-q", "origin", "factory/intent/adlc-workspace-12")
+
+
+def test_run_branch_fast_forwards_a_stale_local_branch_from_origin(repo, tmp_path):
+    run(RUN_BRANCH, repo["work"], env=RUN_ENV)
+    git(repo["work"], "push", "-q", "origin", "factory/intent/adlc-workspace-12")
+    git(repo["work"], "switch", "-q", "main")
+    _push_from_other_pod(repo, tmp_path, "newer on origin")
+    r = run(RUN_BRANCH, repo["work"], env=RUN_ENV)
+    assert r.returncode == 0, r.stderr
+    assert git(repo["work"], "log", "-1", "--format=%s") == "newer on origin"
+
+
+def test_run_branch_halts_when_local_and_origin_diverged(repo, tmp_path):
+    run(RUN_BRANCH, repo["work"], env=RUN_ENV)
+    git(repo["work"], "push", "-q", "origin", "factory/intent/adlc-workspace-12")
+    _push_from_other_pod(repo, tmp_path, "remote side")
+    (repo["work"] / "local.txt").write_text("l\n")
+    git(repo["work"], "add", "-A")
+    git(repo["work"], "commit", "-q", "-m", "local side")
+    git(repo["work"], "switch", "-q", "main")
+    r = run(RUN_BRANCH, repo["work"], env=RUN_ENV)
+    assert r.returncode != 0
+    assert "diverged" in r.stderr
+    assert git(repo["work"], "branch", "--show-current") == "main"
+
+
+@pytest.mark.parametrize("ref", ["g/../evil#1", "g//x#1", "/g/x#1", "g/.x#1", "g/-x#1", "x#1", "g/x#1a"])
+def test_issue_ref_rule_is_shared_by_run_branch_and_open_mr(repo, ref):
+    r = run(RUN_BRANCH, repo["work"], env={"ADLC_RUN_ID": "r26", "ADLC_ISSUE_REF": ref})
+    assert r.returncode != 0, ref
+    git(repo["work"], "switch", "-q", "-c", "factory/intent/run-r26")
+    env, log, out = open_mr_env(repo, {"ADLC_ISSUE_REF": ref})
+    r = run(OPEN_MR, repo["work"], env=env)
+    assert r.returncode != 0, ref
+    assert "invalid ADLC_ISSUE_REF" in r.stderr
+
+
 def test_run_branch_rejects_unsafe_issue_ref(repo):
     r = run(RUN_BRANCH, repo["work"], env={"ADLC_RUN_ID": "r26", "ADLC_ISSUE_REF": "g/../evil#1"})
     assert r.returncode != 0
@@ -267,6 +315,7 @@ case "$*" in
   *"merge_requests?source_branch="*) echo "${FAKE_EXISTING:-[]}" ;;
   *"-X POST"*"merge_requests"*) echo '{"web_url":"https://gl.test/g/adlc-workspace/-/merge_requests/77"}' ;;
   *"issues/12"*) echo '{"milestone":{"id":407},"assignees":[{"id":5}]}' ;;
+  *"personal_access_tokens/self"*) echo "${FAKE_SCOPES:-{\"scopes\":[\"api\",\"write_repository\"]}}" ;;
   *" user"*) echo '{"id":99,"username":"runner-bot"}' ;;
   *"projects/g%2Fadlc-workspace"*) echo '{"default_branch":"main"}' ;;
   *) echo '{}' ;;
@@ -363,3 +412,58 @@ def test_open_mr_blocks_when_the_tracker_refuses(repo):
     assert r.returncode != 0
     assert "insufficient_scope" in r.stderr
     assert not out.exists()
+
+
+def test_open_mr_refuses_a_non_intent_factory_branch(repo):
+    git(repo["work"], "switch", "-q", "-c", "factory/mission/adlc-workspace-12")
+    env, log, out = open_mr_env(repo)
+    r = run(OPEN_MR, repo["work"], env=env)
+    assert r.returncode != 0
+    assert "factory/intent/" in r.stderr
+    assert git(repo["bare"], "branch", "--list", "factory/mission/adlc-workspace-12") == ""
+
+
+@pytest.mark.parametrize("scopes", ['{"scopes":["read_api","write_repository"]}', '{"message":"404 Not Found"}'])
+def test_open_mr_preflights_token_scope_before_pushing(repo, scopes):
+    on_run_branch(repo)
+    env, log, out = open_mr_env(repo, {"FAKE_SCOPES": scopes})
+    r = run(OPEN_MR, repo["work"], env=env)
+    assert r.returncode != 0
+    assert "scope" in r.stderr
+    # Blocked before any mutation: nothing pushed, no MR, no output.
+    assert git(repo["bare"], "branch", "--list", "factory/intent/adlc-workspace-12") == ""
+    assert "-X POST" not in log.read_text()
+    assert not out.exists()
+
+
+def test_open_mr_tracker_refusal_after_preflight_writes_nothing(repo):
+    on_run_branch(repo)
+    glab = GLAB.replace(
+        '*"-X POST"*"merge_requests"*) echo \'{"web_url":"https://gl.test/g/adlc-workspace/-/merge_requests/77"}\' ;;',
+        '*"-X POST"*"merge_requests"*) echo "403 Forbidden" >&2; exit 1 ;;')
+    env, log, out = open_mr_env(repo, glab=glab)
+    r = run(OPEN_MR, repo["work"], env=env)
+    assert r.returncode != 0
+    assert not out.exists()
+
+
+GH = r'''
+echo "$*" >> "$FAKE_LOG"
+case "$*" in
+  *"-i user"*) printf 'HTTP/2.0 200 OK\r\nX-Oauth-Scopes: %s\r\n\r\n{"login":"runner-bot"}\n' "${FAKE_GH_SCOPES-repo, read:org}" ;;
+  *) echo '[]' ;;
+esac
+'''
+
+
+def test_open_mr_github_preflight_blocks_without_repo_scope(repo):
+    git(repo["work"], "remote", "set-url", "origin", "https://github.com/g/adlc-workspace.git")
+    git(repo["work"], "config", f"url.{repo['bare']}.insteadOf", "https://github.com/g/adlc-workspace.git")
+    on_run_branch(repo)
+    bin_dir = fake_cli(repo["tmp"], "gh", GH)
+    env, log, out = open_mr_env(repo, {"ISSUE_PROVIDER": "github", "FAKE_GH_SCOPES": "read:org",
+                                       "PATH": f"{bin_dir}:{os.environ['PATH']}"})
+    r = run(OPEN_MR, repo["work"], env=env)
+    assert r.returncode != 0
+    assert "scope" in r.stderr
+    assert git(repo["bare"], "branch", "--list", "factory/intent/adlc-workspace-12") == ""
