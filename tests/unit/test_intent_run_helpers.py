@@ -467,3 +467,39 @@ def test_open_mr_github_preflight_blocks_without_repo_scope(repo):
     assert r.returncode != 0
     assert "scope" in r.stderr
     assert git(repo["bare"], "branch", "--list", "factory/intent/adlc-workspace-12") == ""
+
+
+# ── empty runs and the always-call rule ────────────────────────────────────
+
+def test_open_mr_skips_an_empty_run(repo):
+    # Run branch with no commits beyond the base: nothing to review, so no
+    # push, no tracker call, no MR, and no mr_url (the gate shows no link).
+    run(RUN_BRANCH, repo["work"], env=RUN_ENV)
+    env, log, out = open_mr_env(repo)
+    r = run(OPEN_MR, repo["work"], env=env)
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.strip() == ""
+    assert "no commits" in r.stderr
+    assert not log.exists()
+    assert git(repo["bare"], "branch", "--list", "factory/intent/adlc-workspace-12") == ""
+    assert not out.exists()
+
+
+def test_open_mr_reuses_the_mr_when_a_redispatch_adds_nothing(repo, tmp_path):
+    # A re-dispatch continues the pushed branch; it has commits beyond the base
+    # even if this run committed nothing, so the existing MR is reused.
+    on_run_branch(repo)
+    git(repo["work"], "push", "-q", "origin", "factory/intent/adlc-workspace-12")
+    existing = '[{"web_url":"https://gl.test/g/adlc-workspace/-/merge_requests/70"}]'
+    env, log, out = open_mr_env(repo, {"FAKE_EXISTING": existing})
+    r = run(OPEN_MR, repo["work"], env=env)
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.strip().endswith("/merge_requests/70")
+
+
+@pytest.mark.parametrize("skill", ["factory-product", "factory-architect"])
+def test_orchestrators_always_call_open_mr_and_leave_approval_to_the_gate(skill):
+    text = (ROOT / f"skills/factory/{skill}/SKILL.md").read_text()
+    assert "**Before you return, always:**" in text
+    assert "even when nothing was committed" in text
+    assert "do not ask for approval yourself" in text

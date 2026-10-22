@@ -6,7 +6,8 @@
 # (factory/*), finds an open MR/PR for it or creates one draft (squash off; the
 # description states the merge-commit rule, ADR-431 §5), with the issue's
 # milestone and assignees (ADR-432 chain: issue assignees, else the runner's
-# own account), and merges {"mr_url": ...} into ADLC_STEP_OUTPUT. Titles are
+# own account), and merges {"mr_url": ...} into ADLC_STEP_OUTPUT. A run branch
+# with no commits beyond the base opens nothing (empty run). Titles are
 # built from repo, iid and run id only — never issue text. The tracker token's
 # scopes are checked before anything is pushed or created (ADR-432); a missing
 # scope or a tracker refusal blocks: non-zero exit, nothing written. Without
@@ -56,6 +57,18 @@ case "$provider" in
   github) [ "$host" = "github.com" ] || die "origin host $host is not github.com" ;;
   *) die "unsupported ISSUE_PROVIDER: $provider" ;;
 esac
+
+# An empty run opens nothing: with no commits on the run branch beyond the
+# base there is nothing to review, so no push, no MR and no mr_url (the gate
+# then shows no link). A re-dispatch continuing a pushed branch is not empty.
+base=""
+for b in "$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null || true)" origin/main origin/master; do
+  if [ -n "$b" ] && git rev-parse -q --verify "$b^{commit}" >/dev/null; then base="$b"; break; fi
+done
+if [ -n "$base" ] && [ "$(git rev-list --count "$base..HEAD")" = 0 ]; then
+  echo "open-mr: no commits on $branch beyond $base — nothing to review, no MR opened" >&2
+  exit 0
+fi
 
 if [ "$provider" = gitlab ]; then
   api() { glab api --hostname "$host" "$@"; }
