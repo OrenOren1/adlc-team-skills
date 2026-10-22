@@ -73,16 +73,23 @@ adverse-style three-persona pass before compiling the report:
   reports its own findings without crossing into another lane.
 - **Round 2 (cross-exam):** each persona re-reads the other two reports and for each
   finding emits **validate** (independent confirmation), **challenge** (counter-evidence),
-  or **add** (new angle the first report missed).
+  or **add** (new angle the first report missed — recorded as a separate finding with the
+  adder in `reports`, so the synthesis input needs no separate schema slot).
 - **Synthesis:** `scripts/synthesize-findings.py` tags every finding deterministically
   (same input → byte-identical output, exit 0; accepts a findings JSON file arg or stdin):
   `cross-validated` (≥2 reporters), `consensus` (1 report + ≥1 validate, no challenge),
-  `disputed` (1 report + ≥1 challenge), `solo` (everything else). Only cross-validated +
-  consensus Important findings trigger `fix`.
+  `disputed` (1 report + ≥1 challenge), `solo` (everything else). Every Important finding
+  is reported with its `tag=` status; `fix` is gated on synthesis-tagged Important
+  findings — cross-validated + consensus always actionable, `solo` actionable only in
+  `--single-round` mode (a degraded pass, disclosed), and `disputed` Important findings
+  are held for converge adjudication, never silently dropped.
 - **Adversary lane:** the Adversary prefers the `cli:<other-runtime>` lane for true
   runtime independence; any lane degradation is disclosed in the loop status output.
 - **`--single-round` fallback:** skips Round 2 — every finding is tagged `solo` and the
-  `fix` gate treats `solo` Important findings as actionable (a degraded pass, disclosed).
+  `fix` gate treats `solo` Important findings as actionable (a degraded pass, disclosed) —
+  the single-round carve-out in the synthesis rule above. Every finding (including
+  `disputed`/`solo`) is reported with its `tag=` status; `disputed` Important findings
+  skip `fix` and go straight to converge adjudication.
 
 **Converge reads synthesis:** the converge step (Step 3) reads the synthesis output —
 not single-agent findings — when it verifies which Important findings are resolved.
@@ -93,7 +100,10 @@ not single-agent findings — when it verifies which Important findings are reso
 
 **Purpose:** Fix each Important finding from the review step. Push.
 
-**Dispatched only if** review verdict is `important-found`.
+**Dispatched only if** review verdict is `important-found` — i.e. at least one
+synthesis-tagged *actionable* Important finding exists (cross-validated + consensus, or
+`solo` in `--single-round` mode). `disputed` Important findings never dispatch `fix` on
+their own; they are held for converge adjudication.
 
 **Lane:** `agent` (fresh session of same CLI).
 

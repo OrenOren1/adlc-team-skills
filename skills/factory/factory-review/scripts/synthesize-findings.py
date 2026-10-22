@@ -3,10 +3,13 @@
 
 Reads findings JSON (file arg or stdin) shaped like:
 {"findings":[{"id":"F1","reports":["Auditor","Adversary"],
-"validations":[],"challenges":[]}, ...]}
+"validations":[],"challenges":[],"adds":[]}, ...]}
 writes tags JSON to stdout. Deterministic: same input -> byte-identical output.
 Counting rule: >=2 reporters -> cross-validated; 1 report + >=1 validate
 (no challenge) -> consensus; 1 report + >=1 challenge -> disputed; else solo.
+Round-2 `add` moves arrive as separate findings with the adder in `reports`
+(e.g. {"id":"F1a","reports":["Adversary"],"validations":[],"challenges":[]});
+the script never invents findings — every `add` is already a record.
 """
 import json
 import sys

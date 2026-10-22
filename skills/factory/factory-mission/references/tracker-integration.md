@@ -191,7 +191,12 @@ General comments (Operation 4) stay reserved for status, lease, and decisions.
 
 Rules: one-marker-one-comment — a Review-type verdict submission carries exactly one marker
 (idempotent per `run=<run_id> iter=<k> head=<sha>`), never batched verdicts in one submission.
-A head move invalidates the standing Review: re-submission on the new head is required.
+Each Important finding gets its own inline thread on the changed line, carrying the same
+marker; the consolidated verdict comment names every thread. A head move invalidates
+the standing Review: re-submission on the new head is required. GitLab fallback: where
+the provider cannot attach a review-type threaded discussion note, post a labeled general
+note carrying `head=<sha>` plus an explicit degradation line (`degraded: review-type
+unavailable, general note used`) — never `glab mr approve`.
 
 ### Operation 8 — Post Decision
 

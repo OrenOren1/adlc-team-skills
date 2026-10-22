@@ -1,4 +1,4 @@
-"""Review-type COMMENT submissions + adversarial three-persona depth (PDR-122).
+"""Review-type COMMENT submissions + adversarial three-persona depth (REQ-188/REQ-189).
 
 REQ-188: verdicts land as native Review-type COMMENT submissions (never
 Approve) — head-SHA-bound, idempotent per run/iter/head. General comments
@@ -285,6 +285,34 @@ def test_synthesize_findings_is_deterministic(tmp_path):
         assert tag in outs[0].lower(), (
             f"synthesis output must tag findings (missing '{tag}'): {outs[0]}"
         )
+
+
+def test_synthesize_findings_records_round2_add_as_finding():
+    """A Round-2 `add` is a separate finding with the adder in `reports`."""
+    script = _synth_script()
+    assert script is not None, "synthesis script is missing (see prior test)"
+    findings = {
+        "findings": [
+            {
+                "id": "F1a",
+                "reports": ["Adversary"],
+                "validations": [],
+                "challenges": [],
+            },
+        ]
+    }
+    if script.suffix == ".py":
+        cmd = ["python3", str(script), "-"]
+    else:
+        cmd = ["node", str(script), "-"]
+    proc = subprocess.run(
+        cmd, input=json.dumps(findings), capture_output=True, text=True, timeout=30
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    tags = json.loads(proc.stdout)["tags"]
+    assert tags == [{"id": "F1a", "tag": "solo"}], (
+        f"a lone Round-2 add must tag as solo: {proc.stdout}"
+    )
 
 
 def test_review_loop_documents_adversary_lane_preference():
