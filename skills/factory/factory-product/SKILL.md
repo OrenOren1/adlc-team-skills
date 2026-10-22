@@ -67,7 +67,7 @@ It operates as a **Kind-A DAG orchestrator** in alignment with the shared execut
 
 In a factory run (`ADLC_RUN_ID` set by the workflow engine) this orchestrator — and only it, never the `product-*` lifecycle skills — commits, pushes the run branch and opens the draft MR, always through these three helpers:
 
-1. **Before the first step:** `bash {REPO_ROOT}/.agents/skills/factory-mission/scripts/bash/run-branch.sh` — checks out `factory/<repo>-<iid>` (from `ADLC_ISSUE_REF`) in the project root, reusing it or continuing from `origin`. Shared with the other intent lane and with re-dispatches.
+1. **Before the first step:** `bash {REPO_ROOT}/.agents/skills/factory-mission/scripts/bash/run-branch.sh` — checks out `factory/intent/<repo>-<iid>` (from `ADLC_ISSUE_REF`) in the project root, reusing it or continuing from `origin`. Shared with the other intent lane and with re-dispatches.
 2. **After each step** (`specify`/`init`, `clarify`, `implement`, `analyze` fixes):
    `bash {REPO_ROOT}/.agents/skills/factory-mission/scripts/bash/commit-step.sh --orchestrator factory-product --step <step> --output-type <draft|decision|artifact-ref|findings> --summary "<one line, no issue text>" --records <IDs> -- <paths the step wrote>`
    Pass only paths the step wrote, inside the lifecycle write allowlist (`.adlc/drafts/pdr/`, `docs/adlc/memory/pdr/`, `docs/adlc/product/PRD.md`, `.adlc/product/sections/`, `.adlc/product/state.json`). It prints `sha: <sha>` or `sha: none`; put that `sha` in the step's bus marker (the bus carries pointers, not content). Never stage `.adlc/workflows/**`.

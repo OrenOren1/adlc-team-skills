@@ -3,8 +3,8 @@ ADR-444; adlc-workspace#26).
 
 Contract pinned here (bash helpers in skills/factory/factory-mission/scripts/bash/):
 
-  run-branch.sh   With ADLC_RUN_ID: check out factory/<repo>-<iid> (from
-                  ADLC_ISSUE_REF) or factory/run-<run_id> in the project root;
+  run-branch.sh   With ADLC_RUN_ID: check out factory/intent/<repo>-<iid> (from
+                  ADLC_ISSUE_REF) or factory/intent/run-<run_id> in the project root;
                   reuse a local branch; continue from origin when only the remote
                   has it. Without ADLC_RUN_ID: no-op. Prints the branch.
   commit-step.sh  Acts on ADLC_RUN_ID, `adlc.commit_steps: true` in
@@ -87,14 +87,14 @@ def test_run_branch_noop_without_run_context(repo):
 def test_run_branch_creates_issue_branch_in_project_root(repo):
     r = run(RUN_BRANCH, repo["work"], env=RUN_ENV)
     assert r.returncode == 0, r.stderr
-    assert r.stdout.strip() == "factory/adlc-workspace-12"
-    assert git(repo["work"], "branch", "--show-current") == "factory/adlc-workspace-12"
+    assert r.stdout.strip() == "factory/intent/adlc-workspace-12"
+    assert git(repo["work"], "branch", "--show-current") == "factory/intent/adlc-workspace-12"
 
 
 def test_run_branch_without_issue_uses_run_id(repo):
     r = run(RUN_BRANCH, repo["work"], env={"ADLC_RUN_ID": "r26"})
     assert r.returncode == 0, r.stderr
-    assert r.stdout.strip() == "factory/run-r26"
+    assert r.stdout.strip() == "factory/intent/run-r26"
 
 
 def test_run_branch_reuses_local_branch(repo):
@@ -114,11 +114,11 @@ def test_run_branch_continues_from_origin(repo, tmp_path):
     # ("origin" of `other` is the bare repo itself.)
     git(other, "config", "user.email", "o@t.local")
     git(other, "config", "user.name", "o")
-    git(other, "switch", "-q", "-c", "factory/adlc-workspace-12")
+    git(other, "switch", "-q", "-c", "factory/intent/adlc-workspace-12")
     (other / "y.txt").write_text("2\n")
     git(other, "add", "-A")
     git(other, "commit", "-q", "-m", "from another pod")
-    git(other, "push", "-q", "origin", "factory/adlc-workspace-12")
+    git(other, "push", "-q", "origin", "factory/intent/adlc-workspace-12")
     r = run(RUN_BRANCH, repo["work"], env=RUN_ENV)
     assert r.returncode == 0, r.stderr
     assert git(repo["work"], "log", "-1", "--format=%s") == "from another pod"
@@ -308,10 +308,10 @@ def test_open_mr_creates_a_draft_mr_with_issue_ownership(repo):
     url = "https://gl.test/g/adlc-workspace/-/merge_requests/77"
     assert r.stdout.strip() == url
     # Only the run branch was pushed.
-    assert git(repo["bare"], "branch", "--list", "factory/adlc-workspace-12") != ""
+    assert git(repo["bare"], "branch", "--list", "factory/intent/adlc-workspace-12") != ""
     calls = log.read_text()
     post = next(l for l in calls.splitlines() if "-X POST" in l)
-    assert "source_branch=factory/adlc-workspace-12" in post
+    assert "source_branch=factory/intent/adlc-workspace-12" in post
     assert "target_branch=main" in post
     assert "title=Draft: factory: adlc-workspace#12 records (run r26)" in post
     assert "squash=false" in post
