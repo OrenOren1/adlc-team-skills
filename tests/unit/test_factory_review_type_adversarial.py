@@ -351,3 +351,6 @@ def test_converge_reads_synthesis_output():
         content,
         re.IGNORECASE | re.DOTALL,
     ), "converge must read the synthesis output, not single-agent findings"
+    assert "synthesize-findings.py" in content, (
+        "converge must name the synthesis script it re-runs to verify tags"
+    )
