@@ -552,3 +552,16 @@ def test_commit_step_commits_a_deletion_alone(repo):
 def test_orchestrators_pass_moved_and_deleted_paths(skill):
     text = (ROOT / f"skills/factory/{skill}/SKILL.md").read_text()
     assert "every path the step wrote, moved or deleted" in text
+
+
+@pytest.mark.parametrize("skill", ["factory-product", "factory-architect"])
+def test_factory_run_checklist_comes_first(skill):
+    # Drill run b664753d: the architecture orchestrator had the rules but read
+    # them too late; they now open the skill.
+    text = (ROOT / f"skills/factory/{skill}/SKILL.md").read_text()
+    head = "## In a factory run — read this first"
+    assert head in text
+    assert text.index(head) < text.index("## What this skill does")
+    block = text[text.index(head):text.index("## What this skill does")]
+    for needle in ("run-branch.sh", "commit-step.sh", "open-mr.sh", "Never ask for approval", "conclusion"):
+        assert needle in block, needle
