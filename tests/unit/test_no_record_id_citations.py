@@ -34,6 +34,7 @@ LOCAL_EXAMPLE_IDS = {
     "ADR-012", "ADR-0123",
     "PDR-000", "PDR-001", "PDR-002", "PDR-002-amendment-2", "PDR-003",
     "PDR-004", "PDR-005", "PDR-008", "PDR-009", "PDR-012", "PDR-0123",
+    "PDR-122",
 }
 
 # The surfaces the rule covers.
