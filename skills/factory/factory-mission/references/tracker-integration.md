@@ -179,13 +179,24 @@ For issue-based providers (Linear, Jira): return issue state and labels.
 
 ### Operation 7 — Post Review Finding (PR-based providers only)
 
-Publish an inline review comment on a specific changed line. Not
-available for Linear/Jira — findings posted as regular comments.
+Verdict submissions are native Review-type COMMENT submissions — never Approve.
+General comments (Operation 4) stay reserved for status, lease, and decisions.
 
 | Path | Command |
 |------|---------|
-| MCP (github) | `create_pull_request_review` |
-| CLI (gh) | `gh pr review <pr> --comment --body <body>` |
+| GitHub MCP | `create_pull_request_review(event=COMMENT)` with the marker + `head=<sha>` |
+| GitHub CLI | `gh pr review <pr> --comment --body-file <file>` |
+| GitLab MCP | review-type threaded discussion note on the MR (provider-native surface, not a plain issue note) |
+| GitLab CLI | review-type threaded discussion note via `glab` (never `glab mr approve`) |
+
+Rules: one-marker-one-comment — a Review-type verdict submission carries exactly one marker
+(idempotent per `run=<run_id> iter=<k> head=<sha>`), never batched verdicts in one submission.
+Each Important finding gets its own inline thread on the changed line, carrying the same
+marker; the consolidated verdict comment names every thread. A head move invalidates
+the standing Review: re-submission on the new head is required. GitLab fallback: where
+the provider cannot attach a review-type threaded discussion note, post a labeled general
+note carrying `head=<sha>` plus an explicit degradation line (`degraded: review-type
+unavailable, general note used`) — never `glab mr approve`.
 
 ### Operation 8 — Post Decision
 
