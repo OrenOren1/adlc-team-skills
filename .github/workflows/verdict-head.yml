@@ -99,7 +99,7 @@ jobs:
           PR_HEAD: ${{ steps.pr.outputs.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
         run: |
-          bash skills/factory/factory-review/scripts/check-verdict-head.sh \
+          bash skills/factory/factory-review/scripts/bash/check-verdict-head.sh \
             --repo "$GITHUB_REPOSITORY" \
             --pr "$PR_NUMBER" \
             --pr-head "$PR_HEAD" \

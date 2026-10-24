@@ -34,7 +34,7 @@ ROOT = Path(__file__).parent.parent.parent
 SKILL = ROOT / "skills/factory/factory-review"
 SKILL_MD = SKILL / "SKILL.md"
 LOOP_MD = SKILL / "references/review-loop.md"
-CHECKER = SKILL / "scripts/check-verdict-head.sh"
+CHECKER = SKILL / "scripts/bash/check-verdict-head.sh"
 WORKFLOW = ROOT / ".github/workflows/verdict-head.yml"
 
 MARKER = "factory-review:step=review"
@@ -376,6 +376,15 @@ def test_verdict_on_a_moved_head_fails(tmp_path):
 
 def test_no_verdict_is_not_a_failure(tmp_path):
     rc, out = run_checker(tmp_path, "A human comment with no marker.\n", "a" * 40)
+    assert rc == 0, out
+    assert "nothing to verify" in out
+
+
+def test_a_pr_with_no_comments_and_no_reviews_passes(tmp_path):
+    """Regression: zero comments + zero reviews used to hand the selector one
+    blank record — a phantom verdict with empty fields that failed every
+    fresh PR (seen live on adlc-team-skills #91)."""
+    rc, out = run_checker_live(tmp_path, [], [], "a" * 40)
     assert rc == 0, out
     assert "nothing to verify" in out
 

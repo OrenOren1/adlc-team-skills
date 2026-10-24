@@ -80,7 +80,9 @@ adverse-style three-persona pass before compiling the report:
   finding emits **validate** (independent confirmation), **challenge** (counter-evidence),
   or **add** (new angle the first report missed — recorded as a separate finding with the
   adder in `reports`, so the synthesis input needs no separate schema slot).
-- **Synthesis:** `scripts/synthesize-findings.py` tags every finding deterministically
+- **Synthesis:** the `synthesize-findings` twins — `scripts/bash/synthesize-findings.sh`
+  (bash) and `scripts/powershell/synthesize-findings.ps1` (PowerShell), one behavior per
+  platform — tag every finding deterministically
   (same input → byte-identical output, exit 0; accepts a findings JSON file arg or stdin):
   `cross-validated` (≥2 reporters), `consensus` (1 report + ≥1 validate, no challenge),
   `disputed` (1 report + ≥1 challenge), `solo` (everything else). Every Important finding
@@ -175,7 +177,8 @@ their own; they are held for converge adjudication.
 2. Re-run the synthesis gate locally to verify the tags — never trust the
    review step's claimed tags:
    ```bash
-   skills/factory/factory-review/scripts/synthesize-findings.py <findings.json>
+   skills/factory/factory-review/scripts/bash/synthesize-findings.sh <findings.json>
+   # PowerShell twin: scripts/powershell/synthesize-findings.ps1 <findings.json>
    ```
    The gate is: cross-validated + consensus Important findings are actionable
    (fix-verified here); `solo` actionable only in `--single-round` mode;

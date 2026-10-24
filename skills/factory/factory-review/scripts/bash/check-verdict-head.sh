@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Verify that the latest factory-review verdict names the current PR head.
 #
+# CDR-022 exemption (no PowerShell twin): invoked only by CI
+# (.github/workflows/verdict-head.yml) on ubuntu runners, where bash is
+# guaranteed; a Windows twin would have no caller.
+#
 # A factory-review verdict certifies exactly ONE head SHA — the one carried in
 # its `head=<sha>` marker. Any push after the verdict (a fix, a rebase, a
 # force-push) moves the head and invalidates it, so the review must run again
@@ -300,6 +304,7 @@ select_verdict() {
             return (a == "OWNER" || a == "MEMBER" || a == "COLLABORATOR")
         }
         BEGIN { FS = "\t"; n = 0 }
+        NF == 0 { next }
         $4 == "none" { next }
         {
             n++
@@ -327,7 +332,10 @@ select_verdict() {
 
 RECORDS=$(fetch_records) || exit 2
 
-if ! SELECTED=$(printf '%s\n' "$RECORDS" | select_verdict); then
+# printf '%s' (not '%s\n'): with zero comments and zero reviews RECORDS is
+# empty, and a trailing newline would hand the selector one blank record —
+# a phantom verdict with empty fields that failed every fresh PR.
+if ! SELECTED=$(printf '%s' "$RECORDS" | select_verdict); then
     echo "check-verdict-head: could not parse the PR's comments (the parser failed)" >&2
     exit 2
 fi
