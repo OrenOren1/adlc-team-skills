@@ -262,6 +262,7 @@ select_verdict() {
             return (a == "OWNER" || a == "MEMBER" || a == "COLLABORATOR")
         }
         BEGIN { FS = "\t"; n = 0 }
+        NF == 0 { next }
         $4 == "none" { next }
         {
             n++
@@ -288,7 +289,10 @@ select_verdict() {
 
 RECORDS=$(fetch_records) || exit 2
 
-if ! SELECTED=$(printf '%s\n' "$RECORDS" | select_verdict); then
+# printf '%s' (not '%s\n'): with zero comments and zero reviews RECORDS is
+# empty, and a trailing newline would hand the selector one blank record —
+# a phantom verdict with empty fields that failed every fresh PR.
+if ! SELECTED=$(printf '%s' "$RECORDS" | select_verdict); then
     echo "check-verdict-head: could not parse the PR's comments (the parser failed)" >&2
     exit 2
 fi

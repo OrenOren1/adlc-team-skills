@@ -308,6 +308,15 @@ def test_no_verdict_is_not_a_failure(tmp_path):
     assert "nothing to verify" in out
 
 
+def test_a_pr_with_no_comments_and_no_reviews_passes(tmp_path):
+    """Regression: zero comments + zero reviews used to hand the selector one
+    blank record — a phantom verdict with empty fields that failed every
+    fresh PR (seen live on adlc-team-skills #91)."""
+    rc, out = run_checker_live(tmp_path, [], [], "a" * 40)
+    assert rc == 0, out
+    assert "nothing to verify" in out
+
+
 def test_verdict_without_a_head_fails(tmp_path):
     """A verdict that names no head certifies nothing — it must not pass."""
     body = f"<!-- {MARKER} run=r1 iter=0 status=completed findings=0 important=0 nits=0 -->\n"
