@@ -351,6 +351,9 @@ def test_converge_reads_synthesis_output():
         content,
         re.IGNORECASE | re.DOTALL,
     ), "converge must read the synthesis output, not single-agent findings"
-    assert "synthesize-findings.py" in content, (
+    assert "synthesize-findings.sh" in content, (
         "converge must name the synthesis script it re-runs to verify tags"
+    )
+    assert "synthesize-findings.ps1" in content, (
+        "converge must name the PowerShell synthesis twin too"
     )

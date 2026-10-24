@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Verify that the latest factory-review verdict names the current PR head.
 #
+# CDR-022 exemption (no PowerShell twin): invoked only by CI
+# (.github/workflows/verdict-head.yml) on ubuntu runners, where bash is
+# guaranteed; a Windows twin would have no caller.
+#
 # A factory-review verdict certifies exactly ONE head SHA — the one carried in
 # its `head=<sha>` marker. Any push after the verdict (a fix, a rebase, a
 # force-push) moves the head and invalidates it, so the review must run again
