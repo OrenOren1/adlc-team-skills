@@ -39,19 +39,25 @@ mkdir -p "$CHDR_DRAFTS_DIR" 2>/dev/null || true
 # draft, including the ones team-boot's continuous capture produces.
 chdr_status() {
     local file="$1" status=""
-    # Frontmatter form: `status: <word>`, in any case, optionally annotated
-    # with a trailing `# comment` (the draft template teaches that style on
-    # sibling fields). The vocabulary is open here -- the caller's case
-    # statement decides which statuses count -- so an unrecognised status is
-    # seen and ignored rather than silently missed. Normalise exactly as the
-    # heading branch does: an anchored, lowercase-only match hid
-    # `status: Proposed` and `status: proposed  # why`, which is the same
-    # silence this loader exists to fix.
-    status=$( { grep -m1 -E '^status:[[:space:]]*[A-Za-z]+[[:space:]]*(#.*)?$' "$file" 2>/dev/null || true; } \
-        | sed -E 's/^status:[[:space:]]*([A-Za-z]+).*$/\1/' | tr '[:upper:]' '[:lower:]')
+    # A full record carries a "### Status: **X**" heading, and that heading is
+    # what the accept flow updates -- so it is authoritative. The frontmatter
+    # of a published record still carries the value its template shipped
+    # (skills/change/templates/chdr-template.md ships `status: discovered`),
+    # which is why the heading is read first.
+    status=$( { grep -m1 -oE '^### Status: \*\*[A-Za-z]+\*\*' "$file" 2>/dev/null || true; } \
+        | sed -E 's/^### Status: \*\*//; s/\*\*$//' | tr '[:upper:]' '[:lower:]')
     if [ -z "$status" ]; then
-        status=$( { grep -m1 -oE '^### Status: \*\*[A-Za-z]+\*\*' "$file" 2>/dev/null || true; } \
-            | sed -E 's/^### Status: \*\*//; s/\*\*$//' | tr '[:upper:]' '[:lower:]')
+        # Draft form: frontmatter `status: <word>`, in any case, optionally
+        # annotated with a trailing `# comment` (the draft template teaches
+        # that style on sibling fields). The vocabulary is open here -- the
+        # caller's case statement decides which statuses count -- so an
+        # unrecognised status is seen and ignored rather than silently
+        # missed. Normalise exactly as the heading branch does: an anchored,
+        # lowercase-only match hid `status: Proposed` and
+        # `status: proposed  # why`, which is the same silence this loader
+        # exists to fix.
+        status=$( { grep -m1 -E '^status:[[:space:]]*[A-Za-z]+[[:space:]]*(#.*)?$' "$file" 2>/dev/null || true; } \
+            | sed -E 's/^status:[[:space:]]*([A-Za-z]+).*$/\1/' | tr '[:upper:]' '[:lower:]')
     fi
     printf '%s' "$status"
 }

@@ -170,6 +170,33 @@ def test_mixed_case_accepted_frontmatter_is_not_pending(project):
     assert out["PENDING_CHDRS"] == 0, out
 
 
+FULL_RECORD_ACCEPTED = """\
+---
+status: discovered  # discovered | proposed | accepted | rejected | superseded
+date: 2026-10-01
+reviewer: someone
+---
+
+# ChDR-907: a record published from the full template, then accepted
+
+### Status: **Accepted**
+
+## Context
+
+The full-record template ships `status: discovered` in its frontmatter and
+the accept flow updates only the heading. The heading is the decision.
+"""
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+def test_heading_outranks_stale_frontmatter_on_a_full_record(project):
+    """A published record accepted via its heading must not read as pending."""
+    write(project, "ChDR-907-full-record.md", FULL_RECORD_ACCEPTED)
+    out = run_bash(project)
+    assert out["ACCEPTED_CHDRS"] == 1, out
+    assert out["PENDING_CHDRS"] == 0, out
+
+
 @pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
 def test_draft_without_any_status_does_not_abort_the_loader(project):
     """A statusless draft is counted as existing, not as a fatal grep miss."""

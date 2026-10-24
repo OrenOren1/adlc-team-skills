@@ -41,10 +41,10 @@ if ($ExistingChdrs -gt 0) {
         # heading. Both forms count -- matching only the heading form hid
         # every template-written draft.
         $status = ""
-        if ($content -match '(?m)^status:[ \t]*([A-Za-z]+)[ \t]*(#[^\r\n]*)?[ \t]*\r?$') {
+        if ($content -match '### Status: \*\*([A-Za-z]+)\*\*') {
             $status = $Matches[1].ToLower()
         }
-        elseif ($content -match '### Status: \*\*([A-Za-z]+)\*\*') {
+        elseif ($content -match '(?m)^status:[ \t]*([A-Za-z]+)[ \t]*(#[^\r\n]*)?[ \t]*\r?$') {
             $status = $Matches[1].ToLower()
         }
         if ($status -eq "accepted" -or $status -eq "published") { $AcceptedChdrs++ }
