@@ -119,7 +119,14 @@ $GANTT_TASK_RE = '^[^:]+:[^,]+,\s*[^,]+'
 $GANTT_TASK_LOOSE_RE = '^[^:]+:'
 
 # sequenceDiagram statement heads.
-$SEQ_KEYS = ' participant actor boundary control entity database collections queue alt else opt loop par and rect activate deactivate note link links over right left of end '
+#
+# The keyword table must track mermaid's own grammar, not an impression of it:
+# every head here was checked against `mermaid.parse()` (12.2.0) as a first
+# statement. `title`, `autonumber`, `box`, `critical` and `break` are
+# documented statements mermaid accepts, so leaving them out turned valid
+# blocks into HIGH findings. `done` is deliberately absent — mermaid rejects
+# it as a first statement.
+$SEQ_KEYS = ' participant actor boundary control entity database collections queue alt else opt loop par and rect activate deactivate note link links over right left of title autonumber box critical break end '
 
 $script:HIGH = 0
 $script:MEDIUM = 0
@@ -287,11 +294,22 @@ function Lint-File {
                                 }
                             }
                             'erDiagram' {
-                                if ($bodyFirst -notmatch '[{}]|\}\||\|o|o\{|\}\|--|\.\.') {
+                                # A relation, an attribute block, or a bare
+                                # entity list. mermaid parses a bare
+                                # identifier list as isolated entities and
+                                # renders it, so "the first statement is not
+                                # a relation" is NOT a syntax break — that
+                                # false HIGH is what made this rule
+                                # untrustworthy. What genuinely breaks the
+                                # parse is a name carrying characters
+                                # outside mermaid's entity-name grammar.
+                                if ($bodyFirst -match '[{}]|\}\||\|o|o\{|\}\|--|\.\.') {
+                                    # relation / attribute block — valid
+                                } elseif ($bodyFirst -match '[#@!?%():;,+=~|<>`''"]') {
                                     Emit 'HIGH' 'M008-malformed-entity-diagram' $File "$bodyFirstLine" "$fenceIndex" `
-                                        'erDiagram block has no entity or relation' `
+                                        'erDiagram entity name carries a character mermaid rejects' `
                                         "$bodyFirst" `
-                                        'add an entity or relation, e.g. `CUSTOMER ||--o{ ORDER : places`'
+                                        'entity names take letters, digits, `_`, `-`, `.` and spaces — write a relation as `CUSTOMER ||--o{ ORDER : places`'
                                 }
                             }
                         }
