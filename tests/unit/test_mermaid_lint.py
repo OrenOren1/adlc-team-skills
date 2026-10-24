@@ -16,6 +16,8 @@ import pytest
 
 ROOT = Path(__file__).parent.parent.parent
 LINTER = ROOT / "skills/architect/architect-clarify/scripts/bash/mermaid-lint.sh"
+LINTER_PS = ROOT / "skills/architect/architect-clarify/scripts/powershell/mermaid-lint.ps1"
+HAVE_PWSH = shutil.which("pwsh") is not None
 
 pytestmark = pytest.mark.skipif(
     shutil.which("bash") is None, reason="bash not available"
@@ -26,7 +28,9 @@ def run_linter(tmp_path, text, *args):
     """Run the linter over one artifact; return (exit_code, findings).
 
     The machine channel is tab-separated: severity, rule, file, line, fence,
-    message, offending line, suggested patch.
+    message, offending line, suggested patch. When pwsh is installed the
+    PowerShell twin runs too and must agree byte-for-byte (CDR-022: one
+    behavior, two platform scripts).
     """
     artifact = tmp_path / "artifact.md"
     artifact.write_text(text, encoding="utf-8")
@@ -36,6 +40,21 @@ def run_linter(tmp_path, text, *args):
         text=True,
         timeout=30,
     )
+    if HAVE_PWSH:
+        proc_ps = subprocess.run(
+            ["pwsh", "-NoProfile", "-File", str(LINTER_PS), "--tsv", str(artifact), *args],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert proc_ps.returncode == proc.returncode, (
+            f"twins disagree on exit code: bash={proc.returncode} pwsh={proc_ps.returncode}\n"
+            f"bash: {proc.stdout}\npwsh: {proc_ps.stdout}"
+        )
+        assert proc_ps.stdout == proc.stdout, (
+            "twins disagree on findings:\n"
+            f"bash: {proc.stdout}\npwsh: {proc_ps.stdout}"
+        )
     fields = ("severity", "rule", "file", "line", "fence", "message", "offending", "suggestion")
     findings = []
     for line in proc.stdout.splitlines():
@@ -58,6 +77,7 @@ def rules(findings):
 
 def test_linter_is_present():
     assert LINTER.exists(), f"canonical mermaid linter missing at {LINTER}"
+    assert LINTER_PS.exists(), f"mermaid linter twin missing at {LINTER_PS}"
 
 
 # ── broken corpus: one finding per broken block, with location + patch ─────
