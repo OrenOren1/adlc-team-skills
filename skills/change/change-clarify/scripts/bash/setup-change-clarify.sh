@@ -39,10 +39,18 @@ mkdir -p "$CHDR_DRAFTS_DIR" 2>/dev/null || true
 # draft, including the ones team-boot's continuous capture produces.
 chdr_status() {
     local file="$1" status=""
-    status=$(grep -m1 -E '^status:[[:space:]]*(discovered|proposed|accepted|rejected|deferred|published|deprecated)[[:space:]]*$' "$file" 2>/dev/null \
-        | sed -E 's/^status:[[:space:]]*//; s/[[:space:]]+$//')
+    # Frontmatter form: `status: <word>`, in any case, optionally annotated
+    # with a trailing `# comment` (the draft template teaches that style on
+    # sibling fields). The vocabulary is open here -- the caller's case
+    # statement decides which statuses count -- so an unrecognised status is
+    # seen and ignored rather than silently missed. Normalise exactly as the
+    # heading branch does: an anchored, lowercase-only match hid
+    # `status: Proposed` and `status: proposed  # why`, which is the same
+    # silence this loader exists to fix.
+    status=$( { grep -m1 -E '^status:[[:space:]]*[A-Za-z]+[[:space:]]*(#.*)?$' "$file" 2>/dev/null || true; } \
+        | sed -E 's/^status:[[:space:]]*([A-Za-z]+).*$/\1/' | tr '[:upper:]' '[:lower:]')
     if [ -z "$status" ]; then
-        status=$(grep -m1 -oE '^### Status: \*\*[A-Za-z]+\*\*' "$file" 2>/dev/null \
+        status=$( { grep -m1 -oE '^### Status: \*\*[A-Za-z]+\*\*' "$file" 2>/dev/null || true; } \
             | sed -E 's/^### Status: \*\*//; s/\*\*$//' | tr '[:upper:]' '[:lower:]')
     fi
     printf '%s' "$status"

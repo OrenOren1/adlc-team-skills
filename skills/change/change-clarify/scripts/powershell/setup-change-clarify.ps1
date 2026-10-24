@@ -41,7 +41,7 @@ if ($ExistingChdrs -gt 0) {
         # heading. Both forms count -- matching only the heading form hid
         # every template-written draft.
         $status = ""
-        if ($content -match '(?m)^status:\s*(discovered|proposed|accepted|rejected|deferred|published|deprecated)\s*$') {
+        if ($content -match '(?m)^status:[ \t]*([A-Za-z]+)[ \t]*(#[^\r\n]*)?[ \t]*\r?$') {
             $status = $Matches[1].ToLower()
         }
         elseif ($content -match '### Status: \*\*([A-Za-z]+)\*\*') {

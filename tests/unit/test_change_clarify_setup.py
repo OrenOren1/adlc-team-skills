@@ -105,6 +105,81 @@ def test_both_status_forms_count(project):
     assert out["EXISTING_CHDRS"] == 3, out
 
 
+COMMENTED_DRAFT = """\
+---
+status: proposed  # still gathering evidence
+date: 2026-10-20
+type: incident
+---
+
+# ChDR-903: a draft annotated in the template's own style
+
+The draft template teaches inline comments on sibling fields
+(`type: incident  # incident | workaround | abandoned`), so `status:` may
+carry one too.
+"""
+
+MIXED_CASE_DRAFT = """\
+---
+status: Proposed
+date: 2026-10-20
+---
+
+# ChDR-904: a draft whose status was typed in title case
+"""
+
+MIXED_CASE_ACCEPTED_DRAFT = """\
+---
+status: Accepted  # settled in review
+date: 2026-10-19
+---
+
+# ChDR-905: an accepted draft, annotated
+"""
+
+NO_STATUS_DRAFT = """\
+# ChDR-906: a record with no status at all
+
+Neither frontmatter nor a heading.
+"""
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+def test_frontmatter_status_with_inline_comment_is_pending(project):
+    """`status: proposed  # why` is YAML frontmatter, not a different status."""
+    write(project, "ChDR-903-commented.md", COMMENTED_DRAFT)
+    out = run_bash(project)
+    assert out["PENDING_CHDRS"] == 1, out
+    assert out["EXISTING_CHDRS"] == 1, out
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+def test_frontmatter_status_is_case_insensitive(project):
+    """`status: Proposed` names the same status as `status: proposed`."""
+    write(project, "ChDR-904-mixed-case.md", MIXED_CASE_DRAFT)
+    out = run_bash(project)
+    assert out["PENDING_CHDRS"] == 1, out
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+def test_mixed_case_accepted_frontmatter_is_not_pending(project):
+    """Normalising case must not turn an accepted draft into a pending one."""
+    write(project, "ChDR-905-accepted.md", MIXED_CASE_ACCEPTED_DRAFT)
+    out = run_bash(project)
+    assert out["ACCEPTED_CHDRS"] == 1, out
+    assert out["PENDING_CHDRS"] == 0, out
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="bash not available")
+def test_draft_without_any_status_does_not_abort_the_loader(project):
+    """A statusless draft is counted as existing, not as a fatal grep miss."""
+    write(project, "ChDR-906-statusless.md", NO_STATUS_DRAFT)
+    out = run_bash(project)
+    assert out["PENDING_CHDRS"] == 0, out
+    assert out["ACCEPTED_CHDRS"] == 0, out
+    assert out["EXISTING_CHDRS"] == 1, out
+
+
 def test_powershell_twin_reads_the_same_forms():
     """The bash and PowerShell setup scripts must agree (same stem, same JSON)."""
     text = PS1.read_text(encoding="utf-8")
