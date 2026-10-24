@@ -34,7 +34,7 @@ ROOT = Path(__file__).parent.parent.parent
 SKILL = ROOT / "skills/factory/factory-review"
 SKILL_MD = SKILL / "SKILL.md"
 LOOP_MD = SKILL / "references/review-loop.md"
-CHECKER = SKILL / "scripts/check-verdict-head.sh"
+CHECKER = SKILL / "scripts/bash/check-verdict-head.sh"
 WORKFLOW = ROOT / ".github/workflows/verdict-head.yml"
 
 MARKER = "factory-review:step=review"
