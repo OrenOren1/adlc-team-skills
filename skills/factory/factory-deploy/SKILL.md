@@ -47,7 +47,7 @@ The 10 steps run in order; gates halt, never warn.
    completes or halt), the short-path rule as recorded here, blackout windows
    for this repo, and the error-budget source binding. Anything missing halts.
 2. **gate-merge** — Deploy Gate checkpoint 3 (human): both the review-owned
-   Merge Gate and Deploy Gate checkpoint 3 must both be green on the
+   Merge Gate and Deploy Gate checkpoint 3 must be green on the
    **same SHA** with the approver identity recorded. Re-read the head at
    execution time — on **head-moved**, discard all gate evidence and
    **re-verify** from step 1.

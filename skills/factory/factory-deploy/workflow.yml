@@ -27,7 +27,7 @@ steps:
     prompt: |
       Verify the approved head SHA, rollback plan requirement (a rollback plan
       must exist before `stage` completes or halt), the short-path rule as
-      recorded here (route={{params.route}}), blackout windows for this repo,
+      recorded here (route={{ inputs.route }}), blackout windows for this repo,
       and the error-budget source binding. Anything missing halts.
     tier: strong
   - id: gate-merge

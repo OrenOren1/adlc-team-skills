@@ -155,7 +155,7 @@ def test_skill_head_moved_discards_and_reverifies():
 def test_skill_chdr_on_nonobvious_rationale_only():
     low = _read_skill().lower()
     assert "chdr" in low
-    assert "pdr-128" in low or "non-obvious" in low or "nonobvious" in low
+    assert "non-obvious" in low or "nonobvious" in low
 
 
 def test_skill_monitoring_is_factory_monitor_scope():
