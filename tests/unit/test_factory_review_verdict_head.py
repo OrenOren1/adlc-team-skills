@@ -1063,3 +1063,153 @@ def test_a_pr_with_no_comments_and_no_reviews_has_no_verdict(tmp_path):
     assert "the verdict names" not in out, (
         f"the gate must not blame a verdict that does not exist: {out}"
     )
+
+
+# ── the job condition: which events execute the checker ────────────────────
+#
+# The triggers stay broad (the check must hear head moves and verdicts), so
+# the noise filter lives in the job's `if`. These tests evaluate the actual
+# condition against simulated webhook payloads — the contract being "which
+# events start a run" — instead of grepping the expression's text.
+
+class _Null:
+    """A GitHub expression reads a missing property as null, not an error."""
+
+    def __eq__(self, other):
+        return other is None or isinstance(other, _Null)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __bool__(self):
+        return False
+
+    def __repr__(self):
+        return "null"
+
+
+_NULL = _Null()
+
+
+class _Payload:
+    """Attribute access over a webhook payload dict; missing keys read as null."""
+
+    def __init__(self, data):
+        self.__dict__["_data"] = data
+
+    def __getattr__(self, name):
+        data = self._data
+        if name not in data:
+            return _NULL
+        value = data[name]
+        return _Payload(value) if isinstance(value, dict) else value
+
+
+def _contains(haystack, needle):
+    if haystack is None or isinstance(haystack, _Null):
+        return False
+    return needle in haystack
+
+
+def evaluate_job_condition(expression, github_payload):
+    """Evaluate the job's `if` the way GitHub would for one event.
+
+    Supports the subset the condition uses: ==, !=, null, &&, ||, contains(),
+    single-quoted string literals, and property paths.
+    """
+    expr = expression.strip()
+    if expr.startswith("${{"):
+        expr = expr[3:]
+    if expr.endswith("}}"):
+        expr = expr[:-2]
+    expr = re.sub(r"\s+", " ", expr.strip())
+    expr = expr.replace("&&", " and ").replace("||", " or ")
+    expr = re.sub(r"\bnull\b", "None", expr)
+    github = _Payload(github_payload)
+    namespace = {"github": github, "contains": _contains, "None": None}
+    return bool(eval(expr, {"__builtins__": {}}, namespace))
+
+
+VERDICT_BODY = (
+    f"<!-- {MARKER} run=r1 iter=0 status=completed outcome=merge-ready "
+    f"findings=0 important=0 nits=0 head={'a' * 40} -->\nA verdict.\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("event", "runs"),
+    [
+        # A head move must always re-check: stale verdicts are the whole point.
+        (
+            {"event_name": "pull_request",
+             "event": {"action": "synchronize", "pull_request": {"number": 9}}},
+            True,
+        ),
+        # A factory-review verdict (a review whose body carries the marker)
+        # must re-check: that is the run that turns the PR green.
+        (
+            {"event_name": "pull_request_review",
+             "event": {"action": "submitted", "review": {"body": VERDICT_BODY}}},
+            True,
+        ),
+        # An ordinary human review carries no verdict — noise, must skip.
+        (
+            {"event_name": "pull_request_review",
+             "event": {"action": "submitted", "review": {"body": "LGTM"}}},
+            False,
+        ),
+        # A review submitted with no body at all — noise, must skip.
+        (
+            {"event_name": "pull_request_review",
+             "event": {"action": "submitted", "review": {"body": None}}},
+            False,
+        ),
+        # A verdict comment on a PR (issue_comment on the PR's issue)
+        # must re-check — same compatibility as before.
+        (
+            {"event_name": "issue_comment",
+             "event": {"action": "created",
+                       "issue": {"number": 9,
+                                 "pull_request": {"url": "https://api.github.com/repos/o/r/pulls/9"}},
+                       "comment": {"body": VERDICT_BODY}}},
+            True,
+        ),
+        # An ordinary comment on a PR — noise, must skip.
+        (
+            {"event_name": "issue_comment",
+             "event": {"action": "created",
+                       "issue": {"number": 9,
+                                 "pull_request": {"url": "https://api.github.com/repos/o/r/pulls/9"}},
+                       "comment": {"body": "looks reasonable to me"}}},
+            False,
+        ),
+        # A comment on a plain issue never carries a verdict — must skip.
+        (
+            {"event_name": "issue_comment",
+             "event": {"action": "created",
+                       "issue": {"number": 5},
+                       "comment": {"body": "a question about the docs"}}},
+            False,
+        ),
+    ],
+    ids=[
+        "head-move-runs",
+        "verdict-review-runs",
+        "ordinary-review-skips",
+        "bodyless-review-skips",
+        "verdict-comment-runs",
+        "ordinary-pr-comment-skips",
+        "plain-issue-comment-skips",
+    ],
+)
+def test_the_job_skips_reviews_that_are_not_verdicts(event, runs):
+    """Every submitted review used to execute the checker.
+
+    The verdict is a review whose body carries the factory-review marker; a
+    human's "LGTM" is not one and must not start a run — that was the noise.
+    This pins the break: removing the review-body guard from the job's `if`
+    makes the ordinary-review cases run again.
+    """
+    workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    condition = workflow["jobs"]["verdict-head"]["if"]
+    assert evaluate_job_condition(condition, event) is runs
