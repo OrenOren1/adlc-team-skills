@@ -202,9 +202,20 @@ def mock_gh_env(tmp_path, comments, reviews, env_extra=None, bin_scripts=None):
 
 
 def run_checker_live(
-    tmp_path, comments, reviews, pr_head, fail=None, env_extra=None, bin_scripts=None
+    tmp_path,
+    comments,
+    reviews,
+    pr_head,
+    fail=None,
+    env_extra=None,
+    bin_scripts=None,
+    extra=(),
 ):
-    """Run the checker against a mocked GitHub; return (rc, output)."""
+    """Run the checker against a mocked GitHub; return (rc, output).
+
+    `extra` carries optional flags (e.g. `--require-outcome`), so the live
+    path can be exercised in gate mode without a second helper.
+    """
     env = mock_gh_env(
         tmp_path, comments, reviews, env_extra=env_extra, bin_scripts=bin_scripts
     )
@@ -221,6 +232,7 @@ def run_checker_live(
             "79",
             "--pr-head",
             pr_head,
+            *extra,
         ],
         capture_output=True,
         text=True,
@@ -1015,3 +1027,39 @@ def test_the_workflow_bounds_the_issue_comment_runs():
         "the workflow must bound the runs a commenter can trigger"
     )
     assert workflow["concurrency"]["cancel-in-progress"] is True
+
+
+def test_a_pr_with_no_comments_and_no_reviews_has_no_verdict(tmp_path):
+    """An empty comment/review stream is "no verdict", not a malformed one.
+
+    A brand-new PR has neither an issue comment nor a review. The live
+    filter then emits no records at all, and the record reader is handed an
+    empty string — which used to arrive at the selector as one blank line,
+    i.e. a record with every field empty. The state was therefore neither
+    `none` nor `unbound`: it fell through to the head comparison and the
+    checker announced `the verdict names  but the head is …`, blaming an
+    author and a verdict that do not exist. Reproduced on a real PR whose
+    first check run failed this way.
+
+    Default mode must report "nothing to verify" and pass; the gate must
+    fail for the honest reason — no verdict — not because it misread an
+    empty stream as a verdict.
+    """
+    head = "a" * 40
+
+    rc, out = run_checker_live(tmp_path, [], [], head)
+    assert rc == 0, out
+    assert "OK" in out
+    assert "nothing to verify" in out
+    assert "the verdict names" not in out, (
+        f"an empty comment stream is not a verdict: {out}"
+    )
+
+    rc, out = run_checker_live(tmp_path, [], [], head, extra=(MERGE_GATE,))
+    assert rc == 1, out
+    assert "no factory-review verdict" in out, (
+        f"the gate must name the real reason (no verdict): {out}"
+    )
+    assert "the verdict names" not in out, (
+        f"the gate must not blame a verdict that does not exist: {out}"
+    )
