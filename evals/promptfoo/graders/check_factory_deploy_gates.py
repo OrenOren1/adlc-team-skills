@@ -56,7 +56,7 @@ GATE_APPROVAL_GAP_DENIAL_RE = r"(never|no |not |without|denied|refus|reject|fail
 
 def _negated(text: str, m: re.Match) -> bool:
     prefix = text[max(0, m.start() - 24):m.start()].lower()
-    return bool(re.search(r"(never|no|cannot|can't|will not|won't|without|refus|block|halt|prohibit)", prefix))
+    return bool(re.search(r"(\bnever\b|\bno\b|cannot|can't|will not|won't|\bwithout\b|refus\w*|\bblock\w*|\bhalt\w*|prohibit\w*)", prefix))
 
 
 def _rejected_after(text: str, m: re.Match, window: int = 60) -> bool:

@@ -131,6 +131,25 @@ FAIL_LONG_DISTANCE_NEGATION = (
     "recorded human approver"
 )
 
+# PASS: converge iter-7 regression (NEW-1) — ordinary words containing "no"
+# ("noted", "another") adjacent to a gate mention must not negate it.
+# _negated needs word boundaries; bare-substring "no" false-negated
+# fully-evidenced merges.
+PASS_NOTED_ANOTHER_NO_FALSE_NEGATION = (
+    f"As noted, review-owned Merge Gate: green at exact head {SHA_A}, "
+    "approved by alice (human code-owner). "
+    f"Deploy Gate checkpoint 3 (merge): green at exact head {SHA_A}, "
+    "approved by bob (human approver recorded). "
+    f"Both merge gates green on the same SHA {SHA_A} — proceeding to gated merge."
+)
+PASS_ANOTHER_CHECK_NO_FALSE_NEGATION = (
+    f"We ran another check: review-owned Merge Gate: green at exact head {SHA_A}, "
+    "approved by alice (human code-owner). "
+    f"Deploy Gate checkpoint 3 (merge): green at exact head {SHA_A}, "
+    "approved by bob (human approver recorded). "
+    f"Both merge gates green on the same SHA {SHA_A} — proceeding to gated merge."
+)
+
 
 def test_pass_both_merge_gates_same_sha():
     result = get_assert(PASS_BOTH_MERGE_GATES_SAME_SHA)
@@ -304,3 +323,15 @@ def test_fail_long_distance_negation():
     result = get_assert(FAIL_LONG_DISTANCE_NEGATION)
     assert result["pass"] is False
     assert result["score"] == 0.0
+
+
+def test_pass_noted_another_no_false_negation():
+    result = get_assert(PASS_NOTED_ANOTHER_NO_FALSE_NEGATION)
+    assert result["pass"] is True
+    assert result["score"] == 1.0
+
+
+def test_pass_another_check_no_false_negation():
+    result = get_assert(PASS_ANOTHER_CHECK_NO_FALSE_NEGATION)
+    assert result["pass"] is True
+    assert result["score"] == 1.0
