@@ -51,7 +51,7 @@ steps:
     on_reject: abort
     verdict_input: verdict_merge
     context:
-      records: [".adlc/drafts/pdr/*.md", ".adlc/drafts/adr/*.md"]
+      records: [".adlc/drafts/chdr/*.md"]
       since: "last_approved"
       link: "{{ inputs.mr_url }}"
   - id: merge
@@ -76,7 +76,7 @@ steps:
     on_reject: abort
     verdict_input: verdict_canary
     context:
-      records: [".adlc/drafts/pdr/*.md", ".adlc/drafts/adr/*.md"]
+      records: [".adlc/drafts/chdr/*.md"]
       since: "last_approved"
       link: "{{ inputs.mr_url }}"
   - id: canary
@@ -93,7 +93,7 @@ steps:
     on_reject: abort
     verdict_input: verdict_full
     context:
-      records: [".adlc/drafts/pdr/*.md", ".adlc/drafts/adr/*.md", ".adlc/drafts/chdr/*.md"]
+      records: [".adlc/drafts/chdr/*.md"]
       since: "last_approved"
       link: "{{ inputs.mr_url }}"
   - id: expand
