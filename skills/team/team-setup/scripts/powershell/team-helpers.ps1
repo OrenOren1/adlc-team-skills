@@ -522,6 +522,11 @@ function Install-McpConfig {
   if (Test-Path $InitOptions) {
     try {
       $Config = Get-Content $InitOptions -Raw | ConvertFrom-Json
+      # An explicit "team_ai_directives": null is the opt-out marker: install nothing.
+      if (($Config.PSObject.Properties.Name -contains 'team_ai_directives') -and ($null -eq $Config.team_ai_directives)) {
+        Write-Output "MCP: team AI directives opted out (team_ai_directives: null); nothing to install"
+        return
+      }
       if ($Config.team_ai_directives) { $TeamDirective = $Config.team_ai_directives }
       if (-not $AgentName -and $Config.agent) { $AgentName = $Config.agent }
     } catch {}
@@ -576,7 +581,9 @@ function Install-McpConfig {
     $spec = $Servers[$name]
     foreach ($m in [regex]::Matches(($spec | ConvertTo-Json -Depth 20), '\$\{([A-Za-z_][A-Za-z0-9_]*)\}')) { [void]$Needed.Add($m.Groups[1].Value) }
     $existing = if ($Section.Contains($name)) { $Section[$name] } else { $null }
-    $valid = if ($AgentName -eq "opencode") { $existing -is [System.Collections.IDictionary] -and @('local', 'remote') -contains $existing['type'] } else { $existing -is [System.Collections.IDictionary] }
+    # {"enabled": <bool>} alone is OpenCode's on/off override for a server defined elsewhere: keep it.
+    $isOverride = $existing -is [System.Collections.IDictionary] -and $existing.Count -eq 1 -and $existing.Contains('enabled') -and $existing['enabled'] -is [bool]
+    $valid = if ($AgentName -eq "opencode") { $isOverride -or ($existing -is [System.Collections.IDictionary] -and @('local', 'remote') -contains $existing['type']) } else { $existing -is [System.Collections.IDictionary] }
     if ($null -ne $existing -and $valid) {
       Write-Output "MCP: kept $name (already configured in $Rel)"
       continue

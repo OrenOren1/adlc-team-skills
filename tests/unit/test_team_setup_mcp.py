@@ -113,6 +113,36 @@ def test_opencode_rerun_is_idempotent(tmp_path):
 
 
 @pytest.mark.requires_bash
+def test_opencode_enabled_override_is_kept(tmp_path):
+    # {"enabled": false} alone is OpenCode's switch-off for a server defined in the
+    # global config. Replacing it would turn the server back on.
+    project = make_project(tmp_path, "opencode")
+    target = project / "opencode.json"
+    target.write_text(json.dumps({"mcp": {"context7": {"enabled": False}}}))
+    out = install(project)
+    cfg = json.loads(target.read_text())
+    assert cfg["mcp"]["context7"] == {"enabled": False}
+    assert "kept context7" in out and "repaired context7" not in out
+    assert cfg["mcp"]["gitlab"]["type"] == "local", "other servers still merged"
+
+
+@pytest.mark.requires_bash
+def test_opt_out_marker_installs_nothing(tmp_path):
+    # `"team_ai_directives": null` is the opt-out marker. It must not fall back to
+    # TEAM_AI_DIRECTIVES or ./team-ai-directives and install servers anyway.
+    project = make_project(tmp_path, "opencode")
+    fallback = project / "team-ai-directives"
+    fallback.mkdir()
+    (fallback / ".mcp.json").write_text(json.dumps(TEAM_MCP))
+    (project / ".adlc" / "init-options.json").write_text(
+        json.dumps({"team_ai_directives": None, "agent": "opencode"}))
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "TEAM_AI_DIRECTIVES": str(fallback)}
+    out = install(project, env=env)
+    assert "opted out" in out
+    assert not (project / "opencode.json").exists()
+
+
+@pytest.mark.requires_bash
 def test_other_agents_get_mcp_json_verbatim(tmp_path):
     project = make_project(tmp_path, "claude")
     install(project)

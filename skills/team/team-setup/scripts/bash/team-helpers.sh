@@ -544,10 +544,11 @@ PY
 # and substitutes env vars as {env:VAR}, not ${VAR}. A verbatim copy makes
 # opencode refuse to start ("Configuration is invalid ... mcp.<name>").
 #
-# Merge rules: servers already present (in a valid shape) are kept untouched; an
-# entry in the wrong shape for the target agent is replaced with the translated
-# one (repairs configs written by earlier verbatim merges). Never touches other
-# keys of the target file.
+# Merge rules: servers already present (in a valid shape, including OpenCode's
+# {"enabled": <bool>} override) are kept untouched; an entry in the wrong shape
+# for the target agent is replaced with the translated one (repairs configs
+# written by earlier verbatim merges). Never touches other keys of the target
+# file. An explicit `"team_ai_directives": null` (opt-out) installs nothing.
 
 install_mcp_config() {
   local project_root="${1:-.}"
@@ -556,20 +557,29 @@ install_mcp_config() {
   local init_options="${project_root}/.adlc/init-options.json"
 
   if [[ -f "$init_options" ]]; then
+    # An explicit `"team_ai_directives": null` is the opt-out marker: install nothing.
     team_directive=$(python3 -c '
 import json, sys
 try:
     with open(sys.argv[1]) as f:
-        print(json.load(f).get("team_ai_directives", ""))
+        opts = json.load(f)
+    if "team_ai_directives" in opts and opts["team_ai_directives"] is None:
+        print("__OPT_OUT__")
+    else:
+        print(opts.get("team_ai_directives") or "")
 except Exception:
     print("")
 ' "$init_options" 2>/dev/null || true)
+    if [[ "$team_directive" == "__OPT_OUT__" ]]; then
+      echo "MCP: team AI directives opted out (team_ai_directives: null); nothing to install"
+      return 0
+    fi
     if [[ -z "$agent" ]]; then
       agent=$(python3 -c '
 import json, sys
 try:
     with open(sys.argv[1]) as f:
-        print(json.load(f).get("agent", ""))
+        print(json.load(f).get("agent") or "")
 except Exception:
     print("")
 ' "$init_options" 2>/dev/null || true)
@@ -636,7 +646,13 @@ def to_opencode(spec):
     return out
 
 def valid_opencode(entry):
-    return isinstance(entry, dict) and entry.get("type") in ("local", "remote")
+    if not isinstance(entry, dict):
+        return False
+    # {"enabled": false} alone is OpenCode's on/off override for a server defined
+    # elsewhere (global config). Keep it: replacing it would re-enable the server.
+    if set(entry) == {"enabled"} and isinstance(entry["enabled"], bool):
+        return True
+    return entry.get("type") in ("local", "remote")
 
 if agent == "opencode":
     candidates = [os.path.join(root, "opencode.json"), os.path.join(root, ".opencode", "opencode.json")]
