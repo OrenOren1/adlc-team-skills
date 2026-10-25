@@ -99,8 +99,11 @@ steps:
   - id: expand
     type: prompt
     prompt: |
-      Auto-advance on green, hold-and-investigate on yellow,
-      mechanical rollback on red.
+      Auto-advance on green, hold-and-investigate on yellow, mechanical
+      rollback on signal red. Budget-burn red (error budget exhausted)
+      freezes the deploy instead of rolling back — advance past a freeze
+      only on an explicit human order recorded as an override annotation
+      (invariant 8). See references/threshold-verdicts.md.
     tier: strong
   - id: full
     type: prompt

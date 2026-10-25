@@ -68,7 +68,10 @@ The 10 steps run in order; gates halt, never warn.
    green (or a hold resolved). Approving starts terminal expansion
    (`verdict_full` authorizes only this gate, never reused from another gate).
 8. **expand** — Auto-advance on green, hold-and-investigate on yellow,
-   mechanical rollback on red.
+   mechanical rollback on signal red. Budget-burn red (error budget
+   exhausted) freezes the deploy instead of rolling back — advance past a
+   freeze only on an explicit human order recorded as an override
+   annotation (invariant 8).
 9. **full** — Terminal verdict on the expanded rollout.
 10. **publish** — Release cut in merge → tag → changelog order with a dry-run
    preview, then the monitor handoff packet and the conditional change
