@@ -131,7 +131,7 @@ def test_workflow_parses_in_execution_engine():
     report = json.loads(r.stdout.strip())
     assert report["steps"] == EXPECTED_STEPS, (
         f"engine reads {report['steps']}, expected {EXPECTED_STEPS}")
-    assert set(report["inputs"]) >= {"route", "verdict", "mr_url"}, (
+    assert set(report["inputs"]) >= {"route", "verdict_merge", "verdict_canary", "verdict_full", "mr_url"}, (
         f"engine inputs {report['inputs']} missing declared inputs")
     assert report["validate"] == [], f"engine validation: {report['validate']}"
     assert report["gateErrors"] == [], f"engine gates: {report['gateErrors']}"
@@ -170,3 +170,35 @@ def test_grader_skeleton_exists_with_return_shape():
     text = GRADER.read_text(encoding="utf-8")
     assert "def get_assert" in text
     assert "1.0" in text and "0.0" in text
+
+
+def test_grader_vocabulary_matches_skill_prose():
+    """D1: the grader's safety vocabulary must match the shipped prose.
+
+    Gate names, same-SHA phrasing, and the exact-head rule are hand-repeated
+    across SKILL.md, the grader regexes, and both test files. A prose reword
+    that the grader silently stops matching would decouple the eval from the
+    skill it claims to grade — so every grader keyword pattern must match at
+    least one passage in the skill prose, failing loudly on drift.
+    """
+    import re
+    skill = _read_skill()
+    refs = ROOT / "skills" / "factory" / "factory-deploy" / "references"
+    prose = skill + "\n" + "\n".join(
+        p.read_text(encoding="utf-8") for p in sorted(refs.glob("*.md"))
+    )
+    low = prose.lower()
+    for pattern in [
+        r"merge gate",
+        r"checkpoint 3",
+        r"both gates green",
+        r"same sha",
+        r"exact.head",
+        r"head.moved",
+        r"human",
+        r"override",
+    ]:
+        assert re.search(pattern, low), (
+            f"grader vocabulary {pattern!r} matches no skill prose — "
+            "eval decoupled from the skill it grades"
+        )

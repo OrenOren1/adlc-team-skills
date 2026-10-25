@@ -48,7 +48,8 @@ The 10 steps run in order; gates halt, never warn.
    for this repo, and the error-budget source binding. Anything missing halts.
 2. **gate-merge** — Deploy Gate checkpoint 3 (human): both the review-owned
    Merge Gate and Deploy Gate checkpoint 3 must be green on the
-   **same SHA** with the approver identity recorded. Re-read the head at
+   **same SHA** with the approver identity recorded (one approval per gate:
+   `verdict_merge` authorizes only this gate). Re-read the head at
    execution time — on **head-moved**, discard all gate evidence and
    **re-verify** from step 1.
 3. **merge** — Gated exact-head merge executor. Execute the merge when both
@@ -58,12 +59,14 @@ The 10 steps run in order; gates halt, never warn.
 4. **stage** — Staging rollout. Dry-run preview first, then roll to staging.
 5. **gate-canary-expand** — Deploy Gate checkpoint 1 (human): staging green,
    rollback plan exists, baseline frozen (or a waiver granted with a recorded
-   approver). Approving starts the 5% production canary.
+   approver). Approving starts the 5% production canary (`verdict_canary`
+   authorizes only this gate, never reused from another gate).
 6. **canary** — 5% canary under the armed evaluator: green / yellow / red
    threshold verdicts against frozen baselines with unified budget reads.
    See `references/threshold-verdicts.md`.
 7. **gate-full-expand** — Deploy Gate checkpoint 2 (human): canary verdicts
-   green (or a hold resolved). Approving starts terminal expansion.
+   green (or a hold resolved). Approving starts terminal expansion
+   (`verdict_full` authorizes only this gate, never reused from another gate).
 8. **expand** — Auto-advance on green, hold-and-investigate on yellow,
    mechanical rollback on red.
 9. **full** — Terminal verdict on the expanded rollout.
