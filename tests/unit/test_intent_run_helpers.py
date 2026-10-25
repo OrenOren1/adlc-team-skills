@@ -124,6 +124,36 @@ def test_run_branch_continues_from_origin(repo, tmp_path):
     assert git(repo["work"], "log", "-1", "--format=%s") == "from another pod"
 
 
+def test_run_branch_continues_from_origin_in_a_single_branch_clone(repo, tmp_path):
+    # The runner clones the workspace with `git clone --branch main
+    # --single-branch`: its fetch refspec covers only main, and
+    # `git switch --track origin/<run branch>` failed with "cannot set up
+    # tracking information" (adlc-workspace#12 M9 pilot, run 4ead8524).
+    other = tmp_path / "other"
+    subprocess.run(["git", "clone", "-q", str(repo["bare"]), str(other)], check=True)
+    git(other, "config", "user.email", "o@t.local")
+    git(other, "config", "user.name", "o")
+    git(other, "switch", "-q", "-c", "factory/intent/adlc-workspace-12")
+    (other / "y.txt").write_text("2\n")
+    git(other, "add", "-A")
+    git(other, "commit", "-q", "-m", "from another pod")
+    git(other, "push", "-q", "origin", "factory/intent/adlc-workspace-12")
+    pod = tmp_path / "pod"
+    subprocess.run(["git", "clone", "-q", "--branch", "main", "--single-branch", str(repo["bare"]), str(pod)], check=True)
+    assert git(pod, "config", "--get-all", "remote.origin.fetch") == "+refs/heads/main:refs/remotes/origin/main"
+    git(pod, "config", "remote.origin.url", "https://gl.test/g/adlc-workspace.git")
+    git(pod, "config", f"url.{repo['bare']}.insteadOf", "https://gl.test/g/adlc-workspace.git")
+    r = run(RUN_BRANCH, pod, env=RUN_ENV)
+    assert r.returncode == 0, r.stderr
+    assert r.stdout.strip() == "factory/intent/adlc-workspace-12"
+    assert git(pod, "rev-parse", "--abbrev-ref", "HEAD") == "factory/intent/adlc-workspace-12"
+    assert git(pod, "log", "-1", "--format=%s") == "from another pod"
+    # A second call (the orchestrator's own) is an idempotent no-op.
+    r2 = run(RUN_BRANCH, pod, env=RUN_ENV)
+    assert r2.returncode == 0, r2.stderr
+    assert git(pod, "log", "-1", "--format=%s") == "from another pod"
+
+
 def _push_from_other_pod(repo, tmp_path, msg):
     other = tmp_path / "other"
     if not other.exists():
