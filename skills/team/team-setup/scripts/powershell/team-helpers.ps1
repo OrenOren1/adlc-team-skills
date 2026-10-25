@@ -8,6 +8,10 @@
 #   -InjectAgents DIR  Inject team-boot directive into project-level AGENTS.md at DIR
 #   -AgentsStatus DIR  Report managed-section status in project-level AGENTS.md at DIR
 #   -AgentsUninstall DIR  Remove managed section from project-level AGENTS.md at DIR
+#   -InstallMcp DIR    Merge {TEAM_AI_DIRECTIVES}/.mcp.json servers into the project's
+#                      agent MCP config at DIR, translated to the agent's own format
+#   -Agent NAME        Agent for -InstallMcp (default: .adlc/init-options.json "agent",
+#                      else claude). opencode -> opencode.json `mcp`; others -> .mcp.json
 #   -Name NAME         Team name for scaffold (default: "My Team")
 param(
   [switch]$Json,
@@ -16,6 +20,8 @@ param(
   [string]$InjectAgents = "",
   [string]$AgentsStatus = "",
   [string]$AgentsUninstall = "",
+  [string]$InstallMcp = "",
+  [string]$Agent = "",
   [string]$Name = "My Team"
 )
 
@@ -473,6 +479,121 @@ function Remove-ProjectAgentsSection {
   Write-Output "Removed team AI directives section from $AgentsFile"
 }
 
+# MCP CONFIG INSTALL (team-setup Post-Setup step 5) — twin of install_mcp_config
+# in scripts/bash/team-helpers.sh; see the rationale there. OpenCode needs
+# {type: local|remote, command: [...], environment, enabled} under `mcp` and
+# {env:VAR} substitution; other agents take the .mcp.json shape verbatim.
+function ConvertTo-OpenCodeString {
+  param($Value)
+  if ($Value -is [string]) { return [regex]::Replace($Value, '\$\{([A-Za-z_][A-Za-z0-9_]*)\}', '{env:$1}') }
+  return $Value
+}
+
+function ConvertTo-OpenCodeMcp {
+  param($Spec)
+  $enabled = -not [bool]$Spec['disabled']
+  if ($Spec['url']) {
+    $out = [ordered]@{ type = 'remote'; url = (ConvertTo-OpenCodeString $Spec['url']); enabled = $enabled }
+    if ($Spec['headers'] -and $Spec['headers'].Count -gt 0) {
+      $h = [ordered]@{}
+      foreach ($k in $Spec['headers'].Keys) { $h[$k] = ConvertTo-OpenCodeString $Spec['headers'][$k] }
+      $out['headers'] = $h
+    }
+    return $out
+  }
+  $command = @()
+  if ($Spec['command'] -is [System.Collections.IList]) { $command = @($Spec['command']) }
+  else { $command = @($Spec['command']) + @($Spec['args'] | Where-Object { $null -ne $_ }) }
+  $out = [ordered]@{ type = 'local'; command = @($command | ForEach-Object { ConvertTo-OpenCodeString $_ }); enabled = $enabled }
+  $envSrc = if ($Spec['env']) { $Spec['env'] } elseif ($Spec['environment']) { $Spec['environment'] } else { $null }
+  if ($envSrc -and $envSrc.Count -gt 0) {
+    $e = [ordered]@{}
+    foreach ($k in $envSrc.Keys) { $e[$k] = ConvertTo-OpenCodeString $envSrc[$k] }
+    $out['environment'] = $e
+  }
+  return $out
+}
+
+function Install-McpConfig {
+  param([string]$ProjectRoot = ".", [string]$AgentName = "")
+
+  $TeamDirective = ""
+  $InitOptions = Join-Path $ProjectRoot ".adlc" "init-options.json"
+  if (Test-Path $InitOptions) {
+    try {
+      $Config = Get-Content $InitOptions -Raw | ConvertFrom-Json
+      if ($Config.team_ai_directives) { $TeamDirective = $Config.team_ai_directives }
+      if (-not $AgentName -and $Config.agent) { $AgentName = $Config.agent }
+    } catch {}
+  }
+  if (-not $TeamDirective -and $env:TEAM_AI_DIRECTIVES) { $TeamDirective = $env:TEAM_AI_DIRECTIVES }
+  if (-not $TeamDirective) { $TeamDirective = Join-Path $ProjectRoot "team-ai-directives" }
+  if (-not [System.IO.Path]::IsPathRooted($TeamDirective)) { $TeamDirective = Join-Path $ProjectRoot $TeamDirective }
+  if (-not $AgentName) { $AgentName = "claude" }
+  $AgentName = $AgentName.ToLower()
+
+  $Source = Join-Path $TeamDirective ".mcp.json"
+  if (-not (Test-Path $Source)) {
+    Write-Output "MCP: no .mcp.json in $TeamDirective; nothing to install"
+    return
+  }
+  $Servers = (Get-Content $Source -Raw | ConvertFrom-Json -AsHashtable)['mcpServers']
+  if (-not $Servers -or $Servers.Count -eq 0) {
+    Write-Output "MCP: .mcp.json declares no mcpServers; nothing to install"
+    return
+  }
+
+  if ($AgentName -eq "opencode") {
+    $Candidates = @((Join-Path $ProjectRoot "opencode.json"), (Join-Path $ProjectRoot ".opencode" "opencode.json"))
+    $Target = $Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $Target) {
+      foreach ($jsonc in @((Join-Path $ProjectRoot "opencode.jsonc"), (Join-Path $ProjectRoot ".opencode" "opencode.jsonc"))) {
+        if (Test-Path $jsonc) {
+          Write-Output "MCP: $jsonc exists (JSONC); add the servers by hand - not editing a commented file"
+          return
+        }
+      }
+      $Target = $Candidates[0]
+    }
+    $Key = "mcp"
+    $Doc = [ordered]@{ '$schema' = 'https://opencode.ai/config.json' }
+  } else {
+    $Target = Join-Path $ProjectRoot ".mcp.json"
+    $Key = "mcpServers"
+    $Doc = [ordered]@{}
+  }
+
+  if (Test-Path $Target) {
+    $Text = (Get-Content $Target -Raw)
+    if ($Text -and $Text.Trim()) { $Doc = $Text | ConvertFrom-Json -AsHashtable }
+  }
+  if (-not $Doc.Contains($Key)) { $Doc[$Key] = [ordered]@{} }
+  $Section = $Doc[$Key]
+  $Rel = [System.IO.Path]::GetRelativePath($ProjectRoot, $Target)
+  $Needed = [System.Collections.Generic.SortedSet[string]]::new()
+
+  foreach ($name in $Servers.Keys) {
+    $spec = $Servers[$name]
+    foreach ($m in [regex]::Matches(($spec | ConvertTo-Json -Depth 20), '\$\{([A-Za-z_][A-Za-z0-9_]*)\}')) { [void]$Needed.Add($m.Groups[1].Value) }
+    $existing = if ($Section.Contains($name)) { $Section[$name] } else { $null }
+    $valid = if ($AgentName -eq "opencode") { $existing -is [System.Collections.IDictionary] -and @('local', 'remote') -contains $existing['type'] } else { $existing -is [System.Collections.IDictionary] }
+    if ($null -ne $existing -and $valid) {
+      Write-Output "MCP: kept $name (already configured in $Rel)"
+      continue
+    }
+    $Section[$name] = if ($AgentName -eq "opencode") { ConvertTo-OpenCodeMcp $spec } else { $spec }
+    $verb = if ($null -ne $existing) { "repaired" } else { "merged" }
+    Write-Output "MCP: $verb $name -> $Rel"
+  }
+
+  $Dir = Split-Path $Target -Parent
+  if ($Dir -and -not (Test-Path $Dir)) { New-Item -ItemType Directory -Path $Dir -Force | Out-Null }
+  ($Doc | ConvertTo-Json -Depth 20) + "`n" | Set-Content -Path $Target -Encoding UTF8 -NoNewline
+
+  $Missing = @($Needed | Where-Object { -not [Environment]::GetEnvironmentVariable($_) })
+  if ($Missing.Count -gt 0) { Write-Output ("MCP: set these env vars for the merged servers: " + ($Missing -join ", ")) }
+}
+
 # MAIN
 if ($Scaffold) {
   New-TeamAiDirectivesScaffold -Dest $Scaffold -TeamName $Name
@@ -484,6 +605,8 @@ if ($Scaffold) {
   Get-ProjectAgentsSectionStatus -ProjectRoot $AgentsStatus
 } elseif ($AgentsUninstall -ne "") {
   Remove-ProjectAgentsSection -ProjectRoot $AgentsUninstall
+} elseif ($InstallMcp -ne "") {
+  Install-McpConfig -ProjectRoot $InstallMcp -AgentName $Agent
 } elseif ($Json) {
   Write-OutputJson
 } else {

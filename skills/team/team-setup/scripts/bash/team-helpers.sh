@@ -8,6 +8,10 @@
 #   --inject-agents [DIR]  Inject team-boot directive into project-level AGENTS.md at DIR
 #   --agents-status [DIR]  Report managed-section status in project-level AGENTS.md at DIR
 #   --agents-uninstall [DIR]  Remove managed section from project-level AGENTS.md at DIR
+#   --install-mcp [DIR] Merge {TEAM_AI_DIRECTIVES}/.mcp.json servers into the project's
+#                       agent MCP config at DIR, translated to the agent's own format
+#   --agent NAME        Agent for --install-mcp (default: .adlc/init-options.json "agent",
+#                       else claude). opencode -> opencode.json `mcp`; others -> .mcp.json
 #   --name NAME         Team name for scaffold (default: "My Team")
 set -euo pipefail
 
@@ -528,6 +532,154 @@ PY
 # MAIN
 ###############################################################################
 
+###############################################################################
+# MCP CONFIG INSTALL (team-setup Post-Setup step 5)
+###############################################################################
+#
+# Team directives declare MCP servers in Claude/.mcp.json shape:
+#   {"mcpServers": {"x": {"command": "npx", "args": [...], "env": {"K": "${VAR}"}}}}
+# OpenCode rejects that shape: it reads `mcp` in opencode.json and requires
+#   {"type": "local", "command": ["npx", ...], "environment": {...}, "enabled": true}
+#   {"type": "remote", "url": "...", "headers": {...}, "enabled": true}
+# and substitutes env vars as {env:VAR}, not ${VAR}. A verbatim copy makes
+# opencode refuse to start ("Configuration is invalid ... mcp.<name>").
+#
+# Merge rules: servers already present (in a valid shape) are kept untouched; an
+# entry in the wrong shape for the target agent is replaced with the translated
+# one (repairs configs written by earlier verbatim merges). Never touches other
+# keys of the target file.
+
+install_mcp_config() {
+  local project_root="${1:-.}"
+  local agent="${2:-}"
+  local team_directive=""
+  local init_options="${project_root}/.adlc/init-options.json"
+
+  if [[ -f "$init_options" ]]; then
+    team_directive=$(python3 -c '
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        print(json.load(f).get("team_ai_directives", ""))
+except Exception:
+    print("")
+' "$init_options" 2>/dev/null || true)
+    if [[ -z "$agent" ]]; then
+      agent=$(python3 -c '
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        print(json.load(f).get("agent", ""))
+except Exception:
+    print("")
+' "$init_options" 2>/dev/null || true)
+    fi
+  fi
+  if [[ -z "$team_directive" ]] && [[ -n "${TEAM_AI_DIRECTIVES:-}" ]]; then
+    team_directive="$TEAM_AI_DIRECTIVES"
+  fi
+  if [[ -z "$team_directive" ]]; then
+    team_directive="${project_root}/team-ai-directives"
+  fi
+  # Relative team path in init-options is relative to the project root.
+  if [[ "$team_directive" != /* ]]; then
+    team_directive="${project_root}/${team_directive}"
+  fi
+  agent="${agent:-claude}"
+
+  local source="${team_directive}/.mcp.json"
+  if [[ ! -f "$source" ]]; then
+    echo "MCP: no .mcp.json in ${team_directive}; nothing to install"
+    return 0
+  fi
+
+  python3 - "$source" "$project_root" "$agent" <<'PY'
+import json, os, re, sys
+
+source, root, agent = sys.argv[1], sys.argv[2], sys.argv[3].lower()
+with open(source) as f:
+    servers = (json.load(f) or {}).get("mcpServers") or {}
+if not servers:
+    print("MCP: .mcp.json declares no mcpServers; nothing to install")
+    sys.exit(0)
+
+VAR = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+needed = set()
+
+def scan(value):
+    if isinstance(value, str):
+        needed.update(VAR.findall(value))
+    elif isinstance(value, dict):
+        for v in value.values():
+            scan(v)
+    elif isinstance(value, list):
+        for v in value:
+            scan(v)
+
+def to_opencode_str(value):
+    return VAR.sub(lambda m: "{env:%s}" % m.group(1), value) if isinstance(value, str) else value
+
+def to_opencode(spec):
+    enabled = not spec.get("disabled", False)
+    if spec.get("url"):
+        out = {"type": "remote", "url": to_opencode_str(spec["url"]), "enabled": enabled}
+        headers = {k: to_opencode_str(v) for k, v in (spec.get("headers") or {}).items()}
+        if headers:
+            out["headers"] = headers
+        return out
+    cmd = spec.get("command")
+    command = cmd if isinstance(cmd, list) else [cmd] + list(spec.get("args") or [])
+    out = {"type": "local", "command": [to_opencode_str(c) for c in command], "enabled": enabled}
+    env = {k: to_opencode_str(v) for k, v in (spec.get("env") or spec.get("environment") or {}).items()}
+    if env:
+        out["environment"] = env
+    return out
+
+def valid_opencode(entry):
+    return isinstance(entry, dict) and entry.get("type") in ("local", "remote")
+
+if agent == "opencode":
+    candidates = [os.path.join(root, "opencode.json"), os.path.join(root, ".opencode", "opencode.json")]
+    target = next((p for p in candidates if os.path.isfile(p)), candidates[0])
+    if not os.path.isfile(target):
+        for jsonc in (os.path.join(root, "opencode.jsonc"), os.path.join(root, ".opencode", "opencode.jsonc")):
+            if os.path.isfile(jsonc):
+                print("MCP: %s exists (JSONC); add the servers by hand - not editing a commented file" % jsonc)
+                sys.exit(0)
+    key, translate, is_valid = "mcp", to_opencode, valid_opencode
+    config = {"$schema": "https://opencode.ai/config.json"}
+else:
+    target = os.path.join(root, ".mcp.json")
+    key, translate, is_valid = "mcpServers", (lambda s: s), (lambda e: isinstance(e, dict))
+    config = {}
+
+if os.path.isfile(target):
+    with open(target) as f:
+        text = f.read().strip()
+    config = json.loads(text) if text else config
+section = config.setdefault(key, {})
+
+for name, spec in servers.items():
+    scan(spec)
+    existing = section.get(name)
+    if existing is not None and is_valid(existing):
+        print("MCP: kept %s (already configured in %s)" % (name, os.path.relpath(target, root)))
+        continue
+    section[name] = translate(spec)
+    verb = "repaired" if existing is not None else "merged"
+    print("MCP: %s %s -> %s" % (verb, name, os.path.relpath(target, root)))
+
+os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
+with open(target, "w") as f:
+    json.dump(config, f, indent=2)
+    f.write("\n")
+
+missing = sorted(v for v in needed if not os.environ.get(v))
+if missing:
+    print("MCP: set these env vars for the merged servers: %s" % ", ".join(missing))
+PY
+}
+
 main() {
   if [[ "$#" -eq 0 ]]; then
     resolve_paths
@@ -540,6 +692,11 @@ main() {
   local has_inject_agents=false
   local has_agents_status=false
   local has_agents_uninstall=false
+  local has_install_mcp=false
+  local install_mcp_dest=""
+  local mcp_agent=""
+  local parsing_install_mcp=false
+  local parsing_agent=false
   local scaffold_dest=""
   local agents_only_dest=""
   local inject_dest=""
@@ -559,7 +716,7 @@ main() {
       continue
     fi
     if [[ "$arg" == "--help" || "$arg" == "-h" ]]; then
-      echo "Usage: team-helpers.sh [--json] [--scaffold DIR] [--agents-only DIR] [--inject-agents [DIR]] [--agents-status [DIR]] [--agents-uninstall [DIR]] [--name NAME]"
+      echo "Usage: team-helpers.sh [--json] [--scaffold DIR] [--agents-only DIR] [--inject-agents [DIR]] [--agents-status [DIR]] [--agents-uninstall [DIR]] [--install-mcp [DIR] [--agent NAME]] [--name NAME]"
       exit 0
     fi
     if [[ "$arg" == "--scaffold" ]]; then
@@ -610,6 +767,33 @@ main() {
       parsing_name=false
       parsing_inject=false
       parsing_status=false
+      continue
+    fi
+    if [[ "$arg" == "--install-mcp" ]]; then
+      has_install_mcp=true
+      parsing_install_mcp=true
+      parsing_agent=false
+      parsing_scaffold=false
+      parsing_agents=false
+      parsing_name=false
+      parsing_inject=false
+      parsing_status=false
+      parsing_uninstall=false
+      continue
+    fi
+    if [[ "$arg" == "--agent" ]]; then
+      parsing_agent=true
+      parsing_install_mcp=false
+      continue
+    fi
+    if $parsing_agent && [[ -n "$arg" ]]; then
+      mcp_agent="$arg"
+      parsing_agent=false
+      continue
+    fi
+    if $parsing_install_mcp && [[ -n "$arg" ]]; then
+      install_mcp_dest="$arg"
+      parsing_install_mcp=false
       continue
     fi
     if [[ "$arg" == "--name" ]]; then
@@ -686,6 +870,12 @@ main() {
   if $has_agents_uninstall; then
     local project_root="${agents_uninstall_dest:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
     agents_section_uninstall "$project_root"
+    return
+  fi
+
+  if $has_install_mcp; then
+    local project_root="${install_mcp_dest:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+    install_mcp_config "$project_root" "$mcp_agent"
     return
   fi
 

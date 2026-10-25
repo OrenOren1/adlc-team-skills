@@ -122,7 +122,7 @@ After any mode completes successfully, update the project configuration:
    - `{TEAM_AI_DIRECTIVES}/.skills.json` exists and is valid JSON
 3. Check the `.gitignore` convention (layout allowlist — see the Gitignore Convention Check step below).
 4. Inject the project-level `AGENTS.md` directive — full command and managed-section contract in `references/post-setup-agents.md`.
-5. Install MCP config — merge details in `references/post-setup-mcp.md`.
+5. Install MCP config with `team-helpers.sh --install-mcp` (never hand-merge: OpenCode needs a translated shape). Details in `references/post-setup-mcp.md`.
 
 #### Gitignore Convention Check
 
@@ -170,6 +170,7 @@ never leave a wholesale `.adlc/` ignore in place (it would hide the tracked
 - **Interpolating user input into Python/shell source strings** — pass paths through the environment (`os.environ`) instead; string interpolation of `$ABSOLUTE_PATH` into a Python one-liner is a command-injection vector.
 - **Cloning a non-`https://` URL in Mode 1** — reject `file://`/`ssh://`/other schemes; cloned content is read by agents later, so only clone trusted repos.
 - **Skipping the MCP config install** — `.mcp.json` servers stay unconfigured; the project won't have access to team-declared MCP servers.
+- **Hand-merging `.mcp.json` into `opencode.json`** — OpenCode rejects the `{command, args}` shape (`Configuration is invalid ... mcp.<name>`) and refuses to start; always use `--install-mcp`, which translates and repairs.
 - **Accepting shell metacharacters in paths or team names** — validate before interpolating into `mkdir`/`git commit`/heredocs (see Input Validation).
 - **Treating user decline as an error** — declining setup is a valid outcome; exit cleanly, tell `team-boot` the user declined, and offer the `team_ai_directives: null` opt-out marker (build mode only).
 - **Writing the opt-out marker in plan/read-only mode** — a persistent opt-out requires a write; in plan mode the decline is session-scoped and setup defers instead.
@@ -190,7 +191,7 @@ never leave a wholesale `.adlc/` ignore in place (it would hide the tracked
 - [ ] Running `team-verify` (Phase 0 of team-repair) passes all 7 checks.
 - [ ] All user-supplied paths/URLs/team names passed Input Validation (no shell metacharacters; clone URL is `https://`).
 - [ ] Mode 2 wrote `team_ai_directives` via the environment (no `$ABSOLUTE_PATH` interpolation into Python source).
-- [ ] If `{TEAM_AI_DIRECTIVES}/.mcp.json` exists, any declared `mcpServers` were successfully merged into the project's config, and unresolved env vars were highlighted.
+- [ ] If `{TEAM_AI_DIRECTIVES}/.mcp.json` exists, `--install-mcp` merged its `mcpServers` into the agent's config in that agent's shape (OpenCode: `type`/`command[]`/`enabled` under `mcp`), and unresolved env vars were highlighted.
 - [ ] (Model-invoked by `team-boot`) a user decline exited cleanly without running any mode; the persistent opt-out was offered, and `team_ai_directives: null` was written only in build mode.
 
 ## Configuration
