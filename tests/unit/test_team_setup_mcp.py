@@ -10,6 +10,7 @@ and unrelated keys, and pass `.mcp.json` through verbatim for other agents.
 """
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -47,7 +48,22 @@ def make_project(tmp_path, agent, team_mcp=TEAM_MCP):
     return project
 
 
+RUNTIMES = [r for r in ("python3", "node")]
+
+
+@pytest.fixture(autouse=True, params=RUNTIMES)
+def runtime(request, monkeypatch):
+    # Every case runs on both JSON runtimes: python3 where it exists, node where
+    # it does not (the agentic-container image ships node but no python3).
+    if shutil.which(request.param) is None:
+        pytest.skip(f"{request.param} not installed")
+    monkeypatch.setenv("TEAM_HELPERS_RUNTIME", request.param)
+    return request.param
+
+
 def install(project, *extra, env=None):
+    if env is not None:
+        env = {**env, "TEAM_HELPERS_RUNTIME": os.environ["TEAM_HELPERS_RUNTIME"]}
     result = subprocess.run(
         ["bash", str(HELPER), "--install-mcp", str(project), *extra],
         capture_output=True, text=True, env=env,

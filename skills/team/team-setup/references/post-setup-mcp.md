@@ -31,4 +31,6 @@ Merge rules:
 - A `.jsonc` config is not edited. The helper says so, and you add the servers by hand.
 - If `.adlc/init-options.json` has `"team_ai_directives": null` (the opt-out marker), nothing is installed.
 
+The helper needs `python3` **or** `node` (it uses whichever is on `PATH`; `npx skills` already requires node, and the agentic-container image ships node but no `python3`). If neither is available it exits non-zero with `team-helpers needs python3 or node` rather than silently skipping. Do not replace it with your own script; report the error.
+
 Report the helper's output lines (`merged` / `kept` / `repaired`) and its final `set these env vars …` line, which lists the variables the merged servers need that are not set in the current environment.

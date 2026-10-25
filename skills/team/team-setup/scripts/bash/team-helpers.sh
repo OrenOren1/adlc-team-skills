@@ -16,6 +16,88 @@
 set -euo pipefail
 
 ###############################################################################
+# 0. JSON RUNTIME (python3, else node)
+###############################################################################
+# The JSON/text work below runs in python3 when it is installed, otherwise in
+# node. The agentic-container image ships node (npx skills needs it) but no
+# python3, and a helper that cannot run makes the agent improvise the merge -
+# the failure this helper exists to prevent. TEAM_HELPERS_RUNTIME=python3|node
+# forces one (tests run every case on both). Each embedded script reads its
+# arguments as sys.argv[1:] / process.argv.slice(1).
+
+_json_runtime() {
+  if [[ -n "${TEAM_HELPERS_RUNTIME:-}" ]]; then
+    echo "$TEAM_HELPERS_RUNTIME"
+  elif command -v python3 >/dev/null 2>&1; then
+    echo python3
+  elif command -v node >/dev/null 2>&1; then
+    echo node
+  else
+    echo none
+  fi
+}
+
+# run_embedded PY_CODE JS_CODE [ARGS...]
+run_embedded() {
+  local py="$1" js="$2"
+  shift 2
+  case "$(_json_runtime)" in
+    python3) python3 -c "$py" "$@" ;;
+    node) node -e "$js" "$@" ;;
+    *)
+      echo "ERROR: team-helpers needs python3 or node on PATH" >&2
+      return 127
+      ;;
+  esac
+}
+
+# json_field FILE KEY - print FILE's top-level KEY ("" when absent or
+# unreadable; __NULL__ when the key is present with a null value).
+_code_json_field_py() {
+  cat <<'PY'
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        o = json.load(f)
+    k = sys.argv[2]
+    if isinstance(o, dict) and k in o and o[k] is None:
+        print("__NULL__")
+    else:
+        v = o.get(k) if isinstance(o, dict) else None
+        print("" if v is None else v)
+except Exception:
+    print("")
+PY
+}
+_code_json_field_js() {
+  cat <<'JS'
+const fs = require("fs");
+const [file, key] = process.argv.slice(1);
+try {
+  const o = JSON.parse(fs.readFileSync(file, "utf8"));
+  const isObj = o !== null && typeof o === "object" && !Array.isArray(o);
+  if (isObj && Object.prototype.hasOwnProperty.call(o, key) && o[key] === null) {
+    console.log("__NULL__");
+  } else {
+    const v = isObj ? o[key] : undefined;
+    console.log(v === undefined || v === null ? "" : String(v));
+  }
+} catch (e) {
+  console.log("");
+}
+JS
+}
+json_field() {
+  # No runtime is an error, never "": an empty answer would silently fall back
+  # to a default path and report "nothing to install".
+  if [[ "$(_json_runtime)" == "none" ]]; then
+    echo "ERROR: team-helpers needs python3 or node on PATH" >&2
+    exit 127
+  fi
+  run_embedded "$(_code_json_field_py)" "$(_code_json_field_js)" "$1" "$2" 2>/dev/null || true
+}
+
+###############################################################################
 # 1. PATH RESOLUTION
 ###############################################################################
 
@@ -33,14 +115,8 @@ resolve_paths() {
   if [[ -z "$TEAM_AI_DIRECTIVES" ]]; then
     INIT_OPTIONS="${PROJECT_ROOT}/.adlc/init-options.json"
     if [[ -f "$INIT_OPTIONS" ]]; then
-      TEAM_AI_DIRECTIVES=$(python3 -c '
-import json, sys
-try:
-    with open(sys.argv[1]) as f:
-        print(json.load(f).get("team_ai_directives", ""))
-except Exception:
-    print("")
-' "$INIT_OPTIONS" 2>/dev/null || true)
+      TEAM_AI_DIRECTIVES=$(json_field "$INIT_OPTIONS" team_ai_directives)
+      [[ "$TEAM_AI_DIRECTIVES" == "__NULL__" ]] && TEAM_AI_DIRECTIVES=""
     fi
   fi
 
@@ -54,8 +130,8 @@ except Exception:
   echo "BRANCH=$BRANCH"
 }
 
-output_json() {
-  python3 - "$PROJECT_ROOT" "$TEAM_AI_DIRECTIVES" "$BRANCH" <<'PY'
+_code_output_json_py() {
+  cat <<'PY'
 import json, sys
 print(json.dumps({
   "REPO_ROOT": sys.argv[1],
@@ -63,6 +139,16 @@ print(json.dumps({
   "BRANCH": sys.argv[3]
 }))
 PY
+}
+_code_output_json_js() {
+  cat <<'JS'
+const [root, team, branch] = process.argv.slice(1);
+const q = JSON.stringify;
+console.log(`{"REPO_ROOT": ${q(root)}, "TEAM_AI_DIRECTIVES": ${q(team)}, "BRANCH": ${q(branch)}}`);
+JS
+}
+output_json() {
+  run_embedded "$(_code_output_json_py)" "$(_code_output_json_js)" "$PROJECT_ROOT" "$TEAM_AI_DIRECTIVES" "$BRANCH"
 }
 
 ###############################################################################
@@ -338,14 +424,8 @@ inject_project_agents() {
   if [[ -z "$team_directive" ]]; then
     local init_options="${project_root}/.adlc/init-options.json"
     if [[ -f "$init_options" ]]; then
-      team_directive=$(python3 -c '
-import json, sys
-try:
-    with open(sys.argv[1]) as f:
-        print(json.load(f).get("team_ai_directives", ""))
-except Exception:
-    print("")
-' "$init_options" 2>/dev/null || true)
+      team_directive=$(json_field "$init_options" team_ai_directives)
+      [[ "$team_directive" == "__NULL__" ]] && team_directive=""
     fi
   fi
 
@@ -429,8 +509,8 @@ ${marker_end}
 SECTION
 )
 
-  # Create AGENTS.md if it doesn't exist, or update the managed section
-  python3 - "$agents_file" "$marker_start" "$marker_end" "$section" <<'PY'
+  _code_inject_py() {
+    cat <<'PY'
 import os, sys
 
 agents_path, start, end, section_content = sys.argv[1:5]
@@ -466,6 +546,31 @@ else:
         f.write(content)
     print(f"Injected team AI directives section into {agents_path}")
 PY
+  }
+  _code_inject_js() {
+    cat <<'JS'
+const fs = require("fs");
+const [agentsPath, start, end, section] = process.argv.slice(1);
+let content = fs.existsSync(agentsPath) ? fs.readFileSync(agentsPath, "utf8") : "";
+const s = content.indexOf(start);
+const e = content.indexOf(end);
+if (s !== -1 && e !== -1 && s < e) {
+  let next = content.slice(0, s) + section + content.slice(e + end.length);
+  if (next.endsWith("\n")) next += "\n";
+  else if (!next.endsWith("\n\n")) next += "\n";
+  fs.writeFileSync(agentsPath, next, "utf8");
+  console.log(`Updated team AI directives section in ${agentsPath}`);
+} else {
+  if (content && !content.endsWith("\n")) content += "\n";
+  if (content && !content.endsWith("\n\n")) content += "\n";
+  content += section + "\n";
+  fs.writeFileSync(agentsPath, content, "utf8");
+  console.log(`Injected team AI directives section into ${agentsPath}`);
+}
+JS
+  }
+  # Create AGENTS.md if it doesn't exist, or update the managed section
+  run_embedded "$(_code_inject_py)" "$(_code_inject_js)" "$agents_file" "$marker_start" "$marker_end" "$section"
 }
 
 ###############################################################################
@@ -501,7 +606,8 @@ agents_section_uninstall() {
     return 0
   fi
 
-  python3 - "$agents_file" "$marker_start" "$marker_end" <<'PY'
+  _code_uninstall_py() {
+    cat <<'PY'
 import sys
 
 agents_path, start, end = sys.argv[1:4]
@@ -526,6 +632,27 @@ with open(agents_path, "w", encoding="utf-8") as f:
     f.write(new_content)
 print(f"Removed team AI directives section from {agents_path}")
 PY
+  }
+  _code_uninstall_js() {
+    cat <<'JS'
+const fs = require("fs");
+const [agentsPath, start, end] = process.argv.slice(1);
+const content = fs.readFileSync(agentsPath, "utf8");
+const s = content.indexOf(start);
+const e = content.indexOf(end);
+if (s === -1 || e === -1 || s >= e) {
+  console.log(`No managed section in ${agentsPath} (nothing removed)`);
+  process.exit(0);
+}
+let next = content.slice(0, s) + content.slice(e + end.length);
+while (next.includes("\n\n\n")) next = next.split("\n\n\n").join("\n\n");
+next = next.replace(/^\n+|\n+$/g, "");
+if (next) next += "\n";
+fs.writeFileSync(agentsPath, next, "utf8");
+console.log(`Removed team AI directives section from ${agentsPath}`);
+JS
+  }
+  run_embedded "$(_code_uninstall_py)" "$(_code_uninstall_js)" "$agents_file" "$marker_start" "$marker_end"
 }
 
 ###############################################################################
@@ -558,31 +685,14 @@ install_mcp_config() {
 
   if [[ -f "$init_options" ]]; then
     # An explicit `"team_ai_directives": null` is the opt-out marker: install nothing.
-    team_directive=$(python3 -c '
-import json, sys
-try:
-    with open(sys.argv[1]) as f:
-        opts = json.load(f)
-    if "team_ai_directives" in opts and opts["team_ai_directives"] is None:
-        print("__OPT_OUT__")
-    else:
-        print(opts.get("team_ai_directives") or "")
-except Exception:
-    print("")
-' "$init_options" 2>/dev/null || true)
-    if [[ "$team_directive" == "__OPT_OUT__" ]]; then
+    team_directive=$(json_field "$init_options" team_ai_directives)
+    if [[ "$team_directive" == "__NULL__" ]]; then
       echo "MCP: team AI directives opted out (team_ai_directives: null); nothing to install"
       return 0
     fi
     if [[ -z "$agent" ]]; then
-      agent=$(python3 -c '
-import json, sys
-try:
-    with open(sys.argv[1]) as f:
-        print(json.load(f).get("agent") or "")
-except Exception:
-    print("")
-' "$init_options" 2>/dev/null || true)
+      agent=$(json_field "$init_options" agent)
+      [[ "$agent" == "__NULL__" ]] && agent=""
     fi
   fi
   if [[ -z "$team_directive" ]] && [[ -n "${TEAM_AI_DIRECTIVES:-}" ]]; then
@@ -603,7 +713,8 @@ except Exception:
     return 0
   fi
 
-  python3 - "$source" "$project_root" "$agent" <<'PY'
+  _code_merge_py() {
+    cat <<'PY'
 import json, os, re, sys
 
 source, root, agent = sys.argv[1], sys.argv[2], sys.argv[3].lower()
@@ -694,6 +805,95 @@ missing = sorted(v for v in needed if not os.environ.get(v))
 if missing:
     print("MCP: set these env vars for the merged servers: %s" % ", ".join(missing))
 PY
+  }
+  _code_merge_js() {
+    cat <<'JS'
+const fs = require("fs");
+const path = require("path");
+const [source, root, agentArg] = process.argv.slice(1);
+const agent = agentArg.toLowerCase();
+const servers = ((JSON.parse(fs.readFileSync(source, "utf8")) || {}).mcpServers) || {};
+if (!Object.keys(servers).length) {
+  console.log("MCP: .mcp.json declares no mcpServers; nothing to install");
+  process.exit(0);
+}
+const VAR = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+const needed = new Set();
+const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+function scan(v) {
+  if (typeof v === "string") { for (const m of v.matchAll(VAR)) needed.add(m[1]); }
+  else if (Array.isArray(v)) v.forEach(scan);
+  else if (isObj(v)) Object.values(v).forEach(scan);
+}
+const toStr = (v) => (typeof v === "string" ? v.replace(VAR, (_, n) => `{env:${n}}`) : v);
+const mapVals = (o) => Object.fromEntries(Object.entries(o || {}).map(([k, v]) => [k, toStr(v)]));
+function toOpencode(spec) {
+  const enabled = !spec.disabled;
+  if (spec.url) {
+    const out = { type: "remote", url: toStr(spec.url), enabled };
+    const headers = mapVals(spec.headers);
+    if (Object.keys(headers).length) out.headers = headers;
+    return out;
+  }
+  const cmd = spec.command;
+  const command = Array.isArray(cmd) ? cmd : [cmd, ...(spec.args || [])];
+  const out = { type: "local", command: command.map(toStr), enabled };
+  const env = mapVals(spec.env || spec.environment);
+  if (Object.keys(env).length) out.environment = env;
+  return out;
+}
+function validOpencode(e) {
+  if (!isObj(e)) return false;
+  // {"enabled": <bool>} alone is OpenCode's on/off override for a server defined
+  // elsewhere (global config). Keep it: replacing it would re-enable the server.
+  const keys = Object.keys(e);
+  if (keys.length === 1 && keys[0] === "enabled" && typeof e.enabled === "boolean") return true;
+  return e.type === "local" || e.type === "remote";
+}
+const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch (e) { return false; } };
+let target, key, translate, isValid, config;
+if (agent === "opencode") {
+  const candidates = [path.join(root, "opencode.json"), path.join(root, ".opencode", "opencode.json")];
+  target = candidates.find(isFile) || candidates[0];
+  if (!isFile(target)) {
+    for (const jsonc of [path.join(root, "opencode.jsonc"), path.join(root, ".opencode", "opencode.jsonc")]) {
+      if (isFile(jsonc)) {
+        console.log(`MCP: ${jsonc} exists (JSONC); add the servers by hand - not editing a commented file`);
+        process.exit(0);
+      }
+    }
+  }
+  key = "mcp"; translate = toOpencode; isValid = validOpencode;
+  config = { $schema: "https://opencode.ai/config.json" };
+} else {
+  target = path.join(root, ".mcp.json");
+  key = "mcpServers"; translate = (s) => s; isValid = isObj;
+  config = {};
+}
+if (isFile(target)) {
+  const text = fs.readFileSync(target, "utf8").trim();
+  if (text) config = JSON.parse(text);
+}
+if (!isObj(config[key])) config[key] = config[key] || {};
+const section = config[key];
+const rel = path.relative(root, target);
+for (const [name, spec] of Object.entries(servers)) {
+  scan(spec);
+  const existing = Object.prototype.hasOwnProperty.call(section, name) ? section[name] : undefined;
+  if (existing !== undefined && existing !== null && isValid(existing)) {
+    console.log(`MCP: kept ${name} (already configured in ${rel})`);
+    continue;
+  }
+  section[name] = translate(spec);
+  console.log(`MCP: ${existing !== undefined && existing !== null ? "repaired" : "merged"} ${name} -> ${rel}`);
+}
+fs.mkdirSync(path.dirname(target), { recursive: true });
+fs.writeFileSync(target, JSON.stringify(config, null, 2) + "\n");
+const missing = [...needed].filter((v) => !process.env[v]).sort();
+if (missing.length) console.log(`MCP: set these env vars for the merged servers: ${missing.join(", ")}`);
+JS
+  }
+  run_embedded "$(_code_merge_py)" "$(_code_merge_js)" "$source" "$project_root" "$agent"
 }
 
 main() {
