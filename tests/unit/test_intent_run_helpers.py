@@ -584,6 +584,19 @@ def test_orchestrators_pass_moved_and_deleted_paths(skill):
     assert "every path the step wrote, moved or deleted" in text
 
 
+def test_factory_mission_checklist_takes_the_issue_and_reports_the_mr():
+    # adlc-workspace#12 M9 pilot, run 84412db5: the engine's execute step ran
+    # factory-mission without --issue; the skill asked for a mission and
+    # returned, and the completion gate had nothing to link.
+    text = (ROOT / "skills/factory/factory-mission/SKILL.md").read_text()
+    head = "## In a factory run — read this first"
+    assert head in text
+    assert text.index(head) < text.index("## What this skill does")
+    block = text[text.index(head):text.index("## What this skill does")]
+    for needle in ("--issue <ref>", "ADLC_ISSUE_REF", "ADLC_STEP_OUTPUT", "mr_url", "conclusion", "Never ask a question"):
+        assert needle in block, needle
+
+
 @pytest.mark.parametrize("skill", ["factory-product", "factory-architect"])
 def test_factory_run_checklist_comes_first(skill):
     # Drill run b664753d: the architecture orchestrator had the rules but read
