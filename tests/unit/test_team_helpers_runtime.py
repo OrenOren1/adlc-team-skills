@@ -30,6 +30,9 @@ TEAM_MCP = {
         "docs": {"type": "http", "url": "https://mcp.example/${TENANT}",
                  "headers": {"Authorization": "Bearer ${DOCS_TOKEN}"}},
         "off": {"command": "x", "disabled": True},
+        # Cases where the two runtimes used to differ.
+        "__proto__": {"command": "proto-mcp"},
+        "intl": {"command": "x", "env": {"NAME": "é", "D": "${OPT:-fallback}"}},
     }
 }
 

@@ -11,7 +11,8 @@
 #   --install-mcp [DIR] Merge {TEAM_AI_DIRECTIVES}/.mcp.json servers into the project's
 #                       agent MCP config at DIR, translated to the agent's own format
 #   --agent NAME        Agent for --install-mcp (default: .adlc/init-options.json "agent",
-#                       else claude). opencode -> opencode.json `mcp`; others -> .mcp.json
+#                       else claude). opencode -> opencode.json `mcp`; claude -> .mcp.json;
+#                       any other agent: nothing written, exit 3 with a by-hand list
 #   --name NAME         Team name for scaffold (default: "My Team")
 set -euo pipefail
 
@@ -676,6 +677,12 @@ JS
 # for the target agent is replaced with the translated one (repairs configs
 # written by earlier verbatim merges). Never touches other keys of the target
 # file. An explicit `"team_ai_directives": null` (opt-out) installs nothing.
+#
+# ${VAR:-default} becomes {env:VAR} for OpenCode (it has no default syntax; the
+# helper says the default was dropped). Only claude and opencode have adapters:
+# any other agent gets nothing written and exit 3 with the servers to add by
+# hand. A target that is not plain JSON (comments) is left alone, with the same
+# by-hand message.
 
 install_mcp_config() {
   local project_root="${1:-.}"
@@ -718,18 +725,38 @@ install_mcp_config() {
 import json, os, re, sys
 
 source, root, agent = sys.argv[1], sys.argv[2], sys.argv[3].lower()
-with open(source) as f:
+with open(source, encoding="utf-8") as f:
     servers = (json.load(f) or {}).get("mcpServers") or {}
 if not servers:
     print("MCP: .mcp.json declares no mcpServers; nothing to install")
     sys.exit(0)
 
-VAR = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+# Only agents with an adapter get a config written. Any other agent reads its
+# own file and shape, so writing .mcp.json for it would report success while
+# the agent starts without the servers.
+if agent in ("claude", "claude-code"):
+    agent = "claude"
+elif agent != "opencode":
+    sys.stderr.write(
+        "MCP: not installed - no MCP adapter for agent '%s' yet (supported: claude, opencode)\n"
+        "MCP: add these servers from %s to that agent's MCP config by hand: %s\n"
+        % (agent, source, ", ".join(servers)))
+    sys.exit(3)
+
+# The two forms .mcp.json expands: ${VAR} and ${VAR:-default}.
+VAR = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(:-[^}]*)?\}")
 needed = set()
+dropped_defaults = set()
 
 def scan(value):
     if isinstance(value, str):
-        needed.update(VAR.findall(value))
+        for name, default in VAR.findall(value):
+            if not default:
+                needed.add(name)
+            elif agent == "opencode":
+                # OpenCode has no default syntax: the variable becomes required.
+                needed.add(name)
+                dropped_defaults.add(name)
     elif isinstance(value, dict):
         for v in value.values():
             scan(v)
@@ -765,14 +792,18 @@ def valid_opencode(entry):
         return True
     return entry.get("type") in ("local", "remote")
 
+def by_hand(path, reason):
+    print("MCP: %s %s - not editing it; add the servers by hand: %s"
+          % (os.path.relpath(path, root), reason, ", ".join(servers)))
+    sys.exit(0)
+
 if agent == "opencode":
     candidates = [os.path.join(root, "opencode.json"), os.path.join(root, ".opencode", "opencode.json")]
     target = next((p for p in candidates if os.path.isfile(p)), candidates[0])
     if not os.path.isfile(target):
         for jsonc in (os.path.join(root, "opencode.jsonc"), os.path.join(root, ".opencode", "opencode.jsonc")):
             if os.path.isfile(jsonc):
-                print("MCP: %s exists (JSONC); add the servers by hand - not editing a commented file" % jsonc)
-                sys.exit(0)
+                by_hand(jsonc, "is JSONC")
     key, translate, is_valid = "mcp", to_opencode, valid_opencode
     config = {"$schema": "https://opencode.ai/config.json"}
 else:
@@ -781,10 +812,20 @@ else:
     config = {}
 
 if os.path.isfile(target):
-    with open(target) as f:
+    with open(target, encoding="utf-8") as f:
         text = f.read().strip()
-    config = json.loads(text) if text else config
-section = config.setdefault(key, {})
+    if text:
+        try:
+            config = json.loads(text)
+        except ValueError:
+            by_hand(target, "is not plain JSON (comments?)")
+if not isinstance(config, dict):
+    by_hand(target, "is not a JSON object")
+section = config.get(key)
+if section is None:
+    section = config[key] = {}
+elif not isinstance(section, dict):
+    by_hand(target, "has a `%s` that is not an object" % key)
 
 for name, spec in servers.items():
     scan(spec)
@@ -797,10 +838,12 @@ for name, spec in servers.items():
     print("MCP: %s %s -> %s" % (verb, name, os.path.relpath(target, root)))
 
 os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
-with open(target, "w") as f:
-    json.dump(config, f, indent=2)
+with open(target, "w", encoding="utf-8") as f:
+    json.dump(config, f, indent=2, ensure_ascii=False)
     f.write("\n")
 
+if dropped_defaults:
+    print("MCP: OpenCode has no ${VAR:-default}; dropped the default of: %s" % ", ".join(sorted(dropped_defaults)))
 missing = sorted(v for v in needed if not os.environ.get(v))
 if missing:
     print("MCP: set these env vars for the merged servers: %s" % ", ".join(missing))
@@ -811,17 +854,39 @@ PY
 const fs = require("fs");
 const path = require("path");
 const [source, root, agentArg] = process.argv.slice(1);
-const agent = agentArg.toLowerCase();
+let agent = agentArg.toLowerCase();
 const servers = ((JSON.parse(fs.readFileSync(source, "utf8")) || {}).mcpServers) || {};
 if (!Object.keys(servers).length) {
   console.log("MCP: .mcp.json declares no mcpServers; nothing to install");
   process.exit(0);
 }
-const VAR = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+// Only agents with an adapter get a config written. Any other agent reads its
+// own file and shape, so writing .mcp.json for it would report success while
+// the agent starts without the servers.
+if (agent === "claude" || agent === "claude-code") {
+  agent = "claude";
+} else if (agent !== "opencode") {
+  process.stderr.write(
+    `MCP: not installed - no MCP adapter for agent '${agent}' yet (supported: claude, opencode)\n` +
+    `MCP: add these servers from ${source} to that agent's MCP config by hand: ${Object.keys(servers).join(", ")}\n`);
+  process.exit(3);
+}
+// The two forms .mcp.json expands: ${VAR} and ${VAR:-default}.
+const VAR = /\$\{([A-Za-z_][A-Za-z0-9_]*)(:-[^}]*)?\}/g;
 const needed = new Set();
+const droppedDefaults = new Set();
 const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+// Plain assignment of a key named "__proto__" sets the prototype instead of
+// adding the key, so every server-named key is defined as an own property.
+const put = (o, k, v) => Object.defineProperty(o, k, { value: v, enumerable: true, writable: true, configurable: true });
 function scan(v) {
-  if (typeof v === "string") { for (const m of v.matchAll(VAR)) needed.add(m[1]); }
+  if (typeof v === "string") {
+    for (const m of v.matchAll(VAR)) {
+      if (!m[2]) needed.add(m[1]);
+      // OpenCode has no default syntax: the variable becomes required.
+      else if (agent === "opencode") { needed.add(m[1]); droppedDefaults.add(m[1]); }
+    }
+  }
   else if (Array.isArray(v)) v.forEach(scan);
   else if (isObj(v)) Object.values(v).forEach(scan);
 }
@@ -851,16 +916,17 @@ function validOpencode(e) {
   return e.type === "local" || e.type === "remote";
 }
 const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch (e) { return false; } };
+function byHand(p, reason) {
+  console.log(`MCP: ${path.relative(root, p)} ${reason} - not editing it; add the servers by hand: ${Object.keys(servers).join(", ")}`);
+  process.exit(0);
+}
 let target, key, translate, isValid, config;
 if (agent === "opencode") {
   const candidates = [path.join(root, "opencode.json"), path.join(root, ".opencode", "opencode.json")];
   target = candidates.find(isFile) || candidates[0];
   if (!isFile(target)) {
     for (const jsonc of [path.join(root, "opencode.jsonc"), path.join(root, ".opencode", "opencode.jsonc")]) {
-      if (isFile(jsonc)) {
-        console.log(`MCP: ${jsonc} exists (JSONC); add the servers by hand - not editing a commented file`);
-        process.exit(0);
-      }
+      if (isFile(jsonc)) byHand(jsonc, "is JSONC");
     }
   }
   key = "mcp"; translate = toOpencode; isValid = validOpencode;
@@ -872,9 +938,13 @@ if (agent === "opencode") {
 }
 if (isFile(target)) {
   const text = fs.readFileSync(target, "utf8").trim();
-  if (text) config = JSON.parse(text);
+  if (text) {
+    try { config = JSON.parse(text); } catch (e) { byHand(target, "is not plain JSON (comments?)"); }
+  }
 }
-if (!isObj(config[key])) config[key] = config[key] || {};
+if (!isObj(config)) byHand(target, "is not a JSON object");
+if (config[key] === undefined || config[key] === null) config[key] = {};
+else if (!isObj(config[key])) byHand(target, `has a \`${key}\` that is not an object`);
 const section = config[key];
 const rel = path.relative(root, target);
 for (const [name, spec] of Object.entries(servers)) {
@@ -884,11 +954,12 @@ for (const [name, spec] of Object.entries(servers)) {
     console.log(`MCP: kept ${name} (already configured in ${rel})`);
     continue;
   }
-  section[name] = translate(spec);
+  put(section, name, translate(spec));
   console.log(`MCP: ${existing !== undefined && existing !== null ? "repaired" : "merged"} ${name} -> ${rel}`);
 }
 fs.mkdirSync(path.dirname(target), { recursive: true });
 fs.writeFileSync(target, JSON.stringify(config, null, 2) + "\n");
+if (droppedDefaults.size) console.log(`MCP: OpenCode has no \${VAR:-default}; dropped the default of: ${[...droppedDefaults].sort().join(", ")}`);
 const missing = [...needed].filter((v) => !process.env[v]).sort();
 if (missing.length) console.log(`MCP: set these env vars for the merged servers: ${missing.join(", ")}`);
 JS

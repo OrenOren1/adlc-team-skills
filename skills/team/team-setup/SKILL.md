@@ -191,7 +191,7 @@ never leave a wholesale `.adlc/` ignore in place (it would hide the tracked
 - [ ] Running `team-verify` (Phase 0 of team-repair) passes all 7 checks.
 - [ ] All user-supplied paths/URLs/team names passed Input Validation (no shell metacharacters; clone URL is `https://`).
 - [ ] Mode 2 wrote `team_ai_directives` via the environment (no `$ABSOLUTE_PATH` interpolation into Python source).
-- [ ] If `{TEAM_AI_DIRECTIVES}/.mcp.json` exists, `--install-mcp` merged its `mcpServers` into the agent's config in that agent's shape (OpenCode: `type`/`command[]`/`enabled` under `mcp`), and unresolved env vars were highlighted.
+- [ ] If `{TEAM_AI_DIRECTIVES}/.mcp.json` exists, `--install-mcp` merged its `mcpServers` into the agent's config in that agent's shape (OpenCode: `type`/`command[]`/`enabled` under `mcp`), and unresolved env vars were highlighted. For an agent without an adapter (exit 3), the servers to add by hand were reported instead.
 - [ ] (Model-invoked by `team-boot`) a user decline exited cleanly without running any mode; the persistent opt-out was offered, and `team_ai_directives: null` was written only in build mode.
 
 ## Configuration

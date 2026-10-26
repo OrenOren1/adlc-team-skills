@@ -482,10 +482,14 @@ function Remove-ProjectAgentsSection {
 # MCP CONFIG INSTALL (team-setup Post-Setup step 5) — twin of install_mcp_config
 # in scripts/bash/team-helpers.sh; see the rationale there. OpenCode needs
 # {type: local|remote, command: [...], environment, enabled} under `mcp` and
-# {env:VAR} substitution; other agents take the .mcp.json shape verbatim.
+# {env:VAR} substitution; claude takes the .mcp.json shape verbatim; any other
+# agent has no adapter yet, so nothing is written and the helper exits 3.
+# The two forms .mcp.json expands: ${VAR} and ${VAR:-default}.
+$McpVarPattern = '\$\{([A-Za-z_][A-Za-z0-9_]*)(:-[^}]*)?\}'
+
 function ConvertTo-OpenCodeString {
   param($Value)
-  if ($Value -is [string]) { return [regex]::Replace($Value, '\$\{([A-Za-z_][A-Za-z0-9_]*)\}', '{env:$1}') }
+  if ($Value -is [string]) { return [regex]::Replace($Value, $McpVarPattern, '{env:$1}') }
   return $Value
 }
 
@@ -547,16 +551,26 @@ function Install-McpConfig {
     Write-Output "MCP: .mcp.json declares no mcpServers; nothing to install"
     return
   }
+  # Only agents with an adapter get a config written. Any other agent reads its own
+  # file and shape, so writing .mcp.json for it would report success while the agent
+  # starts without the servers.
+  if ($AgentName -eq "claude-code") { $AgentName = "claude" }
+  if (@("claude", "opencode") -notcontains $AgentName) {
+    [Console]::Error.WriteLine("MCP: not installed - no MCP adapter for agent '$AgentName' yet (supported: claude, opencode)")
+    [Console]::Error.WriteLine("MCP: add these servers from $Source to that agent's MCP config by hand: " + (@($Servers.Keys) -join ", "))
+    exit 3
+  }
+  $ByHand = {
+    param($Path, $Reason)
+    Write-Output ("MCP: " + [System.IO.Path]::GetRelativePath($ProjectRoot, $Path) + " $Reason - not editing it; add the servers by hand: " + (@($Servers.Keys) -join ", "))
+  }
 
   if ($AgentName -eq "opencode") {
     $Candidates = @((Join-Path $ProjectRoot "opencode.json"), (Join-Path $ProjectRoot ".opencode" "opencode.json"))
     $Target = $Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
     if (-not $Target) {
       foreach ($jsonc in @((Join-Path $ProjectRoot "opencode.jsonc"), (Join-Path $ProjectRoot ".opencode" "opencode.jsonc"))) {
-        if (Test-Path $jsonc) {
-          Write-Output "MCP: $jsonc exists (JSONC); add the servers by hand - not editing a commented file"
-          return
-        }
+        if (Test-Path $jsonc) { & $ByHand $jsonc "is JSONC"; return }
       }
       $Target = $Candidates[0]
     }
@@ -570,16 +584,31 @@ function Install-McpConfig {
 
   if (Test-Path $Target) {
     $Text = (Get-Content $Target -Raw)
-    if ($Text -and $Text.Trim()) { $Doc = $Text | ConvertFrom-Json -AsHashtable }
+    if ($Text -and $Text.Trim()) {
+      # ConvertFrom-Json accepts comments and trailing commas and would drop them on
+      # write, so check the text is plain JSON first (System.Text.Json is strict).
+      try { [System.Text.Json.JsonDocument]::Parse($Text).Dispose(); $Doc = $Text | ConvertFrom-Json -AsHashtable -ErrorAction Stop }
+      catch { & $ByHand $Target "is not plain JSON (comments?)"; return }
+    }
   }
-  if (-not $Doc.Contains($Key)) { $Doc[$Key] = [ordered]@{} }
+  if ($Doc -isnot [System.Collections.IDictionary]) { & $ByHand $Target "is not a JSON object"; return }
+  if ($null -eq $Doc[$Key]) { $Doc[$Key] = [ordered]@{} }
+  elseif ($Doc[$Key] -isnot [System.Collections.IDictionary]) { & $ByHand $Target "has a ``$Key`` that is not an object"; return }
   $Section = $Doc[$Key]
   $Rel = [System.IO.Path]::GetRelativePath($ProjectRoot, $Target)
   $Needed = [System.Collections.Generic.SortedSet[string]]::new()
+  $DroppedDefaults = [System.Collections.Generic.SortedSet[string]]::new()
 
   foreach ($name in $Servers.Keys) {
     $spec = $Servers[$name]
-    foreach ($m in [regex]::Matches(($spec | ConvertTo-Json -Depth 20), '\$\{([A-Za-z_][A-Za-z0-9_]*)\}')) { [void]$Needed.Add($m.Groups[1].Value) }
+    foreach ($m in [regex]::Matches(($spec | ConvertTo-Json -Depth 20), $McpVarPattern)) {
+      if (-not $m.Groups[2].Success) { [void]$Needed.Add($m.Groups[1].Value) }
+      elseif ($AgentName -eq "opencode") {
+        # OpenCode has no default syntax: the variable becomes required.
+        [void]$Needed.Add($m.Groups[1].Value)
+        [void]$DroppedDefaults.Add($m.Groups[1].Value)
+      }
+    }
     $existing = if ($Section.Contains($name)) { $Section[$name] } else { $null }
     # {"enabled": <bool>} alone is OpenCode's on/off override for a server defined elsewhere: keep it.
     $isOverride = $existing -is [System.Collections.IDictionary] -and $existing.Count -eq 1 -and $existing.Contains('enabled') -and $existing['enabled'] -is [bool]
@@ -597,6 +626,7 @@ function Install-McpConfig {
   if ($Dir -and -not (Test-Path $Dir)) { New-Item -ItemType Directory -Path $Dir -Force | Out-Null }
   ($Doc | ConvertTo-Json -Depth 20) + "`n" | Set-Content -Path $Target -Encoding UTF8 -NoNewline
 
+  if ($DroppedDefaults.Count -gt 0) { Write-Output ('MCP: OpenCode has no ${VAR:-default}; dropped the default of: ' + (@($DroppedDefaults) -join ", ")) }
   $Missing = @($Needed | Where-Object { -not [Environment]::GetEnvironmentVariable($_) })
   if ($Missing.Count -gt 0) { Write-Output ("MCP: set these env vars for the merged servers: " + ($Missing -join ", ")) }
 }

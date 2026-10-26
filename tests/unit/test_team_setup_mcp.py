@@ -6,7 +6,8 @@ that shape under `mcp` in opencode.json and refuses to start, which failed
 every headless review/mission pod whose setup copied it verbatim. The helper
 must translate it for OpenCode (`type`/`command[]`/`environment`/`enabled`,
 `{env:VAR}`), repair entries an earlier verbatim merge broke, keep valid entries
-and unrelated keys, and pass `.mcp.json` through verbatim for other agents.
+and unrelated keys, and pass `.mcp.json` through verbatim for Claude. Agents
+with no adapter get nothing written and a loud failure, never a false "merged".
 """
 
 import json
@@ -61,13 +62,17 @@ def runtime(request, monkeypatch):
     return request.param
 
 
-def install(project, *extra, env=None):
+def run_install(project, *extra, env=None):
     if env is not None:
         env = {**env, "TEAM_HELPERS_RUNTIME": os.environ["TEAM_HELPERS_RUNTIME"]}
-    result = subprocess.run(
+    return subprocess.run(
         ["bash", str(HELPER), "--install-mcp", str(project), *extra],
         capture_output=True, text=True, env=env,
     )
+
+
+def install(project, *extra, env=None):
+    result = run_install(project, *extra, env=env)
     assert result.returncode == 0, result.stderr
     return result.stdout
 
@@ -159,7 +164,7 @@ def test_opt_out_marker_installs_nothing(tmp_path):
 
 
 @pytest.mark.requires_bash
-def test_other_agents_get_mcp_json_verbatim(tmp_path):
+def test_claude_gets_mcp_json_verbatim(tmp_path):
     project = make_project(tmp_path, "claude")
     install(project)
     cfg = json.loads((project / ".mcp.json").read_text())
@@ -203,3 +208,80 @@ def test_opencode_accepts_the_written_config(tmp_path):
     )
     assert "Configuration is invalid" not in result.stderr, result.stderr
     assert result.returncode == 0
+
+
+DEFAULTS_MCP = {"mcpServers": {"gl": {"command": "npx", "env": {"T": "${TOK:-dflt}", "U": "${URL}"}}}}
+
+
+@pytest.mark.requires_bash
+def test_opencode_translates_var_with_default_and_says_the_default_is_dropped(tmp_path):
+    # ${VAR:-default} is valid .mcp.json. Left as-is it reaches the server as a
+    # literal string, the same failure as an untranslated ${VAR}.
+    project = make_project(tmp_path, "opencode", team_mcp=DEFAULTS_MCP)
+    out = install(project, env={"PATH": os.environ["PATH"]})
+    env = json.loads((project / "opencode.json").read_text())["mcp"]["gl"]["environment"]
+    assert env == {"T": "{env:TOK}", "U": "{env:URL}"}
+    assert "dropped the default of: TOK" in out
+    assert "set these env vars for the merged servers: TOK, URL" in out
+
+
+@pytest.mark.requires_bash
+def test_claude_keeps_var_with_default_and_does_not_require_it(tmp_path):
+    # Claude expands ${VAR:-default} itself, so the variable is optional there.
+    project = make_project(tmp_path, "claude", team_mcp=DEFAULTS_MCP)
+    out = install(project, env={"PATH": os.environ["PATH"]})
+    assert json.loads((project / ".mcp.json").read_text())["mcpServers"] == DEFAULTS_MCP["mcpServers"]
+    assert "set these env vars for the merged servers: URL" in out
+    assert "dropped the default" not in out
+
+
+@pytest.mark.requires_bash
+@pytest.mark.parametrize("agent", ["cursor", "codex", "gemini", "some-new-agent"])
+def test_agent_without_adapter_fails_loudly_and_writes_nothing(tmp_path, agent):
+    # These agents read other files and shapes. A root .mcp.json would be ignored
+    # by them while setup reported the servers as merged.
+    project = make_project(tmp_path, agent)
+    result = run_install(project)
+    assert result.returncode == 3
+    assert f"no MCP adapter for agent '{agent}'" in result.stderr
+    assert "by hand: context7, gitlab, docs" in result.stderr
+    assert "merged" not in result.stdout
+    assert not (project / ".mcp.json").exists() and not (project / "opencode.json").exists()
+
+
+@pytest.mark.requires_bash
+@pytest.mark.parametrize("agent,target,key", [("opencode", "opencode.json", "mcp"), ("claude", ".mcp.json", "mcpServers")])
+def test_server_named_proto_is_written(tmp_path, agent, target, key):
+    # In JavaScript, section["__proto__"] = x sets the prototype instead of a key.
+    project = make_project(tmp_path, agent, team_mcp={"mcpServers": {"__proto__": {"command": "example-mcp"}}})
+    install(project)
+    assert "__proto__" in json.loads((project / target).read_text())[key]
+    out = install(project)
+    assert "kept __proto__" in out
+
+
+@pytest.mark.requires_bash
+def test_non_ascii_values_are_written_as_utf8(tmp_path):
+    project = make_project(tmp_path, "opencode", team_mcp={"mcpServers": {"x": {"command": "x", "env": {"N": "é"}}}})
+    install(project)
+    text = (project / "opencode.json").read_text(encoding="utf-8")
+    assert '"N": "é"' in text
+
+
+@pytest.mark.requires_bash
+def test_opencode_null_mcp_section_is_treated_as_empty(tmp_path):
+    project = make_project(tmp_path, "opencode")
+    (project / "opencode.json").write_text(json.dumps({"$schema": "https://opencode.ai/config.json", "mcp": None}))
+    install(project)
+    assert set(json.loads((project / "opencode.json").read_text())["mcp"]) == {"context7", "gitlab", "docs"}
+
+
+@pytest.mark.requires_bash
+def test_commented_opencode_json_is_left_alone(tmp_path):
+    # OpenCode accepts comments in opencode.json; the helper cannot edit them safely.
+    project = make_project(tmp_path, "opencode")
+    original = '{\n  // mine\n  "mcp": {}\n}\n'
+    (project / "opencode.json").write_text(original)
+    out = install(project)
+    assert "opencode.json is not plain JSON (comments?) - not editing it; add the servers by hand: context7, gitlab, docs" in out
+    assert (project / "opencode.json").read_text() == original
